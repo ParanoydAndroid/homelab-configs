@@ -1,0 +1,34 @@
+version: "3.5"
+services:
+  portainer:
+    image: portainer/portainer-ce:lts
+    container_name: portainer
+    hostname: portainer
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /volume1/docker/portainer/data:/data
+    ports:
+      - 8010:8000
+      - 8011:9000
+    environment:
+      - PUID=1027
+      - PGID=100
+      - UMASK=022
+    labels:
+      - homepage.group=Administration
+      - homepage.name=Portainer
+      - homepage.icon=portainer
+      - homepage.href=http://containers.turing.home
+      - homepage.description="Stack and container management for (almost) all turing.home services."
+      - homepage.widget.type=portainer
+      - homepage.widget.url=http://portainer:9000
+      - homepage.widget.key=ptr_7JvUKwsvEppdgsC5MLSCjIR/SVb/y+lfa8iErLeYtIc=
+      - homepage.widget.env=3
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

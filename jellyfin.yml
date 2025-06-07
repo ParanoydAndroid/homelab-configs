@@ -1,0 +1,38 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    hostname: jellyfin
+
+    env_file: stack.env
+    environment:
+      PUID: 1027
+      GUID: 100
+      UMASK: 022
+      TZ: "America/New_York"
+      JELLYFIN_PublishedServerUrl: http://jellyfin:8096
+    volumes:
+      - /volume1/docker/jellyfin/data/config:/config
+      - /volume1/Public:/data/media
+    ports:
+      - ${PORT_EXTERNAL_HTTP}:8096/tcp # http
+      - ${PORT_EXTERNAL_HTTPS}:8920/tcp # https
+      - 8022:7359/udp # autodiscovery
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    labels:
+      - homepage.group=Players
+      - homepage.name=Jellyfin
+      - homepage.icon=jellyfin
+      - homepage.href=http://jellyfin.turing.home
+      - homepage.description="Open source media server.  Hosts local movies, shows, music, and ebooks."
+      - homepage.widget.type=jellyfin
+      - homepage.widget.url=http://jellyfin:8096
+      - homepage.widget.key=3ded63b2478940caa8d620e6ad3d2c9a
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

@@ -1,0 +1,28 @@
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    hostname: homepage
+    privileged: true
+    ports:
+      - ${HTTP_EXTERNAL_PORT}:3000
+    environment:
+      PUID: 0
+      GUID: 0
+      UMASK: 022
+      HOMEPAGE_ALLOWED_HOSTS: homepage.turing.home,www.turing.home
+    volumes:
+      - /volume1/docker/homepage/data:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file: stack.env
+    networks:
+      - homelab
+    labels:
+      - homepage.group=Administration
+      - homepage.name=Homepage
+      - homepage.icon=homepage
+      - homepage.description=Dashboard
+
+networks:
+  homelab:
+    external: true

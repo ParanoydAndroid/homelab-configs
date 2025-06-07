@@ -1,0 +1,55 @@
+version: "3.5"
+services:
+  qbittorrentvpn:
+    # The image cannot be updated any longer.  newer versions require a newer kernel (> 4.4)
+    image: binhex/arch-qbittorrentvpn:4.3.3-1-02
+    container_name: qbittorrentvpn
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
+    restart: unless-stopped
+    volumes:
+      - /volume1/docker/qbittorrentvpn/data/config:/config
+      # Fix added because otherwise this version of the image tries to retrieve the token from 10.0.0.1
+      - /volume1/docker/qbittorrentvpn/data/getvpnport.sh:/root/getvpnport.sh
+      - /volume1/Public:/media
+    ports:
+      - 8081:8081
+      - 58946:58946
+      - 58946:58946/udp
+    environment:
+      DEBUG: true
+      WEBUI_PORT: 8081
+      VPN_ENABLED: yes
+      VPN_PROV: pia
+      VPN_CLIENT: openvpn
+      VPN_USER: p3740891
+      VPN_PASS: Hawaii-ne-8991-longer
+      STRICT_PORT_FORWARD: yes
+      ENABLE_PRIVYOXY: no
+      ENABLE_SOCKS: no
+      NAME_SERVERS: 9.9.9.10,149.112.112.10
+      LAN_NETWORK: 192.168.0.0/16
+      PUID: 1027
+      PGID: 100
+    logging:
+      options:
+        max-size: "1m"
+        max-file: "3"
+    labels:
+      - homepage.group=Downloads
+      - homepage.name=QBittorrentVPN
+      - homepage.icon=qbittorrent
+      - homepage.href=http://torrent.turing.home
+      - homepage.description="New Torrent client with attached VPN kill switch."
+      - homepage.widget.type=qbittorrent
+      - homepage.widget.url=http://qbittorrentvpn:8081
+      - homepage.widget.username=admin
+      - homepage.widget.password=Hawaii-ne-8991-longer
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true
