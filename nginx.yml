@@ -3,6 +3,7 @@ services:
     image: "jc21/nginx-proxy-manager:latest"
     container_name: nginx
     restart: unless-stopped
+    privileged: true
     environment:
       PUID: 1027
       PGID: 100
