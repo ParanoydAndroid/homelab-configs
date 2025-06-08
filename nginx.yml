@@ -1,0 +1,26 @@
+services:
+  nginx:
+    image: "jc21/nginx-proxy-manager:latest"
+    container_name: nginx
+    restart: unless-stopped
+    environment:
+      PUID: 1027
+      PGID: 100
+    ports:
+      - 81:80
+      - 444:443
+      - 8600:81
+    volumes:
+      - /volume1/docker/nginx/data/data:/data
+      - /volume1/docker/nginx/data/letsencrypt:/etc/letsencrypt
+      # - /volume1/docker/nginx/data/config.json:/config/config.json
+      # - /volume1/docker/nginx/data/hosts:/config/hosts
+    networks:
+      - homelab
+      - internal
+
+networks:
+  homelab:
+    external: true
+  internal:
+    external: true
