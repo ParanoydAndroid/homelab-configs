@@ -1,0 +1,31 @@
+services:
+  tandoor:
+    image: vabene1111/recipes
+    container_name: tandoor
+    restart: unless-stopped
+    ports:
+      - 8050:8050
+    volumes:
+      - staticfiles:/opt/recipes/staticfiles
+      # Do not make this a bind mount, see https://docs.tandoor.dev/install/docker/#volumes-vs-bind-mounts
+      - nginx_config:/opt/recipes/nginx/conf.d
+      - ./mediafiles:/opt/recipes/mediafiles
+    environment:
+      # random secret key, use for example `base64 /dev/urandom | head -c50` to generate one      # random secret key, use for example `base64 /dev/urandom | head -c50` to generate one
+      SECRET_KEY: "zcjrXxSAo/3mbKi5ATEgVtkesL3EIFqtlwf/Vy84DhqG28kff"
+
+      # allowed hosts (see documentation), should be set to your hostname(s) but might be * (default) for some proxies/providers
+      # ALLOWED_HOSTS=recipes.mydomain.com
+
+      # add only a database password if you want to run with the default postgres, otherwise change settings accordingly
+      DB_URL: postgresql://admin:password@postgresql:5432/recipes
+      TANDOOR_PORT: 8050
+    networks:
+      - homelab
+      - internal
+
+networks:
+  homelab:
+    external: true
+  internal:
+    external: true
