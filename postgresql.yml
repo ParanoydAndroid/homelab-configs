@@ -15,4 +15,3 @@ services:
 networks:
   internal:
     driver: bridge
-    internal: true

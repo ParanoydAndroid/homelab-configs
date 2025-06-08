@@ -22,5 +22,3 @@ services:
 networks:
   homelab:
     external: true
-  internal:
-    external: true
