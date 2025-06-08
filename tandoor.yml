@@ -18,7 +18,7 @@ services:
       # ALLOWED_HOSTS=recipes.mydomain.com
 
       # add only a database password if you want to run with the default postgres, otherwise change settings accordingly
-      DATABASE_URL: postgresql://admin:password@postgresql:5432/recipes
+      DATABASE_URL: postgresql://postgres:password@postgresql:5432/recipes
       TANDOOR_PORT: 8050
     networks:
       - homelab
