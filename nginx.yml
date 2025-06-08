@@ -17,7 +17,6 @@ services:
       # - /volume1/docker/nginx/data/hosts:/config/hosts
     networks:
       - homelab
-      - internal
 
 networks:
   homelab:
