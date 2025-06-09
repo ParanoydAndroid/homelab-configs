@@ -1,12 +1,17 @@
 services:
   nginx:
-    image: "jc21/nginx-proxy-manager:latest"
+    image: jc21/nginx-proxy-manager:latest
     container_name: nginx
     restart: unless-stopped
     ports:
-      - 0480:80
-      - 9443:443
-      - 9444:81
+      - 8480:80
+      - 8443:443
+      - 8444:81
+    environment:
+      - DISABLE_IPV6=true
+      - DB_SQLITE_FILE=/data/db.sqlite
+      # Uncomment the following line to use a custom config file
+      # - NPM_CONFIG_FILE=/config/config.json
     volumes:
       - /volume1/docker/nginx/data/data:/data
       - /volume1/docker/nginx/data/letsencrypt:/etc/letsencrypt
