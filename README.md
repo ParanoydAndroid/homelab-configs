@@ -56,3 +56,26 @@ name.
 |              | 8042            | 9696                   |          |          |
 | Flaresolverr |                 |                        |          |          |
 |              | 8043            | 8191                   |          |          |
+| Tandoor      |                 |                        |          |          |
+|              | 8050            | 8050                   |          | *        |
+| Postgres     |                 |                        |          |          |
+|              |                 | 5432                   |          | *        |
+| nginx        |                 |                        |          |          |
+|              | 8480            | 80                     |          | These ports are set by the gateway on port foward (e.g. ext 80 --> int 4880).  \This avoids an issue with binding 80/443 on the DSM reverse proxy|
+|              | 8443            | 443                    |          |          |
+|              | 8444            | 81                     |          | *        |
+
+
+
+Individual app notes:
+
+nginx - Reverse proxy setup for all external addresses via npm rules:
+- http -> default page
+- Get certs
+- setup https (force HTTPS), redirect to http protocol.
+- Custom location for apps that need media service: mount /media everywhere, then the location is just
+    ```
+    location /media/ {
+        root /;
+    }
+    ```
