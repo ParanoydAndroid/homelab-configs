@@ -4,9 +4,9 @@ services:
     container_name: nginx
     restart: unless-stopped
     ports:
-      - 81:80
-      - 444:443
-      - 8600:81
+      - 8480:80
+      - 8443:443
+      - 8444:81
     volumes:
       - /volume1/docker/nginx/data/data:/data
       - /volume1/docker/nginx/data/letsencrypt:/etc/letsencrypt

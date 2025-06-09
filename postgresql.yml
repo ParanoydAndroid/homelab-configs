@@ -10,8 +10,8 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: recipes
     networks:
-      - internal
+      - homelab
 
 networks:
-  internal:
+  homelab:
     external: true
