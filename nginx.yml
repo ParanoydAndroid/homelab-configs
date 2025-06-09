@@ -7,8 +7,8 @@ services:
       # In order for 80 and 443 to work, you need to unbind the built in nginx server in DSM
       # sudo sed -i -e 's/80/81/' -e 's/443/444/' /usr/syno/share/nginx/server.mustache /usr/syno/share/nginx/DSM.mustache /usr/syno/share/nginx/WWWService.mustache
       # sudo systemctl restart nginx
-      - 80:80
-      - 443:443
+      - 8480:80
+      - 8443:443
       - 8444:81
     environment:
       - DISABLE_IPV6=true
