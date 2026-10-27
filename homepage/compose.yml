@@ -9,12 +9,11 @@ services:
     environment:
       PUID: 0
       GUID: 0
-      UMASK: 022
+      UMASK: 22
       HOMEPAGE_ALLOWED_HOSTS: homepage.turing.home,www.turing.home
     volumes:
       - /volume1/docker/homepage/data:/app/config
       - /var/run/docker.sock:/var/run/docker.sock
-    env_file: stack.env
     networks:
       - homelab
     labels:
@@ -22,7 +21,6 @@ services:
       - homepage.name=Homepage
       - homepage.icon=homepage
       - homepage.description=Dashboard
-
 networks:
   homelab:
     external: true
