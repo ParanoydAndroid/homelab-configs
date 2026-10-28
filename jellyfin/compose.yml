@@ -16,6 +16,15 @@ services:
       - ${PORT_EXTERNAL_HTTP}:8096/tcp # http
       - ${PORT_EXTERNAL_HTTPS}:8920/tcp # https
       - 8022:7359/udp # autodiscovery
+    
+    # Expose Intel iGPU render node for Quick Sync hardware transcoding
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+      
+    # Map host render group (105) permissions into container to prevent permission denied errors
+    group_add:
+      - "989"
+      
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -24,8 +33,7 @@ services:
       - homepage.name=Jellyfin
       - homepage.icon=jellyfin
       - homepage.href=http://jellyfin.turing.home
-      - homepage.description="Open source media server.  Hosts local movies,
-        shows, music, and ebooks."
+      - homepage.description="Open source media server.  Hosts local movies, shows, music, and ebooks."
       - homepage.widget.type=jellyfin
       - homepage.widget.url=http://jellyfin:8096
       - homepage.widget.key=${WIDGET_KEY}
@@ -34,3 +42,5 @@ services:
 networks:
   homelab:
     external: true
+
+
