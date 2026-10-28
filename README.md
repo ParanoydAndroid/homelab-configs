@@ -7,6 +7,15 @@
 - Gateway at 192.168.0.1/24
 - Gateway exposes a wireguard vpn at 192.168.1.128/25 (gateway at 128)
 - Docker on NAS uses *user created* network homelab, at 192.168.255.0/24 (gateway at 1)
+- NPM connects to the homelab network but also must be exposed directly on the LAN in order to properly intercept 80/443 traffic.  So another docker network must be setup with the macvlan driver, which allows the container to present as a device on the network:
+
+```
+docker network create -d macvlan \
+  --subnet=192.168.0.0/24 \
+  --gateway=192.168.0.1 \
+  -o parent=eth0 \
+  external_npm
+```
 
 ### Static ip and dns assignments
 - Pi-hole at 0.2
