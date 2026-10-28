@@ -598,10 +598,18 @@ deploy_configs() {
   fi
 
   # 3. Deploy qBittorrentVPN PIA port-forwarding script with executable permissions (0755)
-  # and non-root service ownership (${PUID}:${PGID}).
+  # and OpenVPN profile(s) with non-root service ownership (${PUID}:${PGID}).
   if [[ -f "${REPO_DIR}/.configs/qbittorrentvpn/getvpnport.sh" ]]; then
     sync_file "${REPO_DIR}/.configs/qbittorrentvpn/getvpnport.sh" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh" "0755" || true
     chown "${PUID:-1000}:${PGID:-100}" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh" 2>/dev/null || true
+  fi
+  if [[ -d "${REPO_DIR}/.configs/qbittorrentvpn/openvpn" ]]; then
+    local ovpn_file
+    for ovpn_file in "${REPO_DIR}/.configs/qbittorrentvpn/openvpn/"*.ovpn; do
+      [[ -f "${ovpn_file}" ]] || continue
+      sync_file "${ovpn_file}" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/config/openvpn/$(basename "${ovpn_file}")" "0644" || true
+      chown "${PUID:-1000}:${PGID:-100}" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/config/openvpn/$(basename "${ovpn_file}")" 2>/dev/null || true
+    done
   fi
 
   # 4. Deploy Nginx Proxy Manager generated .conf files (subject to SSL certificate guard).
@@ -668,11 +676,19 @@ pull_configs() {
     done
   fi
 
-  # 2. Pull qBittorrentVPN port-forwarding script.
-  mkdir -p "${REPO_DIR}/.configs/qbittorrentvpn"
+  # 2. Pull qBittorrentVPN port-forwarding script and active OpenVPN profile(s).
+  mkdir -p "${REPO_DIR}/.configs/qbittorrentvpn/openvpn"
   if [[ -f "${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh" ]]; then
     cp -p "${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh" "${REPO_DIR}/.configs/qbittorrentvpn/getvpnport.sh"
     chmod 0755 "${REPO_DIR}/.configs/qbittorrentvpn/getvpnport.sh"
+  fi
+  if [[ -d "${DOCKER_DATA_DIR}/qbittorrentvpn/data/config/openvpn" ]]; then
+    rm -f "${REPO_DIR}/.configs/qbittorrentvpn/openvpn/"*.ovpn 2>/dev/null || true
+    local ovpn_src
+    for ovpn_src in "${DOCKER_DATA_DIR}/qbittorrentvpn/data/config/openvpn/"*.ovpn; do
+      [[ -f "${ovpn_src}" ]] || continue
+      cp -p "${ovpn_src}" "${REPO_DIR}/.configs/qbittorrentvpn/openvpn/$(basename "${ovpn_src}")"
+    done
   fi
 
   # 3. Export Nginx Proxy Manager non-sensitive routing tables and copy generated .conf files.

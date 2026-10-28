@@ -20,11 +20,11 @@ cd "/home/${USER}/services"
 sudo ./homelab.sh setup
 
 # 3. Populate required per-stack secrets and API keys in the generated .env files:
-#    - homepage/.env       (HOMEPAGE_VAR_PIHOLE_KEY)
-#    - qbittorrentvpn/.env (VPN_USER, VPN_PASS, QBITTORRENT_WIDGET_PASSWORD)
-#    - tandoor/.env        (SECRET_KEY)
-#    - jellyfin/.env       (JELLYFIN_WIDGET_KEY)
-#    - sonarr-radarr/.env  (RADARR_WIDGET_KEY, SONARR_WIDGET_KEY, PROWLARR_WIDGET_KEY)
+#    - homepage/.env       (HOMEPAGE_VAR_PIHOLE_KEY: Pi-hole Web UI password / API token)
+#    - qbittorrentvpn/.env (VPN_USER, VPN_PASS: PIA credentials; QBITTORRENT_WIDGET_PASSWORD: WebUI password)
+#    - tandoor/.env        (SECRET_KEY: generate via `base64 /dev/urandom | head -c50`)
+#    - jellyfin/.env       (JELLYFIN_WIDGET_KEY: Jellyfin Dashboard -> Administration -> API Keys)
+#    - sonarr-radarr/.env  (RADARR_WIDGET_KEY, SONARR_WIDGET_KEY, PROWLARR_WIDGET_KEY: Settings -> General -> Security -> API Key)
 
 # 4. Re-run setup to sync variables, deploy tracked configs, and start all containers
 sudo ./homelab.sh setup
@@ -114,11 +114,11 @@ All live `.env` files are ignored by git (`.gitignore`). Configuration uses a tw
    - When `./homelab.sh setup` runs, it initializes the root `.env` (resolving `${SUDO_USER:-${USER}}` into literal paths) and automatically syncs those global keys into every `<stack>/.env` and `${DOCKGE_DIR}/.env`.
 2. **Per-Stack `<stack>/.env.example` (Secrets and Per-Install Keys)**:
    - Defines external credentials and per-installation API/cryptographic keys with blank defaults (`KEY=`):
-     - `homepage/.env.example`: `HOMEPAGE_VAR_PIHOLE_KEY=`
-     - `jellyfin/.env.example`: `JELLYFIN_WIDGET_KEY=`
-     - `qbittorrentvpn/.env.example`: `VPN_USER=`, `VPN_PASS=`, `QBITTORRENT_WIDGET_PASSWORD=`
-     - `sonarr-radarr/.env.example`: `RADARR_WIDGET_KEY=`, `SONARR_WIDGET_KEY=`, `PROWLARR_WIDGET_KEY=`
-     - `tandoor/.env.example`: `SECRET_KEY=`
+     - `homepage/.env.example`: `HOMEPAGE_VAR_PIHOLE_KEY=` (Pi-hole admin password or API token from Pi-hole **Settings -> API / Web interface**)
+     - `jellyfin/.env.example`: `JELLYFIN_WIDGET_KEY=` (Generated in Jellyfin **Dashboard -> Administration -> API Keys -> `+`**)
+     - `qbittorrentvpn/.env.example`: `VPN_USER=`, `VPN_PASS=` (Private Internet Access OpenVPN/account credentials), `QBITTORRENT_WIDGET_PASSWORD=` (qBittorrent WebUI password configured in **Tools -> Options -> Web UI -> Authentication**)
+     - `sonarr-radarr/.env.example`: `RADARR_WIDGET_KEY=`, `SONARR_WIDGET_KEY=`, `PROWLARR_WIDGET_KEY=` (Found in each app under **Settings -> General -> Security -> API Key**)
+     - `tandoor/.env.example`: `SECRET_KEY=` (Random 50-character secret generated via `base64 /dev/urandom | head -c50`)
 
 ### 4.1 How Homepage Dashboard Service Discovery and Widget Keys Work
 Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active streams, torrent speeds, queue counts, DNS queries) by polling each backend service's HTTP API over the internal `homelab` Docker network (`192.168.255.0/24`). Credentials and API keys are supplied through two mechanisms so that **no secrets are ever committed to git**:
@@ -267,13 +267,3 @@ Because the stock `/root/getvpnport.sh` bundled in `binhex/arch-qbittorrentvpn:4
    Calls `https://${vpn_gateway_ip}:19999/getSignature?token=${token}` over the VPN tunnel. PIA returns a base64-encoded JSON `payload` (containing the dynamically allocated `port` and a ~60-day `expires_at` timestamp) plus a cryptographic `signature`. The script writes the allocated port number to `/tmp/getvpnport`, which binhex's `qbittorrent.sh` watchdog reads to automatically update `Connection\PortRangeMin` in `/config/qBittorrent/config/qBittorrent.conf` before starting `qbittorrent-nox`.
 4. **15-Minute Keepalive Loop (`bind_incoming_port_nextgen`)**:
    Spawns a background loop that calls `https://${vpn_gateway_ip}:19999/bindPort` with `payload` and `signature` every 15 minutes (`sleep 15m`). If the lease expires (~60 days) or fails after 12 retries, it touches `/tmp/portfailure` to trigger a tunnel/port renegotiation.
-
-#### Architectural Assessment: Is This Still a Good Approach with PIA?
-- **Protocol Validity**: **Yes.** PIA's NextGen port-forwarding protocol (`generateToken` -> `:19999/getSignature` -> `:19999/bindPort` every 15 minutes) remains PIA's active production API for dynamic port forwarding on both OpenVPN and WireGuard.
-- **Known Limitations of the Current Setup**:
-  1. **Pinned Old qBittorrent Version (`4.3.3`)**: Because `binhex/arch-qbittorrentvpn` bundles the VPN client and qBittorrent into a single image pinned to `4.3.3-1-02`, qBittorrent itself cannot be updated independently.
-  2. **Host Port `58946` is Unused When Dynamic Port Forwarding is Active**: Because incoming peer connections arrive inside the `tun0` VPN tunnel on the dynamically assigned PIA port (not on the NAS LAN IP `192.168.0.3:58946`), the host port mapping `58946:58946` in `qbittorrentvpn/compose.yml` does not carry VPN peer traffic.
-- **Recommended Future Upgrade Path (Decoupled `gluetun` + `qbittorrent`)**:
-  If you ever wish to upgrade to a modern qBittorrent 4.6+/5.x release on this NAS, the recommended pattern is to decouple the VPN and torrent client into two containers inside `qbittorrentvpn/compose.yml`:
-  - **`qmcgaw/gluetun`**: A lightweight Go VPN client container that natively implements PIA NextGen port forwarding (`VPN_SERVICE_PROVIDER=private internet access`, `VPN_PORT_FORWARDING=on`) without external shell scripts and automatically pushes the assigned port to qBittorrent's WebUI API (`VPN_PORT_FORWARDING_UP_COMMAND`).
-  - **`lscr.io/linuxserver/qbittorrent`**: Configured with `network_mode: "service:gluetun"` so it shares Gluetun's network stack and kill switch while allowing qBittorrent to be updated independently.
