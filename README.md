@@ -100,8 +100,8 @@ All HTTP/HTTPS web applications are reverse-proxied by Nginx Proxy Manager over 
 | FlareSolverr | `sonarr-radarr/` | `8043` | `8191` | TCP (HTTP) | No (Internal / NPM) | `https://flaresolverr.turing.home` | None | Stateless |
 | Tandoor Recipes | `tandoor/` | `8050` | `8050` | TCP (HTTP) | No (Proxied via NPM) | `https://recipes.turing.home` | `https://recipes.kamaka.tech` | `/volume1/docker/tandoor/data/{staticfiles,mediafiles}` |
 | PostgreSQL | `postgres/` | None | `5432` | TCP | No (`homelab` only) | `postgresql:5432` (Internal) | None | `/volume1/docker/postgres/data` |
-| qBittorrentVPN | `qbittorrentvpn/` | `8081` | `8081` | TCP (WebUI) | No (Proxied via NPM) | `https://torrent.turing.home` | None | `/volume1/docker/qbittorrentvpn/data/config` |
-| qBittorrentVPN Peers | `qbittorrentvpn/` | `58946` | `58946` | TCP / UDP | **Yes** (`58946:58946`) | VPN / Peer Port | VPN Tunnel | `/volume1/media` |
+| WireGuard PIA VPN | `qbittorrentvpn/` | `8081` | `8081` | TCP (WebUI) | No (Proxied via NPM) | `https://torrent.turing.home` | None | `/volume1/docker/qbittorrentvpn/data/{pia,pia-shared}` |
+| qBittorrent | `qbittorrentvpn/` | Dynamic (PIA) | Dynamic (PIA) | TCP / UDP | No (`wg0` VPN Tunnel) | `http://qbittorrentvpn:8081` (Internal) | VPN Tunnel (`wg0`) | `/volume1/docker/qbittorrentvpn/data/config`, `/volume1/media` |
 
 ---
 
@@ -155,7 +155,7 @@ Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active
 - `./homelab.sh deploy-configs`:
   Compares tracked files in `.configs/` against live files in `/volume1/docker/...` and `${DOCKGE_DIR}/compose.yml`. When differences are detected, shows a unified diff and prompts `[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`. Skips deploying NPM proxy host `.conf` files whose referenced SSL certificates do not yet exist on disk, and reloads Nginx if any NPM config changes.
 - `./homelab.sh pull-configs`:
-  Retrieves live configuration changes made via UIs (Homepage YAML files, NPM `db.sqlite` host exports and `.conf` files, and `getvpnport.sh`) from `/volume1/docker/...` back into `.configs/` so they can be inspected with `git diff` and committed.
+  Retrieves live configuration changes made via UIs (Homepage YAML files, NPM `db.sqlite` host exports and `.conf` files, and `set-qbt-port.sh`) from `/volume1/docker/...` back into `.configs/` so they can be inspected with `git diff` and committed.
 - `./homelab.sh backup` (or `./backup-homelab.bash`):
   Creates a timestamped archive `/volume1/docker/backup/homelab/YYYYMMDD_homelab_config.tar.gz` containing `README.md`, `homelab.sh`, `.configs/`, all `compose.yml` files, live `.env` files, and portable service configurations.
 
@@ -246,24 +246,20 @@ systemctl --user unset-environment GODEBUG || true
 sudo systemctl daemon-reexec
 ```
 
-### 6.6 qBittorrentVPN Architecture, PIA Dynamic Port Forwarding, and `getvpnport.sh`
+### 6.6 WireGuard PIA VPN + qBittorrent Architecture and Automated Port Forwarding
 
-#### How the Container and VPN Kill Switch Work
-The `qbittorrentvpn` stack uses `binhex/arch-qbittorrentvpn:4.3.3-1-02` with `cap_add: [NET_ADMIN]` and `sysctls: [net.ipv4.conf.all.src_valid_mark=1]`:
-1. **Root Init & Privilege Drop**: The container starts as `root` so its init scripts can create the `tun0` device, launch OpenVPN (`VPN_CLIENT=openvpn`, `VPN_PROV=pia`), and program `iptables` packet-filtering rules. Once the tunnel is up, the `qbittorrent-nox` daemon is launched as the unprivileged user `PUID=1000` / `PGID=100`.
-2. **`iptables` Kill Switch**: The container's `iptables` policy drops all outbound and inbound BitTorrent traffic on `eth0`, permitting peer traffic exclusively over `tun0` (the PIA OpenVPN interface) and permitting WebUI traffic (`8081`) only from `LAN_NETWORK` (`192.168.0.0/16`) and the Docker bridge subnet (`192.168.255.0/24`).
-3. **Why the Image Version is Pinned (`4.3.3-1-02`)**: Newer builds of `binhex/arch-qbittorrentvpn` require newer Linux kernel/glibc capabilities than the UGREEN NAS 4.4-era kernel provides.
+#### Decoupled Two-Container Network Namespace (`wireguard-pia` + `qbittorrentvpn`)
+The `qbittorrentvpn/compose.yml` stack decouples the VPN gateway and BitTorrent client into two dedicated containers sharing a single network namespace:
+1. **`vpn` (`thrnz/docker-wireguard-pia:latest`, container `wireguard-pia`)**:
+   - Authenticates against Private Internet Access (`USER` / `PASS`) and registers a WireGuard keypair with the region configured in `LOC` (`ca_ontario,ca_toronto,ca_montreal` primary with commented alternatives `us_chicago` and `us_east` in `qbittorrentvpn/compose.yml`).
+   - Creates the kernel-space `wg0` WireGuard interface (`fwmark 0xca6c`) and enforces an `iptables` kill switch (`FIREWALL: 1`) that drops all untunnelled traffic except local WebUI traffic from `LOCAL_NETWORK: 192.168.0.0/16` (covering the home LAN `192.168.0.0/24`, remote WireGuard `192.168.1.128/25`, and internal `homelab` Docker bridge `192.168.255.0/24`).
+   - Attaches to the `homelab` Docker bridge network (`192.168.255.0/24`) with network alias and hostname `qbittorrentvpn`.
+2. **`qbittorrent` (`lscr.io/linuxserver/qbittorrent:latest`, container `qbittorrentvpn`)**:
+   - Uses `network_mode: "service:vpn"` and `depends_on: vpn (condition: service_healthy)` so it shares `wireguard-pia`'s network stack (`lo`, `eth0`, and `wg0`), binds directly to `Connection\Interface=wg0`, and has no independent network interface capable of leaking traffic outside the WireGuard tunnel.
+   - Because both containers share the same network namespace, Nginx Proxy Manager, Sonarr, Radarr, Prowlarr, and Homepage reach qBittorrent's WebUI seamlessly at `http://qbittorrentvpn:8081`.
 
-#### How PIA Dynamic Port Forwarding and `.configs/qbittorrentvpn/getvpnport.sh` Work
-Private Internet Access (PIA) does not support static port assignments; instead, its "NextGen" network assigns a dynamic incoming port per VPN session that must be cryptographically bound and refreshed every 15 minutes.
-
-Because the stock `/root/getvpnport.sh` bundled in `binhex/arch-qbittorrentvpn:4.3.3-1-02` had a routing bug when fetching the PIA auth token on certain LAN setups, `qbittorrentvpn/compose.yml` bind-mounts `.configs/qbittorrentvpn/getvpnport.sh` (deployed to `/volume1/docker/qbittorrentvpn/data/getvpnport.sh`) over `/root/getvpnport.sh`. When `STRICT_PORT_FORWARD=yes` is set, the script performs a four-stage lifecycle:
-
-1. **Endpoint Capability Verification (`port_forward_status`)**:
-   Queries `https://serverlist.piaservers.net/vpninfo/servers/v4` and checks with `jq` whether the active OpenVPN server (`${VPN_REMOTE_SERVER}` from `/config/openvpn/*.ovpn`) advertises `port_forward == true`. (Non-US PIA regions generally support port forwarding; US endpoints do not.)
-2. **Token Acquisition Over `tun0` (`get_incoming_port_nextgen`)**:
-   Sources `/root/getvpnip.sh` to discover the internal PIA gateway IP (`${vpn_gateway_ip}`) and authenticates with `VPN_USER:VPN_PASS` against `https://www.privateinternetaccess.com/gtoken/generateToken` explicitly bound to `--interface "${VPN_DEVICE_TYPE}"` (`tun0`) to obtain a short-lived session `token`.
-3. **Port Allocation & qBittorrent Reconfiguration**:
-   Calls `https://${vpn_gateway_ip}:19999/getSignature?token=${token}` over the VPN tunnel. PIA returns a base64-encoded JSON `payload` (containing the dynamically allocated `port` and a ~60-day `expires_at` timestamp) plus a cryptographic `signature`. The script writes the allocated port number to `/tmp/getvpnport`, which binhex's `qbittorrent.sh` watchdog reads to automatically update `Connection\PortRangeMin` in `/config/qBittorrent/config/qBittorrent.conf` before starting `qbittorrent-nox`.
-4. **15-Minute Keepalive Loop (`bind_incoming_port_nextgen`)**:
-   Spawns a background loop that calls `https://${vpn_gateway_ip}:19999/bindPort` with `payload` and `signature` every 15 minutes (`sleep 15m`). If the lease expires (~60 days) or fails after 12 retries, it touches `/tmp/portfailure` to trigger a tunnel/port renegotiation.
+#### Automated PIA NextGen Dynamic Port Forwarding (`set-qbt-port.sh`)
+Private Internet Access (PIA) assigns a dynamic incoming port per VPN session on non-US regions (`ca_ontario`, `ca_toronto`, `ca_montreal`, etc.; US endpoints do not support port forwarding). `thrnz/docker-wireguard-pia` natively automates the PIA NextGen port-forwarding lifecycle:
+1. **Token & Signature Negotiation**: When `PORT_FORWARDING: 1` and `PORT_PERSIST: 1` are enabled, `wireguard-pia`'s `/scripts/pf.sh` daemon requests a cryptographic port signature and payload from the PIA WireGuard gateway (`https://<cn>:19999/getSignature`), persists the token in `/pia/portsig.json` so the same port is reused across restarts until its ~60-day expiry, and opens the assigned TCP/UDP port on `wg0` in `iptables`.
+2. **Automatic qBittorrent Listening Port Sync (`.configs/qbittorrentvpn/set-qbt-port.sh`)**: As soon as the port is bound, `wireguard-pia` executes `PORT_SCRIPT: /set-qbt-port.sh <port>` (tracked at `.configs/qbittorrentvpn/set-qbt-port.sh` and deployed to `/volume1/docker/qbittorrentvpn/data/set-qbt-port.sh`). The script waits until qBittorrent's WebUI listener (`127.0.0.1:8081`) is up and sends an HTTP POST request to `/api/v2/app/setPreferences` with `json={"listen_port":<port>}`. Because `WebUI\LocalHostAuth=false` is set in `qBittorrent.conf` (and `127.0.0.1` is isolated inside the container network namespace), qBittorrent immediately updates its listening port to match the PIA-forwarded port.
+3. **15-Minute Keepalive Loop & Health Monitoring**: `pf.sh` automatically re-binds the port (`https://<cn>:19999/bindPort`) every 900 seconds (15 minutes). Because `PORT_FATAL: 1` is set, the container healthcheck verifies both `wg show wg0` and `pidof pf.sh`.

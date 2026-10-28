@@ -24,7 +24,8 @@ Setting Compose `user: "1000:100"` blindly on all containers will break images w
 | :--- | :--- | :--- | :--- |
 | `jellyfin` | `jellyfin/jellyfin:latest` | Compose `user: "${PUID:-1000}:${PGID:-100}"` + `group_add: ["105"]` (official image ignores `PUID`/`PGID` env vars) | `1000:100` |
 | `radarr`, `sonarr`, `prowlarr` | `lscr.io/linuxserver/*:latest` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` (do NOT set Compose `user:`; s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
-| `qbittorrentvpn` | `binhex/arch-qbittorrentvpn:4.3.3-1-02` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` (do NOT set Compose `user:`; OpenVPN/iptables requires root init; delete `/config/perms.txt` once during migration) | `1000:100` |
+| `wireguard-pia` | `thrnz/docker-wireguard-pia:latest` | Runs with `cap_add: [NET_ADMIN]` to manage kernel `wg0`, `iptables` kill switch, and PIA port forwarding (`PORT_SCRIPT: /set-qbt-port.sh`) | `1000:100` |
+| `qbittorrentvpn` | `lscr.io/linuxserver/qbittorrent:latest` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` with `network_mode: "service:vpn"` (do NOT set Compose `user:`; s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
 | `tandoor` | `vabene1111/recipes` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` (do NOT set Compose `user:`; `boot.sh` runs as root then drops to `PUID:PGID`) | `1000:100` |
 | `postgresql` | `postgres:16-alpine` | Internal Alpine `postgres` user (`70:70`); do NOT set `PUID`/`PGID` or `user:`, and NEVER `chown` `/volume1/docker/postgres/data` to `1000:100` | `70:70` (untouched) |
 | `homepage` | `ghcr.io/gethomepage/homepage:latest` | Env `PUID: 0`, `PGID: 0` (fixes `GUID: 0` typo; requires root for `/var/run/docker.sock`) | `0:0` (untouched) |
@@ -84,7 +85,7 @@ Setting Compose `user: "1000:100"` blindly on all containers will break images w
 │   │       ├── default_www/
 │   │       └── proxy_host/
 │   └── qbittorrentvpn/
-│       └── getvpnport.sh
+│       └── set-qbt-port.sh
 ├── .env.example
 ├── .gitignore
 ├── README.md
@@ -117,8 +118,10 @@ Setting Compose `user: "1000:100"` blindly on all containers will break images w
 - `/volume1/docker/nginx/data` -> `/data` (`nginx`)
 - `/volume1/docker/nginx/data/letsencrypt` -> `/etc/letsencrypt` (`nginx`)
 - `/volume1/docker/postgres/data` -> `/var/lib/postgresql/data` (`postgresql`)
+- `/volume1/docker/qbittorrentvpn/data/pia` -> `/pia` (`wireguard-pia`)
+- `/volume1/docker/qbittorrentvpn/data/pia-shared` -> `/pia-shared` (`wireguard-pia`)
+- `/volume1/docker/qbittorrentvpn/data/set-qbt-port.sh` -> `/set-qbt-port.sh:ro` (`wireguard-pia`)
 - `/volume1/docker/qbittorrentvpn/data/config` -> `/config` (`qbittorrentvpn`)
-- `/volume1/docker/qbittorrentvpn/data/getvpnport.sh` -> `/root/getvpnport.sh` (`qbittorrentvpn`)
 - `/volume1/docker/radarr/data` -> `/config` (`radarr`)
 - `/volume1/docker/sonarr/data` -> `/config` (`sonarr`)
 - `/volume1/docker/prowlarr/data` -> `/config` (`prowlarr`)

@@ -37,9 +37,10 @@
 #                   configs referencing SSL certificates not yet present on disk.
 #
 #   pull-configs    Retrieves live configuration changes made through service
-#                   Web UIs (Homepage YAML/CSS/JS, qBittorrentVPN helper scripts,
-#                   and Nginx Proxy Manager SQLite host tables + generated Nginx
-#                   '.conf' files) back into '.configs/' for git versioning.
+#                   Web UIs (Homepage YAML/CSS/JS, qBittorrentVPN port-sync
+#                   helper script, and Nginx Proxy Manager SQLite host tables +
+#                   generated Nginx '.conf' files) back into '.configs/' for git
+#                   versioning.
 #
 #   backup          Creates a timestamped compressed tarball in
 #                   ${DOCKER_DATA_DIR}/backup/homelab/ containing all repository
@@ -567,10 +568,10 @@ npm_conf_certs_exist() {
 # Description:
 #   Synchronizes all tracked configuration files from '${REPO_DIR}/.configs/'
 #   to their live host destinations:
-#     1. '.configs/dockge/compose.yml'        -> '${DOCKGE_DIR}/compose.yml'
-#     2. '.configs/homepage/*'                -> '${DOCKER_DATA_DIR}/homepage/data/'
-#     3. '.configs/qbittorrentvpn/getvpnport.sh' -> '${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh'
-#     4. '.configs/nginx/nginx/<subdir>/*.conf'  -> '${DOCKER_DATA_DIR}/nginx/data/nginx/<subdir>/'
+#     1. '.configs/dockge/compose.yml'               -> '${DOCKGE_DIR}/compose.yml'
+#     2. '.configs/homepage/*'                       -> '${DOCKER_DATA_DIR}/homepage/data/'
+#     3. '.configs/qbittorrentvpn/set-qbt-port.sh'   -> '${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh'
+#     4. '.configs/nginx/nginx/<subdir>/*.conf'      -> '${DOCKER_DATA_DIR}/nginx/data/nginx/<subdir>/'
 #
 #   If any Nginx Proxy Manager '.conf' file is newly installed or updated and
 #   the 'nginx' container is currently running, automatically triggers an in-place
@@ -597,19 +598,10 @@ deploy_configs() {
     done
   fi
 
-  # 3. Deploy qBittorrentVPN PIA port-forwarding script with executable permissions (0755)
-  # and OpenVPN profile(s) with non-root service ownership (${PUID}:${PGID}).
-  if [[ -f "${REPO_DIR}/.configs/qbittorrentvpn/getvpnport.sh" ]]; then
-    sync_file "${REPO_DIR}/.configs/qbittorrentvpn/getvpnport.sh" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh" "0755" || true
-    chown "${PUID:-1000}:${PGID:-100}" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh" 2>/dev/null || true
-  fi
-  if [[ -d "${REPO_DIR}/.configs/qbittorrentvpn/openvpn" ]]; then
-    local ovpn_file
-    for ovpn_file in "${REPO_DIR}/.configs/qbittorrentvpn/openvpn/"*.ovpn; do
-      [[ -f "${ovpn_file}" ]] || continue
-      sync_file "${ovpn_file}" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/config/openvpn/$(basename "${ovpn_file}")" "0644" || true
-      chown "${PUID:-1000}:${PGID:-100}" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/config/openvpn/$(basename "${ovpn_file}")" 2>/dev/null || true
-    done
+  # 3. Deploy qBittorrentVPN WireGuard port-forwarding callback script with executable permissions (0755).
+  if [[ -f "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" ]]; then
+    sync_file "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh" "0755" || true
+    chown "${PUID:-1000}:${PGID:-100}" "${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh" 2>/dev/null || true
   fi
 
   # 4. Deploy Nginx Proxy Manager generated .conf files (subject to SSL certificate guard).
@@ -651,8 +643,8 @@ deploy_configs() {
 #     1. Copies Homepage '*.yaml', '*.yml', '*.css', and '*.js' files from
 #        '${DOCKER_DATA_DIR}/homepage/data/' into '.configs/homepage/' (excluding
 #        ephemeral logs or caches).
-#     2. Copies '${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh' into
-#        '.configs/qbittorrentvpn/getvpnport.sh'.
+#     2. Copies '${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh' into
+#        '.configs/qbittorrentvpn/set-qbt-port.sh'.
 #     3. Exports a deterministic SQL dump of NPM's host routing tables
 #        ('proxy_host', 'dead_host', 'redirection_host', 'setting') from
 #        '${DOCKER_DATA_DIR}/nginx/data/db.sqlite' into '.configs/nginx/npm_hosts.sql'
@@ -676,19 +668,11 @@ pull_configs() {
     done
   fi
 
-  # 2. Pull qBittorrentVPN port-forwarding script and active OpenVPN profile(s).
-  mkdir -p "${REPO_DIR}/.configs/qbittorrentvpn/openvpn"
-  if [[ -f "${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh" ]]; then
-    cp -p "${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh" "${REPO_DIR}/.configs/qbittorrentvpn/getvpnport.sh"
-    chmod 0755 "${REPO_DIR}/.configs/qbittorrentvpn/getvpnport.sh"
-  fi
-  if [[ -d "${DOCKER_DATA_DIR}/qbittorrentvpn/data/config/openvpn" ]]; then
-    rm -f "${REPO_DIR}/.configs/qbittorrentvpn/openvpn/"*.ovpn 2>/dev/null || true
-    local ovpn_src
-    for ovpn_src in "${DOCKER_DATA_DIR}/qbittorrentvpn/data/config/openvpn/"*.ovpn; do
-      [[ -f "${ovpn_src}" ]] || continue
-      cp -p "${ovpn_src}" "${REPO_DIR}/.configs/qbittorrentvpn/openvpn/$(basename "${ovpn_src}")"
-    done
+  # 2. Pull qBittorrentVPN WireGuard port-sync callback script.
+  mkdir -p "${REPO_DIR}/.configs/qbittorrentvpn"
+  if [[ -f "${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh" ]]; then
+    cp -p "${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh" "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh"
+    chmod 0755 "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh"
   fi
 
   # 3. Export Nginx Proxy Manager non-sensitive routing tables and copy generated .conf files.
@@ -731,7 +715,7 @@ pull_configs() {
 #   - Every stack directory ('<stack>/compose.yml', '<stack>/.env.example',
 #     and live '<stack>/.env' secrets).
 #   - Live Dockge orchestrator files ('${DOCKGE_DIR}/compose.yml' and '.env').
-#   - Live Homepage YAML files, qBittorrentVPN 'getvpnport.sh', and NPM's
+#   - Live Homepage YAML files, qBittorrentVPN 'set-qbt-port.sh', and NPM's
 #     'db.sqlite' and 'nginx/' directory.
 # ------------------------------------------------------------------------------
 backup_homelab() {
@@ -764,7 +748,7 @@ backup_homelab() {
   # Include live deployed orchestrator and portable service configs on the host.
   [[ -f "${DOCKGE_DIR}/compose.yml" ]] && files_to_backup+=("${DOCKGE_DIR}/compose.yml")
   [[ -f "${DOCKGE_DIR}/.env" ]] && files_to_backup+=("${DOCKGE_DIR}/.env")
-  [[ -f "${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh" ]] && files_to_backup+=("${DOCKER_DATA_DIR}/qbittorrentvpn/data/getvpnport.sh")
+  [[ -f "${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh" ]] && files_to_backup+=("${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh")
   [[ -f "${DOCKER_DATA_DIR}/nginx/data/db.sqlite" ]] && files_to_backup+=("${DOCKER_DATA_DIR}/nginx/data/db.sqlite")
   [[ -d "${DOCKER_DATA_DIR}/nginx/data/nginx" ]] && files_to_backup+=("${DOCKER_DATA_DIR}/nginx/data/nginx")
 
