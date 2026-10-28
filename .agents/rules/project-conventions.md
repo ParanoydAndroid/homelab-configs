@@ -37,17 +37,25 @@ When newly instantiated against this repository, orient yourself using the follo
   - Backend services run on the user-defined `homelab` Docker bridge network (`192.168.255.0/24`).
   - Nginx Proxy Manager (NPM) bridges the LAN (`external_npm` macvlan network on `192.168.0.0/24`) and the `homelab` network to expose HTTP/HTTPS services via subdomains.
   - Do not expose unnecessary host ports on containers that are accessed exclusively via NPM. Preserve comments in `compose.yml` and documentation in `README.md` recording internal container ports and historical external host port mappings in case direct port forwarding is needed in the future.
-- **Secrets vs. Configuration Management**:
-  - Extract true secrets (such as external VPN credentials or sensitive external keys) into stack-local `.env` files that are excluded from git via `.gitignore`.
-  - Inline non-secret configuration values directly into `compose.yml` rather than placing them in `.env` files.
+- **Secrets and Environment Variable Management**:
+  - Inline non-secret configuration values that have sensible defaults directly into `compose.yml`.
+  - Use stack-local `.env` files (ignored by git) paired with tracked `<stack>/.env.example` templates for two categories of values:
+    1. True secrets (such as external VPN credentials or sensitive external keys).
+    2. Non-secret values that have no sensible universal default and must be explicitly configured by a user in a new environment (left blank by default in `.env.example` as self-documenting required configuration).
+  - Setup automation copies `<stack>/.env.example` to `<stack>/.env` if missing and warns when required variables remain blank.
   - Internal service accounts created solely to satisfy software requirements between containers on the `homelab` network (e.g., internal database credentials), as well as accounts created purely to expose services on the homelab/LAN network, are not treated as secret accounts and may use hardcoded credentials in `compose.yml`.
+- **Host Volume Standardization and Bidirectional Configuration Sync**:
+  - Standardize persistent service data and configuration paths under `/volume1/docker/<service>/data/...` (avoiding redundant nesting like `/data/data` or cross-service nesting where practical).
+  - Track portable service configurations (including Nginx Proxy Manager host configurations, Homepage YAML configurations, and container helper scripts) in the git repository and provide bidirectional tooling to pull/backup updated configurations from host volumes into the repo and deploy them from the repo to host volumes with conflict prompts.
 
 ## 4. Code Style and Documentation Standards
 
 - **Docker Compose Conventions**:
   - Name all stack files `compose.yml`.
-  - Omit the deprecated top-level `version` property.
-  - Use consistent key ordering, indentation (2 spaces), environment variable syntax, and standard LinuxServer/container environment names (`PUID`, `PGID`, `UMASK`, `TZ`) across all stacks.
+  - Omit the deprecated top-level `version` property (Docker Compose Specification v2+ best practice).
+  - Maintain explicit `container_name` definitions on all services and standardize `hostname` usage so service identity on the `homelab` network and inside containers is consistent.
+  - Standardize `PUID` and `PGID` across all services (aligned with the UGREEN NAS host user `brandon`, `uid=1000`, `gid=10`/`100`), using `user: "<uid>:<gid>"` for non-LinuxServer images that do not read `PUID`/`PGID` environment variables.
+  - Use consistent key ordering, indentation (2 spaces), environment variable syntax, and standard container environment names (`PUID`, `PGID`, `UMASK`, `TZ`) across all stacks.
 - **Shell Scripting Conventions**:
   - Use `#!/usr/bin/env bash` with `set -euo pipefail`.
   - Quote variable expansions, avoid invalid scoping keywords outside functions, and check preconditions before mutating host state.
