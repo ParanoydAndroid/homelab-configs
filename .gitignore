@@ -1,1 +1,4 @@
 .env
+*.key
+*.crt
+cert.conf

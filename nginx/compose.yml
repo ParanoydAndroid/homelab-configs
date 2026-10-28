@@ -1,26 +1,49 @@
+# ==============================================================================
+# Stack: Nginx Proxy Manager (nginx/compose.yml)
+#
+# Purpose:
+#   Ingress reverse proxy and SSL termination point for both internal LAN
+#   subdomains (*.turing.home) and external internet subdomains (*.kamaka.tech).
+#
+# Network Topology:
+#   Dual-homed across two Docker networks:
+#     1. 'external_npm' (macvlan on eth0): Assigns NPM its own dedicated LAN IP
+#        (192.168.0.4 / turing.home) with native ports 80, 443, and 81, avoiding
+#        port conflicts with the UGREEN NAS host OS on 192.168.0.3 (nas.home).
+#     2. 'homelab' (internal bridge on 192.168.255.0/24): Connects NPM to all
+#        backend application containers by container hostname.
+# ==============================================================================
+
 services:
   nginx:
     image: jc21/nginx-proxy-manager:latest
     container_name: nginx
+    hostname: nginx
     restart: unless-stopped
     mac_address: 2E:50:8F:7A:C4:12
-    ports:
-      - 80:80
-      - 443:443
-      - 81:81
     environment:
-      - DISABLE_IPV6=true
-      - DB_SQLITE_FILE=/data/db.sqlite
+      DISABLE_IPV6: "true"
+      DB_SQLITE_FILE: /data/db.sqlite
+      TZ: ${TZ:-America/New_York}
     volumes:
-      - /volume1/docker/nginx/data/data:/data
-      - /volume1/docker/nginx/data/letsencrypt:/etc/letsencrypt
-      - /volume1/docker/media:/media:ro
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/nginx/data:/data
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/nginx/data/letsencrypt:/etc/letsencrypt
+      # Required by proxy_host/2.conf (recipes.kamaka.tech): Tandoor's Gunicorn
+      # server does not serve user-uploaded media files directly in production,
+      # so NPM serves '/media/' directly from Tandoor's mediafiles volume read-only.
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/mediafiles:/media:ro
+    # Host port bindings are omitted because NPM binds directly to 192.168.0.4:80/443/81
+    # via the 'external_npm' macvlan interface.
+    # ports:
+    #   - 80:80
+    #   - 443:443
+    #   - 81:81
     networks:
       homelab:
         aliases:
           - services
       external_npm:
-        ipv4_address: 192.168.0.4
+        ipv4_address: ${NPM_IPV4_ADDRESS:-192.168.0.4}
 
 networks:
   external_npm:

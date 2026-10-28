@@ -66,6 +66,10 @@ When newly instantiated against this repository, orient yourself using the follo
   - Use `#!/usr/bin/env bash` with `set -euo pipefail`.
   - Quote variable expansions, avoid invalid scoping keywords outside functions, and check preconditions before mutating host state.
   - When deploying configuration files to target host paths, detect whether existing target files have been modified since the last update and prompt the user whether to overwrite or preserve them.
+  - **Comprehensive Script and Function Documentation**:
+    - Every shell script must begin with a comprehensive header block documenting the script's purpose, architecture/context, usage syntax, subcommands/options, preconditions, and operational behavior.
+    - Every function must be preceded by a longform docstring block defining its purpose, arguments (`$1`, `$2`, ...), environment/global variables read or mutated, side effects on the filesystem or system state, and return/exit codes.
+    - Include detailed inline comments above or alongside complex pipelines, `awk`/`sed`/`grep` expressions, `sqlite3` statements, parameter expansions, and non-obvious control-flow logic explaining both *what* the code does and *why* it is written that way.
 - **Documentation and Artifact Rules**:
   - Do not use icons, emojis, or advanced/non-standard Markdown extensions in documentation, artifacts, or instructions. Use plain Markdown (headings, lists, standard tables, and fenced code blocks).
   - Store all agent-generated artifacts in `.agents/artifacts/` and commit them to git as part of the project workflow.

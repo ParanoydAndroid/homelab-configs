@@ -1,26 +1,46 @@
+# ==============================================================================
+# Stack: Homepage Dashboard (homepage/compose.yml)
+#
+# Purpose:
+#   Serves the homelab application dashboard at https://homepage.turing.home.
+#   Queries /var/run/docker.sock to auto-discover container status and reads
+#   'homepage.*' Docker labels defined across all stacks.
+# ==============================================================================
+
 services:
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
     hostname: homepage
+    restart: unless-stopped
     privileged: true
-    ports:
-      - ${HTTP_EXTERNAL_PORT}:3000
+    # Runs with PUID=0 / PGID=0 (root) as required for direct /var/run/docker.sock
+    # inspection on the host without a Docker socket proxy.
     environment:
       PUID: 0
-      GUID: 0
-      UMASK: 22
-      HOMEPAGE_ALLOWED_HOSTS: homepage.turing.home,www.turing.home
+      PGID: 0
+      UMASK: "022"
+      TZ: ${TZ:-America/New_York}
+      # Host header validation whitelist required by Homepage v0.8+ when accessed via reverse proxy
+      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:-homepage.turing.home,www.turing.home,turing.home,192.168.0.4}
+      # Injected into .configs/homepage/services.yaml via {{HOMEPAGE_VAR_PIHOLE_KEY}}
+      HOMEPAGE_VAR_PIHOLE_KEY: ${HOMEPAGE_VAR_PIHOLE_KEY}
     volumes:
-      - /volume1/docker/homepage/data:/app/config
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/homepage/data:/app/config
       - /var/run/docker.sock:/var/run/docker.sock
+    # Accessed via Nginx Proxy Manager over the 'homelab' bridge network (homepage:3000).
+    # Historical host port 8030 retained below as a comment for emergency debugging.
+    # ports:
+    #   - 8030:3000/tcp
     networks:
       - homelab
     labels:
       - homepage.group=Administration
       - homepage.name=Homepage
       - homepage.icon=homepage
+      - homepage.href=http://homepage.turing.home
       - homepage.description=Dashboard
+
 networks:
   homelab:
     external: true

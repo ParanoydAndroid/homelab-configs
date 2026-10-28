@@ -1,28 +1,43 @@
+# ==============================================================================
+# Stack: Tandoor Recipes (tandoor/compose.yml)
+#
+# Purpose:
+#   Recipe management application accessible on the LAN (https://recipes.turing.home)
+#   and externally (https://recipes.kamaka.tech) via Nginx Proxy Manager, backed
+#   by the 'postgresql' container on the 'homelab' bridge network.
+#
+# UID/GID & Media Serving Note:
+#   - Tandoor's entrypoint ('boot.sh') starts as root and drops privileges to
+#     PUID:PGID (1000:100) via su-exec. Do NOT set Compose 'user:'.
+#   - Uploaded recipe images in '${DOCKER_DATA_DIR}/tandoor/data/mediafiles' are
+#     also bind-mounted read-only into the 'nginx' container at '/media:ro' so
+#     Nginx Proxy Manager serves '/media/' requests directly in production.
+# ==============================================================================
+
 services:
   tandoor:
     image: vabene1111/recipes
     container_name: tandoor
+    hostname: tandoor
     restart: unless-stopped
-    ports:
-      - 8050:8050
-    volumes:
-      - /volume1/docker/tandoor/data/staticfiles:/opt/recipes/staticfiles
-      - /volume1/docker/media:/opt/recipes/mediafiles
     environment:
-      # random secret key, use for example `base64 /dev/urandom | head -c50` to generate one      # random secret key, use for example `base64 /dev/urandom | head -c50` to generate one
-      SECRET_KEY: "zcjrXxSAo/3mbKi5ATEgVtkesL3EIFqtlwf/Vy84DhqG28kff"
-
-      # allowed hosts (see documentation), should be set to your hostname(s) but might be * (default) for some proxies/providers
-      # ALLOWED_HOSTS=recipes.mydomain.com
-
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-100}
+      TZ: ${TZ:-America/New_York}
+      # Random cryptographic secret key (populated in tandoor/.env)
+      SECRET_KEY: ${SECRET_KEY}
+      # Allowed hosts (see documentation), defaults to * when behind reverse proxy
+      # ALLOWED_HOSTS: recipes.mydomain.com
       DATABASE_URL: postgresql://postgres:password@postgresql:5432/recipes
       TANDOOR_PORT: 8050
+    volumes:
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/staticfiles:/opt/recipes/staticfiles
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/mediafiles:/opt/recipes/mediafiles
+    # ports:
+    #   - 8050:8050
     networks:
       - homelab
-      - internal
 
 networks:
   homelab:
-    external: true
-  internal:
     external: true

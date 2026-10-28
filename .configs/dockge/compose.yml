@@ -1,0 +1,47 @@
+# ==============================================================================
+# Stack: Dockge Container Orchestrator (.configs/dockge/compose.yml)
+#
+# Deployment Location:
+#   Deployed by 'homelab.sh deploy-configs' to ${DOCKGE_DIR}/compose.yml
+#   (one directory level above ${DOCKGE_STACKS_DIR}) so Dockge does not list
+#   or attempt to restart itself as a self-managed stack.
+# ==============================================================================
+
+services:
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge
+    hostname: dockge
+    restart: unless-stopped
+    # Note: Dockge runs as root inside the container to access /var/run/docker.sock
+    # and ignores PUID/PGID environment variables.
+    environment:
+      # Tell Dockge where the stacks directory is located inside the container
+      DOCKGE_STACKS_DIR: ${DOCKGE_STACKS_DIR}
+      DOCKGE_ENABLE_CONSOLE: "true"
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/dockge/data:/app/data
+      # If you want to use private registries, share the auth file with Dockge:
+      # - /root/.docker/:/root/.docker
+      # Stacks Directory:
+      # 1. FULL path only. No relative path (MUST)
+      # 2. Left Stacks Path === Right Stacks Path (MUST) so host bind mounts resolve identically
+      - ${DOCKGE_STACKS_DIR}:${DOCKGE_STACKS_DIR}
+    ports:
+      # Exposed directly on the NAS host (nas.home:8010) for emergency orchestrator
+      # access if Nginx Proxy Manager is down, in addition to https://dockge.turing.home.
+      - 8010:5001
+    networks:
+      - homelab
+    labels:
+      - homepage.group=Administration
+      - homepage.name=Dockge
+      - homepage.icon=dockge
+      - homepage.href=http://dockge.turing.home
+      - homepage.description=Container Orchestrator
+
+networks:
+  homelab:
+    external: true

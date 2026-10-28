@@ -1,14 +1,32 @@
+# ==============================================================================
+# Stack: PostgreSQL Database (postgres/compose.yml)
+#
+# Purpose:
+#   Provides the relational database backend ('recipes') for Tandoor Recipes
+#   over the internal 'homelab' bridge network (postgresql:5432).
+#
+# UID/GID Note:
+#   The official 'postgres:16-alpine' image runs internally as UID/GID 70:70
+#   ('postgres'). Do NOT set PUID/PGID or Compose 'user:' on this service, and
+#   never chown /volume1/docker/postgres/data to 1000:100.
+# ==============================================================================
+
 services:
   postgresql:
     image: postgres:16-alpine
     container_name: postgresql
+    hostname: postgresql
     restart: unless-stopped
-    volumes:
-      - /volume1/docker/postgresql/data:/var/lib/postgresql/data
     environment:
-      # POSTGRES_USER: postgres  # this is already the system default
+      # POSTGRES_USER: postgres # this is already the system default
       POSTGRES_PASSWORD: password
       POSTGRES_DB: recipes
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/postgres/data:/var/lib/postgresql/data
+    # Isolated strictly to the internal 'homelab' bridge network; no host port exposed.
+    # ports:
+    #   - 5432:5432/tcp
     networks:
       - homelab
 

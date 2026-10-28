@@ -1,17 +1,33 @@
+# ==============================================================================
+# Stack: Media Automation Suite (sonarr-radarr/compose.yml)
+#
+# Services:
+#   - radarr:       Movie collection manager (https://radarr.turing.home)
+#   - sonarr:       TV series collection manager (https://sonarr.turing.home)
+#   - prowlarr:     Indexer manager synced with Radarr/Sonarr (https://prowlarr.turing.home)
+#   - flaresolverr: Headless browser proxy for Cloudflare-protected indexers
+#
+# UID/GID & Entrypoint Note:
+#   LinuxServer.io images ('lscr.io/linuxserver/*') use s6-overlay, which starts
+#   as root to initialize container permissions and then drops privileges to
+#   PUID:PGID (1000:100). Do NOT set Compose 'user:' on these services.
+# ==============================================================================
+
 services:
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
+    hostname: radarr
     restart: unless-stopped
     environment:
-      - PUID=1027
-      - PGID=100
-      - TZ=America/New_York
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-100}
+      TZ: ${TZ:-America/New_York}
     volumes:
-      - /volume1/docker/radarr/data/radarr_config:/config
-      - /volume1/Public:/media
-    ports:
-      - 8040:7878
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/radarr/data:/config
+      - ${MEDIA_DIR:-/volume1/media}:/media
+    # ports:
+    #   - 8040:7878
     networks:
       - homelab
     labels:
@@ -19,24 +35,26 @@ services:
       - homepage.name=Radarr
       - homepage.icon=radarr
       - homepage.href=http://radarr.turing.home
-      - homepage.description="Movie Autodownloader"
+      - homepage.description=Movie Autodownloader
       - homepage.widget.type=radarr
       - homepage.widget.url=http://radarr:7878
-      - homepage.widget.key=76a219a9f0b045ca98a6cbfe20369392
+      - homepage.widget.key=${RADARR_WIDGET_KEY}
       - homepage.widget.enableQueue=true
+
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
-    environment:
-      - PUID=1027
-      - PGID=100
-      - TZ=America/New_York
-    volumes:
-      - /volume1/docker/radarr/data/sonarr_config:/config
-      - /volume1/Public:/media
-    ports:
-      - 8041:8989
+    hostname: sonarr
     restart: unless-stopped
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-100}
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/sonarr/data:/config
+      - ${MEDIA_DIR:-/volume1/media}:/media
+    # ports:
+    #   - 8041:8989
     networks:
       - homelab
     labels:
@@ -44,23 +62,25 @@ services:
       - homepage.name=Sonarr
       - homepage.icon=sonarr
       - homepage.href=http://sonarr.turing.home
-      - homepage.description="TV Autodownloader"
+      - homepage.description=TV Autodownloader
       - homepage.widget.type=sonarr
       - homepage.widget.url=http://sonarr:8989
-      - homepage.widget.key=41810866b1d241d1aed315736f476f1f
+      - homepage.widget.key=${SONARR_WIDGET_KEY}
       - homepage.widget.enableQueue=true
+
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
-    environment:
-      - PUID=1027
-      - PGID=100
-      - TZ=America/New_York
-    volumes:
-      - /volume1/docker/radarr/data/prowlerr_config:/config
-    ports:
-      - 8042:9696
+    hostname: prowlarr
     restart: unless-stopped
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-100}
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - ${DOCKER_DATA_DIR:-/volume1/docker}/prowlarr/data:/config
+    # ports:
+    #   - 8042:9696
     networks:
       - homelab
     labels:
@@ -68,21 +88,23 @@ services:
       - homepage.name=Prowlarr
       - homepage.icon=prowlarr
       - homepage.href=http://prowlarr.turing.home
-      - homepage.description="Indexer Management"
+      - homepage.description=Indexer Management
       - homepage.widget.type=prowlarr
       - homepage.widget.url=http://prowlarr:9696
-      - homepage.widget.key=f9a0b622f4244507a3d866f0a546d416
+      - homepage.widget.key=${PROWLARR_WIDGET_KEY}
+
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
-    environment:
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - LOG_HTML=${LOG_HTML:-false}
-      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
-      - TZ=America/New_York
-    ports:
-      - 8043:8191
+    hostname: flaresolverr
     restart: unless-stopped
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_HTML: ${LOG_HTML:-false}
+      CAPTCHA_SOLVER: ${CAPTCHA_SOLVER:-none}
+      TZ: ${TZ:-America/New_York}
+    # ports:
+    #   - 8043:8191
     networks:
       - homelab
     labels:
@@ -90,7 +112,7 @@ services:
       - homepage.name=Flaresolverr
       - homepage.icon=flaresolverr
       - homepage.href=http://flaresolverr.turing.home
-      - homepage.description="Cloudflare Bypass (degraded)"
+      - homepage.description=Cloudflare Bypass (degraded)
 
 networks:
   homelab:

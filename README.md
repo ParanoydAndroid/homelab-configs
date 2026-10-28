@@ -20,6 +20,7 @@ cd "/home/${USER}/services"
 sudo ./homelab.sh setup
 
 # 3. Populate required per-stack secrets and API keys in the generated .env files:
+#    - homepage/.env       (HOMEPAGE_VAR_PIHOLE_KEY)
 #    - qbittorrentvpn/.env (VPN_USER, VPN_PASS, QBITTORRENT_WIDGET_PASSWORD)
 #    - tandoor/.env        (SECRET_KEY)
 #    - jellyfin/.env       (JELLYFIN_WIDGET_KEY)
@@ -113,10 +114,35 @@ All live `.env` files are ignored by git (`.gitignore`). Configuration uses a tw
    - When `./homelab.sh setup` runs, it initializes the root `.env` (resolving `${SUDO_USER:-${USER}}` into literal paths) and automatically syncs those global keys into every `<stack>/.env` and `${DOCKGE_DIR}/.env`.
 2. **Per-Stack `<stack>/.env.example` (Secrets and Per-Install Keys)**:
    - Defines external credentials and per-installation API/cryptographic keys with blank defaults (`KEY=`):
+     - `homepage/.env.example`: `HOMEPAGE_VAR_PIHOLE_KEY=`
      - `jellyfin/.env.example`: `JELLYFIN_WIDGET_KEY=`
      - `qbittorrentvpn/.env.example`: `VPN_USER=`, `VPN_PASS=`, `QBITTORRENT_WIDGET_PASSWORD=`
      - `sonarr-radarr/.env.example`: `RADARR_WIDGET_KEY=`, `SONARR_WIDGET_KEY=`, `PROWLARR_WIDGET_KEY=`
      - `tandoor/.env.example`: `SECRET_KEY=`
+
+### 4.1 How Homepage Dashboard Service Discovery and Widget Keys Work
+Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active streams, torrent speeds, queue counts, DNS queries) by polling each backend service's HTTP API over the internal `homelab` Docker network (`192.168.255.0/24`). Credentials and API keys are supplied through two mechanisms so that **no secrets are ever committed to git**:
+
+1. **Docker Container Labels (Containerized Services)**:
+   - Homepage mounts `/var/run/docker.sock` (configured via `.configs/homepage/docker.yaml`) and inspects all running containers on the host for `homepage.*` labels.
+   - In each stack's `compose.yml` (`jellyfin`, `qbittorrentvpn`, `sonarr-radarr`), labels define both the dashboard card metadata and the widget polling configuration:
+     ```yaml
+     labels:
+       - homepage.group=Players
+       - homepage.name=Jellyfin
+       - homepage.icon=jellyfin
+       - homepage.href=http://jellyfin.turing.home
+       - homepage.widget.type=jellyfin
+       - homepage.widget.url=http://jellyfin:8096
+       - homepage.widget.key=${JELLYFIN_WIDGET_KEY}
+     ```
+   - When `docker compose up -d` runs inside `<stack>/`, Docker Compose reads `<stack>/.env` and interpolates `${JELLYFIN_WIDGET_KEY}` into the running container's metadata labels.
+   - Homepage reads those resolved labels from `/var/run/docker.sock` and queries `http://jellyfin:8096` directly over the `homelab` bridge network (so backend ports never need to be exposed on the NAS host).
+
+2. **Static YAML Environment Substitution (`HOMEPAGE_VAR_*` for Non-Docker Appliances)**:
+   - Services that do not run as local Docker containers on the NAS (such as Pi-hole on `192.168.0.2` or the UGREEN NAS DSM UI on `nas.home`) cannot be discovered via Docker labels and are instead defined in `.configs/homepage/services.yaml`.
+   - Homepage natively substitutes any `{{HOMEPAGE_VAR_<NAME>}}` placeholder in its YAML config files with the value of the `HOMEPAGE_VAR_<NAME>` environment variable passed to the `homepage` container.
+   - Therefore, `.configs/homepage/services.yaml` uses `key: "{{HOMEPAGE_VAR_PIHOLE_KEY}}"`, while the secret value lives in untracked `homepage/.env` (`HOMEPAGE_VAR_PIHOLE_KEY=...`) and is passed into the `homepage` container via `homepage/compose.yml`.
 
 ---
 
@@ -219,3 +245,35 @@ sudo systemctl unset-environment GODEBUG
 systemctl --user unset-environment GODEBUG || true
 sudo systemctl daemon-reexec
 ```
+
+### 6.6 qBittorrentVPN Architecture, PIA Dynamic Port Forwarding, and `getvpnport.sh`
+
+#### How the Container and VPN Kill Switch Work
+The `qbittorrentvpn` stack uses `binhex/arch-qbittorrentvpn:4.3.3-1-02` with `cap_add: [NET_ADMIN]` and `sysctls: [net.ipv4.conf.all.src_valid_mark=1]`:
+1. **Root Init & Privilege Drop**: The container starts as `root` so its init scripts can create the `tun0` device, launch OpenVPN (`VPN_CLIENT=openvpn`, `VPN_PROV=pia`), and program `iptables` packet-filtering rules. Once the tunnel is up, the `qbittorrent-nox` daemon is launched as the unprivileged user `PUID=1000` / `PGID=100`.
+2. **`iptables` Kill Switch**: The container's `iptables` policy drops all outbound and inbound BitTorrent traffic on `eth0`, permitting peer traffic exclusively over `tun0` (the PIA OpenVPN interface) and permitting WebUI traffic (`8081`) only from `LAN_NETWORK` (`192.168.0.0/16`) and the Docker bridge subnet (`192.168.255.0/24`).
+3. **Why the Image Version is Pinned (`4.3.3-1-02`)**: Newer builds of `binhex/arch-qbittorrentvpn` require newer Linux kernel/glibc capabilities than the UGREEN NAS 4.4-era kernel provides.
+
+#### How PIA Dynamic Port Forwarding and `.configs/qbittorrentvpn/getvpnport.sh` Work
+Private Internet Access (PIA) does not support static port assignments; instead, its "NextGen" network assigns a dynamic incoming port per VPN session that must be cryptographically bound and refreshed every 15 minutes.
+
+Because the stock `/root/getvpnport.sh` bundled in `binhex/arch-qbittorrentvpn:4.3.3-1-02` had a routing bug when fetching the PIA auth token on certain LAN setups, `qbittorrentvpn/compose.yml` bind-mounts `.configs/qbittorrentvpn/getvpnport.sh` (deployed to `/volume1/docker/qbittorrentvpn/data/getvpnport.sh`) over `/root/getvpnport.sh`. When `STRICT_PORT_FORWARD=yes` is set, the script performs a four-stage lifecycle:
+
+1. **Endpoint Capability Verification (`port_forward_status`)**:
+   Queries `https://serverlist.piaservers.net/vpninfo/servers/v4` and checks with `jq` whether the active OpenVPN server (`${VPN_REMOTE_SERVER}` from `/config/openvpn/*.ovpn`) advertises `port_forward == true`. (Non-US PIA regions generally support port forwarding; US endpoints do not.)
+2. **Token Acquisition Over `tun0` (`get_incoming_port_nextgen`)**:
+   Sources `/root/getvpnip.sh` to discover the internal PIA gateway IP (`${vpn_gateway_ip}`) and authenticates with `VPN_USER:VPN_PASS` against `https://www.privateinternetaccess.com/gtoken/generateToken` explicitly bound to `--interface "${VPN_DEVICE_TYPE}"` (`tun0`) to obtain a short-lived session `token`.
+3. **Port Allocation & qBittorrent Reconfiguration**:
+   Calls `https://${vpn_gateway_ip}:19999/getSignature?token=${token}` over the VPN tunnel. PIA returns a base64-encoded JSON `payload` (containing the dynamically allocated `port` and a ~60-day `expires_at` timestamp) plus a cryptographic `signature`. The script writes the allocated port number to `/tmp/getvpnport`, which binhex's `qbittorrent.sh` watchdog reads to automatically update `Connection\PortRangeMin` in `/config/qBittorrent/config/qBittorrent.conf` before starting `qbittorrent-nox`.
+4. **15-Minute Keepalive Loop (`bind_incoming_port_nextgen`)**:
+   Spawns a background loop that calls `https://${vpn_gateway_ip}:19999/bindPort` with `payload` and `signature` every 15 minutes (`sleep 15m`). If the lease expires (~60 days) or fails after 12 retries, it touches `/tmp/portfailure` to trigger a tunnel/port renegotiation.
+
+#### Architectural Assessment: Is This Still a Good Approach with PIA?
+- **Protocol Validity**: **Yes.** PIA's NextGen port-forwarding protocol (`generateToken` -> `:19999/getSignature` -> `:19999/bindPort` every 15 minutes) remains PIA's active production API for dynamic port forwarding on both OpenVPN and WireGuard.
+- **Known Limitations of the Current Setup**:
+  1. **Pinned Old qBittorrent Version (`4.3.3`)**: Because `binhex/arch-qbittorrentvpn` bundles the VPN client and qBittorrent into a single image pinned to `4.3.3-1-02`, qBittorrent itself cannot be updated independently.
+  2. **Host Port `58946` is Unused When Dynamic Port Forwarding is Active**: Because incoming peer connections arrive inside the `tun0` VPN tunnel on the dynamically assigned PIA port (not on the NAS LAN IP `192.168.0.3:58946`), the host port mapping `58946:58946` in `qbittorrentvpn/compose.yml` does not carry VPN peer traffic.
+- **Recommended Future Upgrade Path (Decoupled `gluetun` + `qbittorrent`)**:
+  If you ever wish to upgrade to a modern qBittorrent 4.6+/5.x release on this NAS, the recommended pattern is to decouple the VPN and torrent client into two containers inside `qbittorrentvpn/compose.yml`:
+  - **`qmcgaw/gluetun`**: A lightweight Go VPN client container that natively implements PIA NextGen port forwarding (`VPN_SERVICE_PROVIDER=private internet access`, `VPN_PORT_FORWARDING=on`) without external shell scripts and automatically pushes the assigned port to qBittorrent's WebUI API (`VPN_PORT_FORWARDING_UP_COMMAND`).
+  - **`lscr.io/linuxserver/qbittorrent`**: Configured with `network_mode: "service:gluetun"` so it shares Gluetun's network stack and kill switch while allowing qBittorrent to be updated independently.
