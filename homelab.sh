@@ -42,16 +42,18 @@
 #                   generated Nginx '.conf' files) back into '.configs/' for git
 #                   versioning.
 #
-#   backup          Creates a timestamped compressed tarball in
-#                   ${DOCKER_DATA_DIR}/backup/homelab/ containing all repository
-#                   definitions, live '.env' secrets, and portable application
-#                   configuration files.
+#   backup          Pulls live service configurations into '.configs/', commits
+#                   any tracked repository or configuration changes to git,
+#                   optionally tags HEAD using a chronological CalVer/PEP 440
+#                   tag ('YYYY.M.D' or custom '--tag <name>'), and archives all
+#                   untracked live '.env' secret files into
+#                   '${DOCKER_DATA_DIR}/backup/homelab/'.
 #
 # Usage:
 #   sudo ./homelab.sh setup [--overwrite-all | --keep-all]
 #   ./homelab.sh deploy-configs [--overwrite-all | --keep-all]
 #   ./homelab.sh pull-configs
-#   ./homelab.sh backup
+#   ./homelab.sh backup [--tag [tag_name]] [-m <commit_message>]
 # ==============================================================================
 
 set -euo pipefail
@@ -96,6 +98,15 @@ STACKS=(
 #   "overwrite_all" Overwrite all differing host files without prompting (-O).
 #   "keep_all"      Preserve all existing host files without prompting (-K).
 OVERWRITE_MODE="prompt"
+
+# Optional flags for the 'backup' subcommand:
+#   BACKUP_TAG_ENABLED: 1 if '--tag' / '-t' was passed on the CLI, 0 otherwise.
+#   BACKUP_TAG_NAME:    Custom tag name if provided, or empty to auto-generate
+#                       a chronological PEP 440 / CalVer tag (YYYY.M.D[.N]).
+#   BACKUP_COMMIT_MSG:  Custom git commit message if '-m' was provided.
+BACKUP_TAG_ENABLED=0
+BACKUP_TAG_NAME=""
+BACKUP_COMMIT_MSG=""
 
 # ------------------------------------------------------------------------------
 # Function: log_info
@@ -704,64 +715,121 @@ pull_configs() {
 }
 
 # ------------------------------------------------------------------------------
+# Function: resolve_chronological_tag
+# Description:
+#   Generates a chronological PEP 440 / CalVer git tag string in the format
+#   'YYYY.M.D' (e.g., '2026.10.28' or '2026.3.5' with unpadded month/day,
+#   matching Python's chronological versioning convention).
+#
+#   If the base tag 'YYYY.M.D' already exists in the repository's git tag list,
+#   appends an incrementing sequence suffix ('.1', '.2', ...) until an unused
+#   tag name is found.
+#
+# Outputs:
+#   Prints the resolved unique tag string on stdout.
+# ------------------------------------------------------------------------------
+resolve_chronological_tag() {
+  local base_tag
+  base_tag="$(date +%Y.%-m.%-d)"
+  local candidate="${base_tag}"
+  local seq=1
+
+  while git -C "${REPO_DIR}" rev-parse -q --verify "refs/tags/${candidate}" >/dev/null 2>&1; do
+    candidate="${base_tag}.${seq}"
+    ((seq++))
+  done
+
+  printf "%s" "${candidate}"
+}
+
+# ------------------------------------------------------------------------------
 # Function: backup_homelab
 # Description:
-#   Creates a comprehensive, timestamped '.tar.gz' backup archive at
-#   '${DOCKER_DATA_DIR}/backup/homelab/YYYYMMDD_homelab_config.tar.gz'.
+#   Performs a git-centric configuration backup coupled with a standalone
+#   tarball of untracked '.env' secret files:
+#     1. Invokes 'pull_configs' to synchronize live UI/host configurations
+#        (Homepage YAML, qBittorrentVPN 'set-qbt-port.sh', and NPM SQLite host
+#        tables + '.conf' files) into '${REPO_DIR}/.configs/'.
+#     2. Checks the git working tree ('git status --porcelain'). If any tracked
+#        or pulled configuration files have changed, stages all tracked changes
+#        ('git add -A') and creates a git commit using BACKUP_COMMIT_MSG (or a
+#        default timestamped message).
+#     3. If '--tag' ('-t') was requested, creates an annotated git tag on HEAD
+#        using either the caller-supplied tag name or a chronological PEP 440
+#        tag ('YYYY.M.D' / 'YYYY.M.D.N').
+#     4. Archives all live untracked '.env' files (root '.env', per-stack
+#        '<stack>/.env', and Dockge's '../.env') into
+#        '${DOCKER_DATA_DIR}/backup/homelab/YYYY.M.D_env_secrets.tar.gz' (and
+#        updates a 'latest_env_secrets.tar.gz' symlink) with 0600 permissions.
 #
-#   Archive Contents:
-#   - Repository documentation, scripts, '.gitignore', '.env.example', live
-#     '.env', '.configs/', and '.agents/'.
-#   - Every stack directory ('<stack>/compose.yml', '<stack>/.env.example',
-#     and live '<stack>/.env' secrets).
-#   - Live Dockge orchestrator files ('${DOCKGE_DIR}/compose.yml' and '.env').
-#   - Live Homepage YAML files, qBittorrentVPN 'set-qbt-port.sh', and NPM's
-#     'db.sqlite' and 'nginx/' directory.
+# Globals Read:
+#   REPO_DIR, DOCKER_DATA_DIR, DOCKGE_DIR, STACKS, TARGET_USER, TARGET_GROUP,
+#   BACKUP_TAG_ENABLED, BACKUP_TAG_NAME, BACKUP_COMMIT_MSG
 # ------------------------------------------------------------------------------
 backup_homelab() {
-  init_and_sync_env
+  # Step 1: Pull live configurations from host volumes into .configs/
+  pull_configs
 
+  # Step 2: Stage and commit any repository or .configs/ changes to git
+  if [[ -n "$(git -C "${REPO_DIR}" status --porcelain)" ]]; then
+    local commit_msg="${BACKUP_COMMIT_MSG:-Backup homelab configuration ($(date '+%Y-%m-%d %H:%M:%S'))}"
+    log_info "Committing configuration changes to git: ${commit_msg}"
+    git -C "${REPO_DIR}" add -A
+    git -C "${REPO_DIR}" commit -m "${commit_msg}"
+  else
+    log_info "Git working tree is clean; no configuration changes to commit."
+  fi
+
+  # Step 3: Optionally tag HEAD with a chronological (YYYY.M.D) or custom tag
+  local tag_to_apply=""
+  if [[ "${BACKUP_TAG_ENABLED}" -eq 1 ]]; then
+    if [[ -n "${BACKUP_TAG_NAME}" ]]; then
+      tag_to_apply="${BACKUP_TAG_NAME}"
+    else
+      tag_to_apply="$(resolve_chronological_tag)"
+    fi
+
+    if git -C "${REPO_DIR}" rev-parse -q --verify "refs/tags/${tag_to_apply}" >/dev/null 2>&1; then
+      log_warn "Git tag '${tag_to_apply}' already exists; skipping tag creation."
+    else
+      git -C "${REPO_DIR}" tag -a "${tag_to_apply}" -m "Homelab configuration backup ${tag_to_apply}"
+      log_info "Created git tag: ${tag_to_apply}"
+    fi
+  fi
+
+  # Step 4: Archive all untracked live .env secret files into ${DOCKER_DATA_DIR}/backup/homelab/
   local backup_dir="${DOCKER_DATA_DIR}/backup/homelab"
-  local archive_name
-  archive_name="$(date +%Y%m%d)_homelab_config.tar.gz"
-  local archive_path="${backup_dir}/${archive_name}"
+  local date_prefix
+  date_prefix="$(date +%Y.%-m.%-d)"
+  local env_archive="${backup_dir}/${date_prefix}_env_secrets.tar.gz"
+  local latest_link="${backup_dir}/latest_env_secrets.tar.gz"
 
   mkdir -p "${backup_dir}"
 
-  local files_to_backup=(
-    "${REPO_DIR}/README.md"
-    "${REPO_DIR}/homelab.sh"
-    "${REPO_DIR}/backup-homelab.bash"
-    "${REPO_DIR}/.gitignore"
-    "${REPO_DIR}/.env.example"
-    "${REPO_DIR}/.env"
-    "${REPO_DIR}/.configs"
-    "${REPO_DIR}/.agents"
-  )
+  # Collect relative paths (anchored at REPO_DIR) for all existing .env files
+  # so extracting the tarball inside REPO_DIR restores every .env in place.
+  local env_files=()
+  [[ -f "${REPO_DIR}/.env" ]] && env_files+=(".env")
 
-  # Include all stack directories (which contain compose.yml, .env.example, and live .env).
   local stack
   for stack in "${STACKS[@]}"; do
-    [[ -d "${REPO_DIR}/${stack}" ]] && files_to_backup+=("${REPO_DIR}/${stack}")
+    [[ -f "${REPO_DIR}/${stack}/.env" ]] && env_files+=("${stack}/.env")
   done
 
-  # Include live deployed orchestrator and portable service configs on the host.
-  [[ -f "${DOCKGE_DIR}/compose.yml" ]] && files_to_backup+=("${DOCKGE_DIR}/compose.yml")
-  [[ -f "${DOCKGE_DIR}/.env" ]] && files_to_backup+=("${DOCKGE_DIR}/.env")
-  [[ -f "${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh" ]] && files_to_backup+=("${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh")
-  [[ -f "${DOCKER_DATA_DIR}/nginx/data/db.sqlite" ]] && files_to_backup+=("${DOCKER_DATA_DIR}/nginx/data/db.sqlite")
-  [[ -d "${DOCKER_DATA_DIR}/nginx/data/nginx" ]] && files_to_backup+=("${DOCKER_DATA_DIR}/nginx/data/nginx")
-
-  if [[ -d "${DOCKER_DATA_DIR}/homepage/data" ]]; then
-    local hp_file
-    for hp_file in "${DOCKER_DATA_DIR}/homepage/data/"*.yaml "${DOCKER_DATA_DIR}/homepage/data/"*.yml; do
-      [[ -f "${hp_file}" ]] && files_to_backup+=("${hp_file}")
-    done
+  # Include Dockge's .env (one level above REPO_DIR at ../.env when REPO_DIR is /opt/<user>/dockge/stacks)
+  if [[ -f "${REPO_DIR}/../.env" ]]; then
+    env_files+=("../.env")
   fi
 
-  tar -czf "${archive_path}" "${files_to_backup[@]}"
-  chown "${TARGET_USER}:${TARGET_GROUP}" "${archive_path}" 2>/dev/null || true
-  log_info "Backup completed successfully: ${archive_path}"
+  if [[ "${#env_files[@]}" -gt 0 ]]; then
+    tar -czf "${env_archive}" -C "${REPO_DIR}" "${env_files[@]}"
+    chmod 0600 "${env_archive}" 2>/dev/null || true
+    ln -sf "$(basename "${env_archive}")" "${latest_link}"
+    chown -h "${TARGET_USER}:${TARGET_GROUP}" "${env_archive}" "${latest_link}" 2>/dev/null || true
+    log_info "Archived ${#env_files[@]} live .env secret files to: ${env_archive} (symlinked at ${latest_link})"
+  else
+    log_warn "No live .env files found to archive."
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -810,11 +878,15 @@ Subcommands:
   setup           Initialize .env files, apply NAS OS fixes, create networks, deploy configs, and start all stacks
   deploy-configs  Deploy tracked configurations from .configs/ to host volumes with diff inspection
   pull-configs    Pull live service configurations from host volumes into .configs/
-  backup          Create a timestamped configuration backup archive in \${DOCKER_DATA_DIR}/backup/homelab/
+  backup          Pull live configs, commit changes to git (with optional tag), and archive live .env files
 
 Options for deploy-configs / setup:
-  -O, --overwrite-all  Overwrite all differing target config files without prompting
-  -K, --keep-all       Keep all existing target config files without prompting
+  -O, --overwrite-all      Overwrite all differing target config files without prompting
+  -K, --keep-all           Keep all existing target config files without prompting
+
+Options for backup:
+  -t, --tag [tag_name]     Tag HEAD after committing (defaults to chronological YYYY.M.D[.N] if tag_name is omitted)
+  -m, --message <msg>      Custom git commit message for backup
 EOF
 }
 
@@ -831,10 +903,38 @@ main() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -O|--overwrite-all) OVERWRITE_MODE="overwrite_all" ;;
-      -K|--keep-all) OVERWRITE_MODE="keep_all" ;;
-      -h|--help) usage; exit 0 ;;
-      *) log_error "Unknown option: $1"; usage; exit 1 ;;
+      -O|--overwrite-all)
+        OVERWRITE_MODE="overwrite_all"
+        ;;
+      -K|--keep-all)
+        OVERWRITE_MODE="keep_all"
+        ;;
+      -t|--tag)
+        BACKUP_TAG_ENABLED=1
+        # If the next argument exists and is not another flag, consume it as custom tag name.
+        if [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
+          BACKUP_TAG_NAME="$2"
+          shift
+        fi
+        ;;
+      -m|--message)
+        if [[ $# -lt 2 ]]; then
+          log_error "Option '$1' requires a commit message argument."
+          usage
+          exit 1
+        fi
+        BACKUP_COMMIT_MSG="$2"
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        log_error "Unknown option: $1"
+        usage
+        exit 1
+        ;;
     esac
     shift
   done

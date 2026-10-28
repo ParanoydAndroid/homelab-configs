@@ -89,7 +89,6 @@ Setting Compose `user: "1000:100"` blindly on all containers will break images w
 ├── .env.example
 ├── .gitignore
 ├── README.md
-├── backup-homelab.bash
 ├── homelab.sh
 ├── homepage/
 │   └── compose.yml
@@ -127,7 +126,7 @@ Setting Compose `user: "1000:100"` blindly on all containers will break images w
 - `/volume1/docker/prowlarr/data` -> `/config` (`prowlarr`)
 - `/volume1/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
 - `/volume1/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
-- `/volume1/docker/backup/homelab` -> Archive output directory (`homelab.sh backup`)
+- `/volume1/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
 - `/volume1/media` -> `/media` (`radarr`, `sonarr`, `qbittorrentvpn`) and `/data/media:ro` (`jellyfin`)
 
 ### 3.3 Two-Tier `.env.example` Specification

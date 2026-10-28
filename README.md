@@ -156,8 +156,8 @@ Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active
   Compares tracked files in `.configs/` against live files in `/volume1/docker/...` and `${DOCKGE_DIR}/compose.yml`. When differences are detected, shows a unified diff and prompts `[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`. Skips deploying NPM proxy host `.conf` files whose referenced SSL certificates do not yet exist on disk, and reloads Nginx if any NPM config changes.
 - `./homelab.sh pull-configs`:
   Retrieves live configuration changes made via UIs (Homepage YAML files, NPM `db.sqlite` host exports and `.conf` files, and `set-qbt-port.sh`) from `/volume1/docker/...` back into `.configs/` so they can be inspected with `git diff` and committed.
-- `./homelab.sh backup` (or `./backup-homelab.bash`):
-  Creates a timestamped archive `/volume1/docker/backup/homelab/YYYYMMDD_homelab_config.tar.gz` containing `README.md`, `homelab.sh`, `.configs/`, all `compose.yml` files, live `.env` files, and portable service configurations.
+- `./homelab.sh backup [--tag [tag_name]] [-m <message>]`:
+  Runs `pull-configs` to sync live service configurations into `.configs/`, commits any repository or configuration changes to git, optionally tags `HEAD` (defaulting to a chronological PEP 440 / CalVer tag `YYYY.M.D` or `YYYY.M.D.N` when `--tag` is passed without a name), and archives all untracked live `.env` secret files into `/volume1/docker/backup/homelab/YYYY.M.D_env_secrets.tar.gz` (symlinked at `latest_env_secrets.tar.gz`).
 
 ### 5.2 Use-Case Quick Guides
 
@@ -180,11 +180,12 @@ Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active
    ```
 3. If adding a new stack, create `<new-stack>/compose.yml` (and optional `<new-stack>/.env.example`), then run `sudo ./homelab.sh setup` to sync global `.env` variables and start the stack.
 
-#### Use Case 3: Creating a Full Configuration Backup Before Major Changes
+#### Use Case 3: Backing Up Live Configurations, Tagging a Release, and Archiving `.env` Secrets
 ```bash
 cd ~/services
-./homelab.sh pull-configs
-./homelab.sh backup
+# Pulls live configs, commits any changes, tags HEAD with YYYY.M.D (e.g. 2026.10.28),
+# and archives all untracked .env files into /volume1/docker/backup/homelab/
+./homelab.sh backup --tag
 ls -lh /volume1/docker/backup/homelab/
 ```
 
