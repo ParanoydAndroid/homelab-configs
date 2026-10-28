@@ -73,3 +73,14 @@ When newly instantiated against this repository, orient yourself using the follo
 - **Documentation and Artifact Rules**:
   - Do not use icons, emojis, or advanced/non-standard Markdown extensions in documentation, artifacts, or instructions. Use plain Markdown (headings, lists, standard tables, and fenced code blocks).
   - Store all agent-generated artifacts in `.agents/artifacts/` and commit them to git as part of the project workflow.
+
+## 5. Testing and Quality Assurance Standards
+
+- **Smoke and Regression Test Suite (`homelab.sh test`)**:
+  - The repository maintains an automated, fast smoke test suite in `homelab.sh test` verifying container runtimes/health, direct admin ports, client-impersonated virtual host routing over reverse proxies (with SSL and HTTP status codes), and internal container interconnections (DNS, database sockets, API health, VPN port sync).
+- **Mandatory Tests with Feature Changes**:
+  - Always add corresponding automated test checks to `homelab.sh test` whenever introducing a new stack, service, reverse proxy host, endpoint, or internal communication path. Feature changes are incomplete without accompanying test coverage.
+- **Integrity of Existing Tests**:
+  - Respect existing tests. Never arbitrarily loosen assertions, remove checks, or rewrite test logic simply to make a failing test pass. If a test fails, investigate and fix the underlying configuration, networking, or service defect. Any intentional modification to an existing test assertion must be explicitly justified by an intentional architectural or requirement change.
+- **Regression and Bug Fix Testing**:
+  - Whenever a bug or regression is identified (such as routing failures, disallowed host headers, missing SSL certificates, or VPN port desynchronization), write a reproducing test case in `homelab.sh test` before or alongside applying the fix to verify remediation and permanently prevent regressions.

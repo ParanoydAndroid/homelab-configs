@@ -7,7 +7,7 @@ This repository is the single source of truth for the declarative configuration,
 The project encompasses:
 - **Containerized Service Stacks**: Declarative Docker Compose v2+ definitions for reverse proxy routing (`nginx`), dashboard and service discovery (`homepage`), media streaming (`jellyfin`), automated media acquisition (`sonarr-radarr` and `qbittorrentvpn` over PIA WireGuard), recipe management (`tandoor`), relational database storage (`postgres`), and web-based stack orchestration (`dockge`).
 - **Tracked Application Configurations (`.configs/`)**: Version-controlled portable service configurations—including Homepage YAML dashboards, Nginx Proxy Manager routing definitions and generated `.conf` files, local wildcard certificate generation scripts, and VPN port-forwarding helper scripts—bidirectionally synchronized between the repository and host volumes.
-- **Lifecycle and Backup Automation (`homelab.sh`)**: Idempotent CLI tooling for host OS workaround convergence, two-tier `.env` initialization and secret propagation, Docker network provisioning, configuration deployment/retrieval with diff inspection, and git-tagged configuration backups with encrypted/restricted `.env` secret archives.
+- **Lifecycle, Testing, and Backup Automation (`homelab.sh`)**: Idempotent CLI tooling for host OS workaround convergence, two-tier `.env` initialization and secret propagation, Docker network provisioning, configuration deployment/retrieval with diff inspection, fast end-to-end smoke testing across virtual hosts and container interconnections, and git-tagged configuration backups with encrypted/restricted `.env` secret archives.
 
 ---
 
