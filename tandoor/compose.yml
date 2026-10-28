@@ -26,8 +26,8 @@ services:
       TZ: ${TZ:-America/New_York}
       # Random cryptographic secret key (populated in tandoor/.env)
       SECRET_KEY: ${SECRET_KEY}
-      # Allowed hosts (see documentation), defaults to * when behind reverse proxy
-      # ALLOWED_HOSTS: recipes.mydomain.com
+      # Restrict allowed HTTP Host headers to configured external, LAN, and internal domains
+      ALLOWED_HOSTS: recipes.kamaka.tech,recipes.turing.home,tandoor,localhost,127.0.0.1
       DATABASE_URL: postgresql://postgres:password@postgresql:5432/recipes
       TANDOOR_PORT: 8050
     volumes:

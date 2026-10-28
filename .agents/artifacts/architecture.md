@@ -121,3 +121,4 @@ The project encompasses:
 | `nginx` | `jc21/nginx-proxy-manager:latest` | Runs as `root` internally; do not set `user:` | `0:0` |
 | `flaresolverr` | `ghcr.io/flaresolverr/flaresolverr:latest` | Stateless; uses internal non-root user; no persistent volume | N/A |
 | `dockge` | `louislam/dockge:1` | Runs as `root` for `/var/run/docker.sock` | `0:0` |
+
