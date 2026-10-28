@@ -3,29 +3,27 @@ services:
     image: jc21/nginx-proxy-manager:latest
     container_name: nginx
     restart: unless-stopped
+    mac_address: 2E:50:8F:7A:C4:12
     ports:
-      # In order for 80 and 443 to work, you need to unbind the built in nginx server in DSM
-      # sudo sed -i -e 's/80/81/' -e 's/443/444/' /usr/syno/share/nginx/server.mustache /usr/syno/share/nginx/DSM.mustache /usr/syno/share/nginx/WWWService.mustache
-      # sudo systemctl restart nginx
-      - 8480:80
-      - 8443:443
-      - 8444:81
+      - 80:80
+      - 443:443
+      - 81:81
     environment:
       - DISABLE_IPV6=true
       - DB_SQLITE_FILE=/data/db.sqlite
-      # Uncomment the following line to use a custom config file
-      # - NPM_CONFIG_FILE=/config/config.json
     volumes:
       - /volume1/docker/nginx/data/data:/data
       - /volume1/docker/nginx/data/letsencrypt:/etc/letsencrypt
-
       - /volume1/docker/media:/media:ro
-
-      # - /volume1/docker/nginx/data/config.json:/config/config.json
-      # - /volume1/docker/nginx/data/hosts:/config/hosts
     networks:
-      - homelab
+      homelab:
+        aliases:
+          - services
+      external_npm:
+        ipv4_address: 192.168.0.4
 
 networks:
+  external_npm:
+    external: true
   homelab:
     external: true
