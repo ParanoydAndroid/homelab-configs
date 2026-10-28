@@ -66,8 +66,7 @@ Setting Compose `user: "1000:100"` blindly on all containers will break images w
 .
 ├── .agents/
 │   ├── artifacts/
-│   │   ├── implementation_plan.md
-│   │   └── learning_proposal.md
+│   │   └── implementation_plan.md
 │   └── rules/
 │       └── project-conventions.md
 ├── .configs/
