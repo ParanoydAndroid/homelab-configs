@@ -1,259 +1,265 @@
-# Homelab Services Standardization and Automation Plan
+# Homelab Services Standardization and Automation Implementation Plan
 
-## 1. Project Overview and Goal
+## 1. Project Overview and Target State
 
-This document defines the requirements and high-level implementation plan for standardizing and automating the homelab services repository.
+This document is the authoritative, step-by-step implementation specification for an executing agent (working with human approval checkpoints) to standardize, migrate, automate, and document the homelab services repository.
 
-The goal is to make the repository self-contained and repeatable so that it can be checked out on the host (`/opt/brandon/dockge/stacks`, symlinked at `/home/brandon/services`), initialize `.env` files from `.env.example` templates, create required Docker networks, bidirectionally sync configuration files (including Nginx Proxy Manager and Homepage configurations) between the repository and `/volume1/docker` with conflict prompts, and start all service stacks while preserving compatibility with Dockge.
-
----
-
-## 2. Current State Assessment
-
-An audit of the repository and host filesystem (`/opt/brandon/dockge` and `/volume1/docker`) identified the following state and inconsistencies:
-
-### 2.1 Service Stacks and Compose Files
-The repository at `/opt/brandon/dockge/stacks` currently contains eight stack directories, plus Dockge running from its parent directory `/opt/brandon/dockge/compose.yaml`:
-- [homepage/compose.yml](file:///home/brandon/services/homepage/compose.yml) (with tracked [homepage/.env](file:///home/brandon/services/homepage/.env))
-- [jellyfin/compose.yml](file:///home/brandon/services/jellyfin/compose.yml) (with tracked [jellyfin/.env](file:///home/brandon/services/jellyfin/.env))
-- [nginx/compose.yml](file:///home/brandon/services/nginx/compose.yml)
-- [portainer/portainer.yml](file:///home/brandon/services/portainer/portainer.yml) (deprecated; to be removed and replaced by Dockge)
-- [postgres/compose.yml](file:///home/brandon/services/postgres/compose.yml)
-- [qbitorrentvpn/compose.yml](file:///home/brandon/services/qbitorrentvpn/compose.yml)
-- [sonarr-radarr/compose.yml](file:///home/brandon/services/sonarr-radarr/compose.yml)
-- [tandoor/compose.yml](file:///home/brandon/services/tandoor/compose.yml)
-- `/opt/brandon/dockge/compose.yaml` (active Dockge instance currently outside the git repository)
-
-### 2.2 Dockge Inspection Findings (`/opt/brandon/dockge/compose.yaml`)
-- `/home/brandon/services` is a symlink to `/opt/brandon/dockge/stacks`.
-- Dockge runs `louislam/dockge:1` on `homelab` with port `8010:5001` and volumes `/var/run/docker.sock:/var/run/docker.sock`, `./data:/app/data` (`/opt/brandon/dockge/data`), and `/opt/brandon/dockge/stacks:/opt/brandon/dockge/stacks`.
-- Architectural issues identified:
-  1. **Self-Management Hazard**: If `dockge/compose.yml` is placed inside `/opt/brandon/dockge/stacks/dockge/`, Dockge lists itself in its UI and cannot cleanly restart/update itself from the web UI without killing its own container mid-operation. Storing Dockge's compose file in the repo and deploying it to `/opt/brandon/dockge/compose.yml` via the setup script avoids this.
-  2. **Relative Data Volume**: `./data:/app/data` depends on the working directory and should be standardized to an absolute path (`/volume1/docker/dockge/data:/app/data` or `/opt/brandon/dockge/data:/app/data`).
-  3. **Ineffective `PUID`/`PGID` Variables**: `louislam/dockge` does not use LinuxServer `PUID`/`PGID` variables.
-  4. **Missing Homepage Labels & Emoji Comments**: Lacks `homepage.*` labels and includes emoji characters in comments.
-
-### 2.3 Host Volume (`/volume1/docker`) and NPM Inspection Findings
-Inspecting `/volume1/docker` on the UGREEN NAS revealed:
-1. **Non-existent `/docker` Path in Backup Script**: [backup-homelab.bash](file:///home/brandon/services/backup-homelab.bash) sets `BACKUP_DIR="/docker/backup/homelab"`, but `/docker` does not exist on the host; all Docker data resides under `/volume1/docker`.
-2. **Inconsistent Volume Path Structure Across Services**:
-   - `nginx`: Mounts `/volume1/docker/nginx/data/data:/data` (redundant double `data/data` directory nesting) and `/volume1/docker/nginx/data/letsencrypt:/etc/letsencrypt`.
-   - `sonarr-radarr`: Mounts `radarr`, `sonarr`, and `prowlarr` under `/volume1/docker/radarr/data/{radarr_config,sonarr_config,prowlerr_config}` (nesting three separate services under `radarr/data` and misspelling `prowlerr_config`).
-   - **Legacy `/volume1/Public` vs `/volume1/media` Mismatch**: `sonarr-radarr` and `qbitorrentvpn` still mount `/volume1/Public:/media` (which is empty), whereas the actual media directories (`downloads`, `movies`, `music`, `shows`) live in `/volume1/media` (mounted by `jellyfin`).
-   - `jellyfin` & `qbitorrentvpn`: Mount `/volume1/docker/<service>/data/config:/config`.
-   - `homepage` & `postgresql`: Mount `/volume1/docker/<service>/data` directly to the container data target.
-   - `tandoor`: Mounts `/volume1/docker/tandoor/data/staticfiles:/opt/recipes/staticfiles` and `/volume1/docker/media:/opt/recipes/mediafiles` (while an unused `/volume1/docker/tandoor/data/mediafiles` directory also exists on disk).
-   - Legacy directories `/volume1/docker/portainer` and `/volume1/docker/qbittorrent` remain on disk.
-3. **NPM Configuration, Database Architecture, and Local Certificate Script**:
-   - `/volume1/docker/nginx/data/data/nginx/` currently contains:
-     - `proxy_host/2.conf` (`recipes.kamaka.tech` -> `tandoor:8050`)
-     - `proxy_host/3.conf` (`jellyfin.kamaka.tech` -> `jellyfin:8096`)
-     - `proxy_host/4.conf` (`jellyfin.grace.home, jellyfin.turing.home` -> `jellyfin:8096`)
-     - `dead_host/1.conf` (`www.grace.home`), `dead_host/2.conf` (`grace.home`)
-     - `default_host/site.conf`, `default_www/index.html`
-   - **Host Identity, Combined Local Certificate, and Obsolete `grace.home` Cleanup**:
-     - The UGREEN NAS host itself is `nas.home` (`192.168.0.3`), while the NPM container exposed on the LAN via `external_npm` macvlan (`192.168.0.4`) is `turing.home`.
-     - All `grace.home` references (in NPM proxy/dead hosts, custom certs, and `/home/brandon/generate-local-cert.sh`) are from a deprecated experiment and must be removed.
-     - `/home/brandon/generate-local-cert.sh` will be moved into the repository and updated to generate a single combined multi-SAN self-signed certificate covering both `turing.home` (`*.turing.home`) and `nas.home` (`*.nas.home`) by setting `DOMAINS=("turing.home" "nas.home")`. This single certificate can be uploaded to both the UGREEN NAS control panel and NPM.
-   - **NPM Export/Import Strategy (Simplicity & Maintainability First)**:
-     - Rather than attempting a fragile full-state binary database sync (which entangles user auth hashes, JWT secrets, and Let's Encrypt ACME account state), the repository will track:
-       1. A clean, human-readable export of NPM host definitions (`proxy_host`, `dead_host`, `redirection_host`, and `setting` tables exported via `sqlite3 -json` or SQL/API payload, cleaned of `grace.home` entries) and the generated `.conf` / `default_www` files for reference and import.
-       2. The updated `generate-local-cert.sh` script for generating the combined `turing.home` + `nas.home` wildcard certificate.
-       3. Concise, precise documentation in `README.md` covering one-time manual setup steps (initial admin login, Let's Encrypt Cloudflare DNS resolver certificate setup for `*.kamaka.tech`, running `generate-local-cert.sh` and uploading `turing.crt`/`turing.key` to NPM and UGREEN NAS, and linking certs to hosts).
-
-### 2.4 Host User (`PUID`/`PGID`) and File Permission Findings
-- Inspecting `/etc/passwd` and `/etc/group` confirmed the system is a UGREEN NAS where user `brandon` has `uid=1000`, primary group `gid=10` (`admin`), and supplementary group `gid=100` (`users`).
-- `PUID=1027` in `sonarr-radarr` and `qbitorrentvpn` is a leftover from an older Synology DSM environment.
-- `GUID` in `homepage` and `jellyfin` is a typo for `PGID`. Additionally, the official `jellyfin/jellyfin` image ignores `PUID`/`PGID` environment variables and requires Compose `user: "1000:100"` (meaning Jellyfin has actually been running as `root` `0:0`).
-- **On-Disk Permission Hazards Identified**:
-  - Existing files in `/volume1/docker/*/data` are currently owned by `0:0 (root:root)` (with mode `777` and POSIX ACLs `+` from migration), and `/volume1/docker/qbittorrentvpn/data/config/perms.txt` caches the previous `PUID`/`PGID` for the `binhex` container.
-  - Switching containers (especially `jellyfin` via `user: "1000:100"`, `sonarr`, `radarr`, `prowlarr`, and `qbittorrentvpn`) to UID `1000` / GID `100` can cause permission denied errors if root-owned files with `644`/`755` permissions exist in their config folders or if `perms.txt` prevents `binhex` from re-applying ownership.
-  - Conversely, `postgresql` uses internal Alpine UID `70` and `nginx`/`homepage` run as `root`, so a blind `chown` across all of `/volume1/docker` would break PostgreSQL. Permission remediation must be targeted per service.
-
-### 2.5 Other Compose Inconsistencies
-1. **Compose Schema Version**: `qbitorrentvpn/compose.yml` still uses `version: "3.5"`. Under the modern Compose Specification (v2+), top-level `version` is obsolete and ignored.
-2. **Service Naming (`name`, `container_name`, `hostname`)**:
-   - `/opt/brandon/dockge/compose.yaml` defines top-level `name: dockge`; all other stacks omit top-level `name:`.
-   - `homepage` and `jellyfin` define both `container_name` and `hostname`, while `nginx`, `postgresql`, `qbittorrentvpn`, `sonarr-radarr`, `tandoor`, and `dockge` only define `container_name`.
-3. **Environment Syntax and Secrets**:
-   - Mixed list (`- KEY=VAL`) and map (`KEY: VAL`) syntax across stacks.
-   - `homepage/.env` and `jellyfin/.env` are tracked in git despite `.gitignore` listing `.env`.
-   - `VPN_USER` and `VPN_PASS` are hardcoded in `qbitorrentvpn/compose.yml`.
-4. **Network Definitions**:
-   - `tandoor/compose.yml` references an undocumented external `internal` network not used by `postgres/compose.yml`.
+Upon completion of this plan:
+1. All legacy host volume paths under `/volume1/docker`, legacy UID/GID ownership (`1027` and `0:0`), and inline secrets will be migrated to the standardized target layout via a temporary one-time script (`migrate-once.sh`) that is deleted before final commit.
+2. All Docker Compose stacks (`homepage`, `jellyfin`, `nginx`, `postgres`, `qbittorrentvpn`, `sonarr-radarr`, `tandoor`) and the external Dockge orchestrator (`.configs/dockge/compose.yml` deployed to `${DOCKGE_DIR}/compose.yml`) will follow a uniform Compose Specification v2+ schema and a two-tier `.env.example` / `.env` configuration model.
+3. Tracked service configurations (`.configs/dockge`, `.configs/nginx`, `.configs/homepage`, `.configs/qbittorrentvpn`) will be versioned in git and bidirectionally synced via `homelab.sh` (`setup`, `deploy-configs`, `pull-configs`, `backup`).
+4. [README.md](file:///home/brandon/services/README.md) will provide complete documentation covering network topology, service and port mappings, quickstart setup, one-time SSL/security procedures, and operational use-case guides.
+5. All services will be running healthy on the host and all tracked files will be committed cleanly to git.
 
 ---
 
-## 3. Requirements
+## 2. Verified Architecture and Command Assumptions
 
-### 3.1 Architecture and Structure Constraints
-- Remove `portainer/` and integrate `dockge` configuration from `/opt/brandon/dockge/compose.yaml`.
-- Preserve the Dockge-compatible directory layout: one folder per stack at the repository root containing `compose.yml` and an optional `.env` / `.env.example` file.
-- Store project planning and design artifacts in `.agents/artifacts/` so they are versioned in git without cluttering the repository root or interfering with Dockge stack scanning.
-- All scripts and automation functions must be idempotent so they can be re-run safely on existing setups or after repository updates.
-- Plain Markdown formatting without icons or advanced extensions must be used across documentation and code comments.
+The following technical findings were verified against the live UGREEN NAS environment and container images and must be respected during execution:
 
-### 3.2 Compose Standardization and `.env.example` Management
-- Standardize all stack files to be named `compose.yml`.
-- **Version Best Practice**: Omit the deprecated top-level `version` property and top-level `name` property across all `compose.yml` files.
-- **Name and Hostname Standardization**: Maintain explicit `container_name` on all services and set matching `hostname` values across all containers for consistent network and shell identity.
-- **`PUID` and `PGID` Standardization and Host Permission Remediation**:
-  - Standardize on `PUID=1000` and `PGID=100` (matching host user `brandon` and group `users` on the UGREEN NAS), fix `GUID` typos to `PGID`, and add `user: "1000:100"` for non-LinuxServer containers such as Jellyfin (while keeping `PUID=0`/`PGID=0` only where root access to `/var/run/docker.sock` is required, such as Homepage).
-  - Include an idempotent permission-remediation step in the setup script that sets `1000:100` ownership on the persistent config directories of non-root services (`jellyfin`, `radarr`, `sonarr`, `prowlarr`, `qbittorrentvpn`, `tandoor`) and clears `/volume1/docker/qbittorrentvpn/data/config/perms.txt` when transitioning `PUID`/`PGID`, while explicitly excluding `postgresql` (which uses Alpine `postgres` UID `70`) and root-run infrastructure (`nginx`, `homepage`).
-- **Consistent Key Ordering and Formatting**:
-  - Order service keys consistently: `image`, `container_name`, `hostname`, `user`, `restart`, `privileged`, `cap_add`, `security_opt`, `sysctls`, `devices`, `group_add`, `mac_address`, `environment`, `volumes`, `ports`, `networks`, `logging`, `labels`.
-  - Standardize `environment` block formatting across all files.
-- **`.env` and `.env.example` Strategy**:
-  - Inline sensible defaults directly into `compose.yml`.
-  - Track `<stack>/.env.example` in git and keep `<stack>/.env` in `.gitignore` (untracking `homepage/.env` and `jellyfin/.env` from git index).
-  - Restrict `.env.example` / `.env` variables to two categories, left blank (`KEY=`) in `.env.example` as self-documenting required configuration:
-    1. True secrets (such as external VPN credentials or sensitive external keys).
-    2. Mandatory environment-specific variables that have no sensible universal default and must be set by a user in a new environment.
-  - Setup automation copies `<stack>/.env.example` to `<stack>/.env` if missing and checks for unpopulated variables.
-  - Keep internal service-to-service credentials (such as PostgreSQL `postgres:password`) and LAN-only service exposure accounts hardcoded directly in `compose.yml`.
+### 2.1 Container UID/GID (`user:` vs. `PUID`/`PGID`) Matrix
+Setting Compose `user: "1000:100"` blindly on all containers will break images whose entrypoints require `root` at startup to configure `s6-overlay`, `iptables`, `openvpn`, or `/var/run/docker.sock`. Apply UID/GID settings strictly per image architecture:
 
-### 3.3 Volume Path Standardization and Bidirectional Configuration Sync (NPM & Services)
-- **Standardize Host Volume Layout under `/volume1/docker`**:
-  - Establish a consistent volume convention under `/volume1/docker/<service>/...` across stacks (and evaluate migrating inconsistent paths such as `/volume1/docker/nginx/data/data` and `/volume1/docker/radarr/data/prowlerr_config`).
-- **Retrieve, Version, and Bidirectionally Sync Service Configurations**:
-  - Store portable service configurations in the git repository (in per-stack subdirectories such as `<stack>/config/` or a hidden root folder like `.configs/` so Dockge does not mistake them for stacks):
-    - **Nginx Proxy Manager (NPM)**:
-      - Exported host definitions in an importable, human-readable format (JSON/SQL extracted via `sqlite3` from `db.sqlite` covering `proxy_host`, `dead_host`, `redirection_host`, and `setting`) plus the generated `.conf` and `default_www/index.html` files.
-      - Concise one-time setup instructions in `README.md` for non-automated steps (Cloudflare DNS challenge certificate creation and SSL assignment).
-    - **Homepage**: Configuration YAML files (`bookmarks.yaml`, `docker.yaml`, `kubernetes.yaml`, `services.yaml`, `settings.yaml`, `widgets.yaml`, `custom.css`, `custom.js`) from `/volume1/docker/homepage/data/`.
-    - **qBittorrentVPN**: Helper script `/volume1/docker/qbittorrentvpn/data/getvpnport.sh`.
-  - Provide bidirectional automation commands:
-    - **Pull / Backup to Repo**: Retrieve current live configurations from `/volume1/docker/...` (including exporting NPM host definitions and copying Homepage/script files) into the repository so changes made via UI can be reviewed with `git diff` and committed.
-    - **Push / Deploy from Repo**: Copy tracked repository configurations (and import NPM host definitions if desired) to their target locations in `/volume1/docker/...` during setup or update, detecting if target files were modified since the last update and prompting whether to overwrite or preserve them.
+| Service / Container | Image | UID/GID Mechanism | Target Ownership on `/volume1/docker/<service>/data` |
+| :--- | :--- | :--- | :--- |
+| `jellyfin` | `jellyfin/jellyfin:latest` | Compose `user: "${PUID:-1000}:${PGID:-100}"` + `group_add: ["105"]` (official image ignores `PUID`/`PGID` env vars) | `1000:100` |
+| `radarr`, `sonarr`, `prowlarr` | `lscr.io/linuxserver/*:latest` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` (do NOT set Compose `user:`; s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
+| `qbittorrentvpn` | `binhex/arch-qbittorrentvpn:4.3.3-1-02` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` (do NOT set Compose `user:`; OpenVPN/iptables requires root init; delete `/config/perms.txt` once during migration) | `1000:100` |
+| `tandoor` | `vabene1111/recipes` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` (do NOT set Compose `user:`; `boot.sh` runs as root then drops to `PUID:PGID`) | `1000:100` |
+| `postgresql` | `postgres:16-alpine` | Internal Alpine `postgres` user (`70:70`); do NOT set `PUID`/`PGID` or `user:`, and NEVER `chown` `/volume1/docker/postgres/data` to `1000:100` | `70:70` (untouched) |
+| `homepage` | `ghcr.io/gethomepage/homepage:latest` | Env `PUID: 0`, `PGID: 0` (fixes `GUID: 0` typo; requires root for `/var/run/docker.sock`) | `0:0` (untouched) |
+| `nginx` | `jc21/nginx-proxy-manager:latest` | Runs as `root` internally; do NOT set `user:` | `0:0` (untouched) |
+| `flaresolverr` | `ghcr.io/flaresolverr/flaresolverr:latest` | Stateless; uses internal non-root user; no persistent volume | N/A |
+| `dockge` | `louislam/dockge:1` | Runs as `root` for `/var/run/docker.sock` (ignores `PUID`/`PGID` env vars; omit them) | `0:0` (untouched) |
 
-### 3.4 Container Port Forwarding Removal
-- Remove unnecessary host port mappings from service containers that are proxied through NPM over the `homelab` network.
-- Retain in-file comments in each `compose.yml` documenting the internal container port and historical external host port mapping.
-- Retain and update the port mappings reference table in [README.md](file:///home/brandon/services/README.md) (replacing Portainer with Dockge `8010:5001` and adding `qbittorrentvpn`) for historical reference.
+### 2.2 Tandoor Media Serving via Nginx Proxy Manager (`/media:ro`)
+- Inspecting `/volume1/docker/nginx/data/data/nginx/proxy_host/2.conf` (`recipes.kamaka.tech` -> `tandoor:8050`) confirmed that NPM uses a custom rule:
+  ```nginx
+  location /media/ {
+      root /;
+  }
+  ```
+- Because Tandoor's Gunicorn server does not serve `/media/` directly in production, NPM serves uploaded recipe images from `/media/...` inside the `nginx` container.
+- Therefore, when `/volume1/docker/media` is migrated to `${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/mediafiles`, [nginx/compose.yml](file:///home/brandon/services/nginx/compose.yml) **must retain this read-only volume mount updated to**:
+  `- ${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/mediafiles:/media:ro`
 
-### 3.5 Setup, Update, and Backup Automation Scripts
-- Provide an idempotent setup/update script and updated backup script that perform:
-  1. **Docker Network Creation**: Checks for and creates `homelab` (`192.168.255.0/24`, gateway `192.168.255.1`, bridge) and `external_npm` (`192.168.0.0/24`, gateway `192.168.0.1`, macvlan on `eth0`) if they do not exist.
-  2. **`.env` Initialization**: Copies `<stack>/.env.example` to `<stack>/.env` if missing and warns if required variables are blank.
-  3. **Configuration Deployment (Repo -> Host)**: Deploys tracked config files to `/volume1/docker/...` with change detection and interactive overwrite/preserve prompts.
-  4. **Configuration Retrieval (Host -> Repo)**: Pulls updated NPM/Homepage/service config files from `/volume1/docker/...` back into the git repository for versioning.
-  5. **Service Startup**: Starts or updates Dockge and the Docker Compose stacks in dependency order (`postgres` before `tandoor`, `nginx`, etc.).
-  6. **Archive Backup**: Fixes [backup-homelab.bash](file:///home/brandon/services/backup-homelab.bash) to write archives to a valid `/volume1/docker/backup/homelab` path and remove bash errors.
+### 2.3 NPM Configuration Sync and Fresh-Install Certificate Guard
+- NPM stores its configuration state in `/data/db.sqlite` and generates Nginx config files under `/data/nginx/{proxy_host,dead_host,redirection_host,default_host,default_www,custom}`.
+- On a brand-new host where Let's Encrypt (`npm-3`, `npm-5`) or custom (`npm-7`) SSL certificates have not yet been created in NPM, copying `proxy_host/*.conf` files that reference missing `/etc/letsencrypt/live/npm-*/fullchain.pem` or `/data/custom_ssl/npm-*/fullchain.pem` paths will cause `nginx -t` to fail and crash-loop the `nginx` container before the user can access the NPM Admin UI (`http://192.168.0.4:81`).
+- Therefore, `homelab.sh deploy-configs` must check whether every `ssl_certificate` path referenced in an NPM `.conf` file exists on disk under `${DOCKER_DATA_DIR}/nginx/data/` before copying that `.conf` file. If a referenced certificate file is missing, `homelab.sh` skips deploying that `.conf` file and prints a warning directing the user to complete the one-time SSL setup in `README.md` and re-run `./homelab.sh deploy-configs`.
 
-### 3.6 Documentation, Certificate Script, and External Jellyfin Hardening
-- **Combined Local Certificate (`generate-local-cert.sh`)**:
-  - Track `generate-local-cert.sh` inside the repository and update `DOMAINS` to `("turing.home" "nas.home")` (removing obsolete `grace.home` entries) so a single combined multi-SAN certificate covers `turing.home`, `*.turing.home`, `nas.home`, and `*.nas.home` for both the UGREEN NAS and NPM.
-- **External Jellyfin Exposure and Security Hardening (`jellyfin.kamaka.tech` / `kamaka.tech`)**:
-  - **Container Hardening ([jellyfin/compose.yml](file:///home/brandon/services/jellyfin/compose.yml))**:
-    - Run as non-root via `user: "1000:100"` (fixing the ignored `PUID` issue), retain `security_opt: [no-new-privileges:true]`, drop unnecessary Linux capabilities (`cap_drop: [ALL]`), remove direct host HTTP/HTTPS port mappings (`8020`, `8021`), and mount the media library read-only (`/volume1/media:/data/media:ro`) unless in-folder metadata writing/deletion from Jellyfin is explicitly required.
-  - **NPM Proxy Host Hardening (`jellyfin.kamaka.tech`)**:
-    - Configure the external Jellyfin host with the Let's Encrypt certificate (`*.kamaka.tech` / `kamaka.tech`), Force SSL, HTTP/2, HSTS, Block Exploits, and **WebSockets Support enabled** (`allow_websocket_upgrade=1`, fixing the current `0` setting in `db.sqlite`).
-    - Add custom Nginx proxy hardening directives: `proxy_buffering off;` (for streaming performance), security headers (`X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer-when-downgrade`, `X-Robots-Tag: noindex, nofollow`), real client IP forwarding headers (`X-Real-IP`, `X-Forwarded-For`, `CF-Connecting-IP`), and blocking external access to `/swagger`, `/api-docs`, and `/metrics`.
-  - **Application & Cloudflare/Firewall Hardening Documentation ([README.md](file:///home/brandon/services/README.md))**:
-    - Document Jellyfin networking and user security settings: setting `Known Proxies` in Jellyfin to NPM's `homelab` address so Jellyfin logs and rate-limits real external client IPs rather than NPM's internal IP; disabling remote (non-LAN) login for the Jellyfin administrator account; configuring login attempt lockout thresholds; and hiding users from the remote login screen.
-- **README Updates ([README.md](file:///home/brandon/services/README.md))**:
-  - Convert the networks section into a structured table listing all networks, subnets, gateways, drivers, parent interfaces, key static IP and DNS assignments (`nas.home` at `192.168.0.3` for the UGREEN NAS, `turing.home` at `192.168.0.4` for the NPM macvlan host, Pi-hole at `192.168.0.2` with CNAMEs pointing service subdomains to `turing.home`), and purpose.
-  - Update the Port Mappings and Service Addresses documentation to replace Portainer with Dockge (`8010:5001`), add `qbittorrentvpn`, list each service's `*.turing.home` and external `*.kamaka.tech` addresses, and distinguish historical host ports from internal container ports.
-  - Add sections documenting the setup/update script, local self-signed certificate generation (`generate-local-cert.sh`), NPM one-time SSL and Jellyfin hardening setup, bidirectional config sync, `.env.example` workflow, and backup script.
+### 2.4 Stack Directory Naming Alignment (`qbitorrentvpn` -> `qbittorrentvpn`)
+- The stack directory currently has a single-`t` typo (`qbitorrentvpn/`), while the container name, hostname, and host data volume use `qbittorrentvpn`.
+- During the one-time migration, rename `qbitorrentvpn/` to `qbittorrentvpn/` (`git mv qbitorrentvpn qbittorrentvpn`) so stack folder, service name, `container_name`, `hostname`, `.configs/qbittorrentvpn/`, and `/volume1/docker/qbittorrentvpn/data` match 1:1.
+
+### 2.5 Executing Agent Sandbox Boundaries
+- Standard workspace file tools (`write_file`, `edit_file`) can create and modify files inside `/home/brandon/services`.
+- However, in the Antigravity command sandbox (`BypassSandbox: false`), `.git/` is mounted read-only and `/volume1/docker`, `/volume1/media`, `/opt/${USER}/dockge/compose.yaml`, `/var/run/docker.sock`, `/etc/profile.d`, and `/etc/systemd` are outside the sandbox.
+- Any `run_command` step that runs `git`, `docker`, `sqlite3`, or accesses `/volume1/`, `/opt/`, or `/etc/` **must be invoked with `BypassSandbox: true`** (which prompts the user for approval).
 
 ---
 
-## 4. High-Level Implementation Plan
+## 3. Target Directory and Configuration Architecture
 
-### Phase 1: Portainer Removal, Dockge Integration, and Compose Standardization
-1. Delete [portainer/portainer.yml](file:///home/brandon/services/portainer/portainer.yml) and the `portainer/` directory.
-2. Integrate Dockge configuration from `/opt/brandon/dockge/compose.yaml` (using an absolute data path, stripping emoji comments, and adding Homepage labels).
-3. Normalize all `compose.yml` files:
-   - Omit top-level `version` and `name`.
-   - Set explicit `container_name` and matching `hostname` on every service.
-   - Standardize `PUID=1000` and `PGID=100` (fixing `GUID` typos and adding `user: "1000:100"` where required).
-   - Unify key ordering and `environment` syntax.
-4. Comment out unnecessary `ports:` mappings in proxied services while preserving standardized comments recording internal and historical host ports.
-5. Resolve the `internal` network reference in [tandoor/compose.yml](file:///home/brandon/services/tandoor/compose.yml).
+### 3.1 Repository Layout (`/opt/${USER}/dockge/stacks` / `/home/${USER}/services`)
+```text
+.
+├── .agents/
+│   ├── artifacts/
+│   │   ├── implementation_plan.md
+│   │   └── learning_proposal.md
+│   └── rules/
+│       └── project-conventions.md
+├── .configs/
+│   ├── dockge/
+│   │   ├── .env.example
+│   │   └── compose.yml
+│   ├── homepage/
+│   │   └── *.yaml
+│   ├── nginx/
+│   │   ├── generate-local-cert.sh
+│   │   ├── npm_hosts.sql
+│   │   └── nginx/
+│   │       ├── dead_host/
+│   │       ├── default_host/
+│   │       ├── default_www/
+│   │       └── proxy_host/
+│   └── qbittorrentvpn/
+│       └── getvpnport.sh
+├── .env.example
+├── .gitignore
+├── README.md
+├── backup-homelab.bash
+├── homelab.sh
+├── homepage/
+│   └── compose.yml
+├── jellyfin/
+│   ├── .env.example
+│   └── compose.yml
+├── nginx/
+│   └── compose.yml
+├── postgres/
+│   └── compose.yml
+├── qbittorrentvpn/
+│   ├── .env.example
+│   └── compose.yml
+├── sonarr-radarr/
+│   ├── .env.example
+│   └── compose.yml
+└── tandoor/
+    ├── .env.example
+    └── compose.yml
+```
 
-### Phase 2: `.env.example` Templates, Live `.env` Preservation, and Secrets Extraction
-1. Create the root `.env.example` and `<stack>/.env.example` templates with blank defaults (`KEY=`) for secrets (`VPN_USER`, `VPN_PASS`, `SECRET_KEY`, widget keys) and populated defaults for global host/network variables (`DOCKER_DATA_DIR`, `MEDIA_DIR`, `DOCKGE_DIR`, `DOCKGE_STACKS_DIR`, `PUID`, `PGID`, `TZ`, `EXTERNAL_NPM_*`).
-2. **Pre-populate Live `.env` Files with Existing Active Values**:
-   - Before replacing inlined values in `compose.yml` with `${VAR}` references, write all currently active credentials and keys into their respective git-ignored live `<stack>/.env` files (and root `.env`) on disk so the running system remains 100% functional without manual re-entry:
-     - `qbitorrentvpn/.env`: `VPN_USER`, `VPN_PASS`, `QBITTORRENT_WIDGET_PASSWORD`
-     - `tandoor/.env`: `SECRET_KEY`
-     - `jellyfin/.env`: `JELLYFIN_WIDGET_KEY` (migrated from `WIDGET_KEY`)
-     - `sonarr-radarr/.env`: `RADARR_WIDGET_KEY`, `SONARR_WIDGET_KEY`, `PROWLARR_WIDGET_KEY`
-     - Root `.env` and synced stack `.env` files: `DOCKER_DATA_DIR=/volume1/docker`, `MEDIA_DIR=/volume1/media`, `DOCKGE_DIR=/opt/brandon/dockge`, `DOCKGE_STACKS_DIR=/opt/brandon/dockge/stacks`, `PUID=1000`, `PGID=100`, `TZ=America/New_York`, and `EXTERNAL_NPM_*` values.
-3. Untrack `homepage/.env` and `jellyfin/.env` from git (`git rm --cached`) while preserving the updated `.env` files on disk.
+### 3.2 Standardized Host Volume Layout (`/volume1/docker` and `/volume1/media`)
+- `/volume1/docker/dockge/data` -> `/app/data` (`dockge`)
+- `/volume1/docker/homepage/data` -> `/app/config` (`homepage`)
+- `/volume1/docker/jellyfin/data/config` -> `/config` (`jellyfin`)
+- `/volume1/docker/nginx/data` -> `/data` (`nginx`)
+- `/volume1/docker/nginx/data/letsencrypt` -> `/etc/letsencrypt` (`nginx`)
+- `/volume1/docker/postgres/data` -> `/var/lib/postgresql/data` (`postgresql`)
+- `/volume1/docker/qbittorrentvpn/data/config` -> `/config` (`qbittorrentvpn`)
+- `/volume1/docker/qbittorrentvpn/data/getvpnport.sh` -> `/root/getvpnport.sh` (`qbittorrentvpn`)
+- `/volume1/docker/radarr/data` -> `/config` (`radarr`)
+- `/volume1/docker/sonarr/data` -> `/config` (`sonarr`)
+- `/volume1/docker/prowlarr/data` -> `/config` (`prowlarr`)
+- `/volume1/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
+- `/volume1/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
+- `/volume1/docker/backup/homelab` -> Archive output directory (`homelab.sh backup`)
+- `/volume1/media` -> `/media` (`radarr`, `sonarr`, `qbittorrentvpn`) and `/data/media:ro` (`jellyfin`)
 
-### Phase 3: Volume Standardization and Bidirectional Config Sync (NPM, Homepage, Scripts)
-1. Standardize `/volume1/docker` volume paths across `compose.yml` files (and migrate existing directories on disk if volume paths are renamed).
-2. Retrieve existing live configuration files from `/volume1/docker/nginx/data/data/...`, `/volume1/docker/homepage/data/*.yaml`, and `/volume1/docker/qbittorrentvpn/data/getvpnport.sh` into the repository and commit them.
-3. Implement bidirectional sync and setup automation:
-   - `setup` / `deploy`: Creates Docker networks, initializes `.env` from `.env.example`, deploys repo configs to `/volume1/docker` with modification detection and overwrite/preserve prompts, and runs `docker compose up -d`.
-   - `pull` / `sync-from-host`: Copies updated NPM, Homepage, and script configs from `/volume1/docker` back into the repo for git review and commit.
-4. Fix [backup-homelab.bash](file:///home/brandon/services/backup-homelab.bash) (`BACKUP_DIR="/volume1/docker/backup/homelab"`, remove top-level `local`, remove redundant `mv`).
+### 3.3 Two-Tier `.env.example` Specification
 
-### Phase 4: Certificate Script and README Revision
-1. Move `/home/brandon/generate-local-cert.sh` into the repository, remove `grace.home` from `DOMAINS`, and clean up obsolete `grace.home` entries from exported NPM configurations.
-2. Update [README.md](file:///home/brandon/services/README.md) with:
-   - The network configuration table and updated DNS/IP topology (`nas.home` = `192.168.0.3`, `turing.home` = `192.168.0.4` NPM macvlan, Pi-hole `192.168.0.2`).
-   - Updated Port Mappings and Service Addresses table (`*.turing.home`).
-   - Self-signed certificate generation (`generate-local-cert.sh`) and NPM one-time SSL/Cloudflare setup instructions.
-   - Documentation for `.env.example` initialization, setup/deploy, config pull, and backup scripts.
+1. **Root `.env.example`** (and `.configs/dockge/.env.example`):
+   ```dotenv
+   DOCKER_DATA_DIR=/volume1/docker
+   MEDIA_DIR=/volume1/media
+   DOCKGE_DIR=/opt/${USER}/dockge
+   DOCKGE_STACKS_DIR=/opt/${USER}/dockge/stacks
+   PUID=1000
+   PGID=100
+   TZ=America/New_York
+   EXTERNAL_NPM_SUBNET=192.168.0.0/24
+   EXTERNAL_NPM_GATEWAY=192.168.0.1
+   EXTERNAL_NPM_PARENT=eth0
+   NPM_IPV4_ADDRESS=192.168.0.4
+   ```
+   When `homelab.sh` initializes `.env` from `.env.example`, it resolves `${SUDO_USER:-${USER}}` to a literal username (e.g., `/opt/brandon/dockge`) and syncs all root `.env` variables into each `<stack>/.env` and `${DOCKGE_DIR}/.env`.
+
+2. **Per-Stack `<stack>/.env.example` Templates**:
+   - `jellyfin/.env.example`:
+     ```dotenv
+     JELLYFIN_WIDGET_KEY=
+     ```
+   - `qbittorrentvpn/.env.example`:
+     ```dotenv
+     VPN_USER=
+     VPN_PASS=
+     QBITTORRENT_WIDGET_PASSWORD=
+     ```
+   - `sonarr-radarr/.env.example`:
+     ```dotenv
+     RADARR_WIDGET_KEY=
+     SONARR_WIDGET_KEY=
+     PROWLARR_WIDGET_KEY=
+     ```
+   - `tandoor/.env.example`:
+     ```dotenv
+     SECRET_KEY=
+     ```
 
 ---
 
-## 5. Resolved Design Decisions
+## 4. Step-by-Step Execution Plan
 
-Through interactive review, all open design questions have been resolved as follows:
+### Step 1: Author `.env.example` Templates, Standardized `compose.yml` Files, and `homelab.sh`
+*(Execution Mode: Workspace file tools — no sandbox bypass required)*
 
-1. **Dockge Placement and Data Path**:
-   - Store Dockge's compose file in `.configs/dockge/compose.yml` inside the repository and have `homelab.sh setup` deploy it to `/opt/brandon/dockge/compose.yml` (outside `stacks/`) so Dockge does not list itself as a self-managed stack in its UI.
-   - Migrate Dockge's persistent data directory from `/opt/brandon/dockge/data` to `/volume1/docker/dockge/data` for consistency with all other services.
+1. **Create `.env.example` Templates**:
+   - Create root `.env.example`, `.configs/dockge/.env.example`, `jellyfin/.env.example`, `qbitorrentvpn/.env.example` (prior to folder rename), `sonarr-radarr/.env.example`, and `tandoor/.env.example` as specified in Section 3.3.
+2. **Create `.configs/dockge/compose.yml`**:
+   - Standardize from `/opt/${USER}/dockge/compose.yaml`: omit top-level `name:`, set `container_name: dockge` and `hostname: dockge`, remove unused `PUID`/`PGID` env vars, strip emoji comments, use `${DOCKER_DATA_DIR:-/volume1/docker}/dockge/data:/app/data` and `${DOCKGE_STACKS_DIR}:${DOCKGE_STACKS_DIR}`, retain `ports: ["8010:5001"]`, and add `homepage.*` labels (`Administration`, `Dockge`, `http://dockge.turing.home`).
+3. **Create `.configs/nginx/generate-local-cert.sh`**:
+   - Copy from `/home/${USER}/generate-local-cert.sh`, set `DOMAINS=("turing.home" "nas.home")` (removing `grace.home`), and make executable.
+4. **Standardize All Stack `compose.yml` Files**:
+   - Follow the key order in [project-conventions.md](file:///home/brandon/services/.agents/rules/project-conventions.md): `image`, `container_name`, `hostname`, `user`, `restart`, `privileged`, `cap_add`, `cap_drop`, `security_opt`, `sysctls`, `devices`, `group_add`, `mac_address`, `environment`, `volumes`, `ports`, `networks`, `logging`, `labels`.
+   - Use map syntax (`KEY: value`) for `environment:` across all stacks.
+   - Apply stack-specific updates:
+     - `homepage/compose.yml`: Fix `GUID: 0` -> `PGID: 0`, set `HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:-homepage.turing.home,www.turing.home,turing.home,192.168.0.4}`, comment out `ports:` (`# - 8030:3000/tcp`), use `${DOCKER_DATA_DIR:-/volume1/docker}/homepage/data:/app/config`.
+     - `jellyfin/compose.yml`: Add `user: "${PUID:-1000}:${PGID:-100}"`, `cap_drop: [ALL]`, fix `GUID` -> `PGID`, mount `${MEDIA_DIR:-/volume1/media}:/data/media:ro`, comment out HTTP/HTTPS ports (`8020:8096/tcp`, `8021:8920/tcp`), keep `8022:7359/udp`, update widget label to `${JELLYFIN_WIDGET_KEY}`.
+     - `nginx/compose.yml`: Add `hostname: nginx`, comment out `ports:` (`80:80`, `443:443`, `81:81`), update volumes to `${DOCKER_DATA_DIR:-/volume1/docker}/nginx/data:/data`, `${DOCKER_DATA_DIR:-/volume1/docker}/nginx/data/letsencrypt:/etc/letsencrypt`, and `${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/mediafiles:/media:ro`, parameterize `ipv4_address: ${NPM_IPV4_ADDRESS:-192.168.0.4}`.
+     - `postgres/compose.yml`: Add `hostname: postgresql`, comment out port `# - 5432:5432/tcp`, update volume to `${DOCKER_DATA_DIR:-/volume1/docker}/postgres/data:/var/lib/postgresql/data`.
+     - `qbitorrentvpn/compose.yml`: Remove `version: "3.5"`, add `hostname: qbittorrentvpn`, set `PUID: ${PUID:-1000}` and `PGID: ${PGID:-100}`, extract `VPN_USER: ${VPN_USER}`, `VPN_PASS: ${VPN_PASS}`, and `homepage.widget.password=${QBITTORRENT_WIDGET_PASSWORD}`, update media volume to `${MEDIA_DIR:-/volume1/media}:/media`, comment out `8081:8081` while keeping `58946:58946` TCP/UDP.
+     - `sonarr-radarr/compose.yml`: Add `hostname:` (`radarr`, `sonarr`, `prowlarr`, `flaresolverr`), set `PUID: ${PUID:-1000}` and `PGID: ${PGID:-100}`, update config volumes to `${DOCKER_DATA_DIR:-/volume1/docker}/{radarr,sonarr,prowlarr}/data:/config` and media volumes to `${MEDIA_DIR:-/volume1/media}:/media`, comment out host ports (`8040`, `8041`, `8042`, `8043`), extract `${RADARR_WIDGET_KEY}`, `${SONARR_WIDGET_KEY}`, `${PROWLARR_WIDGET_KEY}`.
+     - `tandoor/compose.yml`: Add `hostname: tandoor`, add `PUID: ${PUID:-1000}` and `PGID: ${PGID:-100}`, extract `SECRET_KEY: ${SECRET_KEY}`, update mediafiles volume to `${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/mediafiles:/opt/recipes/mediafiles`, comment out `8050:8050`, remove `internal` network.
+5. **Create `homelab.sh` and Update `backup-homelab.bash`**:
+   - Implement `homelab.sh` with `#!/usr/bin/env bash` and `set -euo pipefail`, supporting subcommands:
+     - `setup`:
+       1. Remediates UGREEN NAS `GODEBUG=tlskyber=0` in `/etc/profile.d/go.sh` and `/etc/systemd/system.conf` (using `sudo` if needed) and unsets `GODEBUG` from systemd manager environments.
+       2. Initializes root `.env` from `.env.example` (resolving `${SUDO_USER:-${USER}}` into literal paths), initializes missing `<stack>/.env` files from `<stack>/.env.example`, syncs root `.env` global variables into every `<stack>/.env` and `${DOCKGE_DIR}/.env`, and warns if any required per-stack secret variables are empty.
+       3. Creates Docker networks `homelab` (`192.168.255.0/24`, gateway `192.168.255.1`, bridge) and `external_npm` (`${EXTERNAL_NPM_SUBNET}`, gateway `${EXTERNAL_NPM_GATEWAY}`, macvlan on `${EXTERNAL_NPM_PARENT}`) idempotently if missing.
+       4. Invokes `deploy-configs` to sync `.configs/` to `${DOCKER_DATA_DIR}` and `${DOCKGE_DIR}/compose.yml`.
+       5. Starts Dockge (`docker compose -f "${DOCKGE_DIR}/compose.yml" --env-file "${DOCKGE_DIR}/.env" up -d`) and all stacks in dependency order (`postgres`, `nginx`, `homepage`, `jellyfin`, `qbittorrentvpn`, `sonarr-radarr`, `tandoor`).
+     - `deploy-configs`:
+       - Compares tracked files in `.configs/homepage/`, `.configs/qbittorrentvpn/`, `.configs/nginx/nginx/`, and `.configs/dockge/compose.yml` against their host targets using `cmp -s`.
+       - For NPM `.conf` files in `.configs/nginx/nginx/{proxy_host,dead_host}/`, verifies that any `ssl_certificate` file referenced in the `.conf` exists under `${DOCKER_DATA_DIR}/nginx/data/` (or `${DOCKER_DATA_DIR}/nginx/data/letsencrypt/`) before deploying; if missing, skips and warns the user.
+       - When target files exist and differ, displays `diff -u` and prompts `[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`.
+       - Reloads Nginx (`docker exec nginx nginx -s reload`) if any NPM config was updated and `nginx` is running.
+     - `pull-configs`:
+       - Copies `/volume1/docker/homepage/data/*.{yaml,yml,css,js}` to `.configs/homepage/`.
+       - Copies `/volume1/docker/qbittorrentvpn/data/getvpnport.sh` to `.configs/qbittorrentvpn/getvpnport.sh`.
+       - Exports NPM tables (`proxy_host`, `dead_host`, `redirection_host`, `setting`) from `/volume1/docker/nginx/data/db.sqlite` via `sqlite3` into `.configs/nginx/npm_hosts.sql` and copies `/volume1/docker/nginx/data/nginx/{proxy_host,dead_host,redirection_host,default_host,default_www}` into `.configs/nginx/nginx/`.
+     - `backup`:
+       - Creates `${DOCKER_DATA_DIR}/backup/homelab/$(date +%Y%m%d)_homelab_config.tar.gz` archiving `README.md`, `homelab.sh`, `.configs/`, all `.env.example` and live `.env` files, stack `compose.yml` files, and live Homepage/NPM/qBittorrentVPN portable config files.
+   - Replace `backup-homelab.bash` contents with a clean wrapper calling `exec "$(dirname "$0")/homelab.sh" backup "$@"`.
 
-2. **Host Volume Path Migration and Legacy Directory Cleanup**:
-   - Standardize and migrate all persistent host paths on `/volume1/docker` to follow `/volume1/docker/<service>/data/...`:
-     - `nginx`: `/volume1/docker/nginx/data/data` -> `/volume1/docker/nginx/data` (and `/volume1/docker/nginx/data/letsencrypt` -> `/volume1/docker/nginx/letsencrypt` or `/volume1/docker/nginx/data/letsencrypt`).
-     - `sonarr-radarr`: Move `/volume1/docker/radarr/data/radarr_config` -> `/volume1/docker/radarr/data`, `/volume1/docker/radarr/data/sonarr_config` -> `/volume1/docker/sonarr/data`, and `/volume1/docker/radarr/data/prowlerr_config` -> `/volume1/docker/prowlarr/data` (fixing the `prowlerr` typo and un-nesting services).
-     - `postgres`: `/volume1/docker/postgresql/data` -> `/volume1/docker/postgres/data` (matching stack name).
-     - `tandoor`: Move `/volume1/docker/media` -> `/volume1/docker/tandoor/data/mediafiles` (removing the unused `/media` mount on `nginx` as well, or pointing `nginx` to `/volume1/docker/tandoor/data/mediafiles:ro` if used for Tandoor media serving).
-     - `dockge`: `/opt/brandon/dockge/data` -> `/volume1/docker/dockge/data`.
-   - Delete legacy `/volume1/docker/portainer` and `/volume1/docker/qbittorrent` directories from disk.
+### Step 2: Create and Execute `migrate-once.sh` (Human Approval Checkpoint 1)
+*(Execution Mode: Write `migrate-once.sh` with workspace tool, then execute with `BypassSandbox: true`)*
 
-3. **Media Mounts and Jellyfin Read-Only Hardening**:
-   - Update `sonarr`, `radarr`, and `qbitorrentvpn` volume mounts from `/volume1/Public:/media` to `/volume1/media:/media`.
-   - Mount `/volume1/media:/data/media:ro` (read-only) in `jellyfin/compose.yml` for external security hardening.
+1. **Create `migrate-once.sh`** to perform the one-time brownfield migration idempotently:
+   - **Pre-flight & Secret Preservation**:
+     - Write active credentials extracted from the pre-migration files into root `.env`, `${DOCKGE_DIR}/.env`, `jellyfin/.env`, `qbitorrentvpn/.env`, `sonarr-radarr/.env`, and `tandoor/.env`.
+     - Rename `qbitorrentvpn/` -> `qbittorrentvpn/` (`git mv qbitorrentvpn qbittorrentvpn`), untrack `homepage/.env` and `jellyfin/.env` (`git rm --cached homepage/.env jellyfin/.env`), and remove `portainer/` and `tools.sh` (`git rm -rf portainer tools.sh`).
+   - **Stop Running Containers**:
+     - Stop all running compose stacks and Dockge (`docker stop tandoor sonarr radarr prowlarr flaresolverr qbittorrentvpn jellyfin homepage nginx postgresql dockge 2>/dev/null || true`).
+   - **Migrate Host Volume Paths on `/volume1/docker`**:
+     - `nginx`: If `/volume1/docker/nginx/data/data` exists, move its contents into `/volume1/docker/nginx/data/` (`shopt -s dotglob; mv /volume1/docker/nginx/data/data/* /volume1/docker/nginx/data/ && rmdir /volume1/docker/nginx/data/data`).
+     - `sonarr-radarr`: Move `/volume1/docker/radarr/data/sonarr_config` -> `/volume1/docker/sonarr/data`, `/volume1/docker/radarr/data/prowlerr_config` -> `/volume1/docker/prowlarr/data`, and `/volume1/docker/radarr/data/radarr_config/*` -> `/volume1/docker/radarr/data/` (removing `radarr_config`).
+     - `postgres`: Move `/volume1/docker/postgresql/data` -> `/volume1/docker/postgres/data` (and `rmdir /volume1/docker/postgresql`).
+     - `tandoor`: Move `/volume1/docker/media/*` into `/volume1/docker/tandoor/data/mediafiles/` and remove `/volume1/docker/media`.
+     - `dockge`: Move `/opt/brandon/dockge/data` -> `/volume1/docker/dockge/data` and remove `/opt/brandon/dockge/compose.yaml` (replaced by `compose.yml`).
+     - Delete obsolete `/volume1/docker/portainer`, `/volume1/docker/qbittorrent`, `/volume1/docker/port_mappings.yaml`, and `/home/brandon/generate-local-cert.sh` / `/home/brandon/cert.conf`.
+   - **Clean Obsolete `grace.home` Entries and Harden `jellyfin.kamaka.tech` in NPM `db.sqlite`**:
+     - Back up `/volume1/docker/nginx/data/db.sqlite` to `/volume1/docker/nginx/data/db.sqlite.bak`.
+     - Using `sqlite3 /volume1/docker/nginx/data/db.sqlite`:
+       - Delete `dead_host` rows for `grace.home` and `www.grace.home` and delete `/volume1/docker/nginx/data/nginx/dead_host/{1,2}.conf`.
+       - Update `proxy_host` id `4` (`jellyfin.turing.home`) `domain_names` to `["jellyfin.turing.home"]` (removing `jellyfin.grace.home`) and update `/volume1/docker/nginx/data/nginx/proxy_host/4.conf` `server_name` accordingly.
+       - Update `proxy_host` id `3` (`jellyfin.kamaka.tech`) to set `allow_websocket_upgrade = 1` and `advanced_config` with the Jellyfin streaming/security/IP headers and `/swagger`, `/api-docs`, `/metrics` blocks, and update `/volume1/docker/nginx/data/nginx/proxy_host/3.conf` to match.
+   - **One-Time Permission Remediation**:
+     - `chown -R 1000:100` on `/volume1/docker/{jellyfin,radarr,sonarr,prowlarr,qbittorrentvpn,tandoor}/data`.
+     - Delete `/volume1/docker/qbittorrentvpn/data/config/perms.txt` so `binhex` re-applies UID `1000` / GID `100` cleanly.
+2. **Human Checkpoint 1**:
+   - Prompt the user to approve running `sudo ./migrate-once.sh` via `run_command` (`BypassSandbox: true`).
+   - Verify directory structure under `/volume1/docker`, then delete `migrate-once.sh`.
 
-4. **Port Exposure Policy**:
-   - Keep active host ports only on:
-     - `dockge`: `8010:5001` (emergency management access if NPM is down)
-     - `jellyfin`: `8022:7359/udp` (LAN autodiscovery)
-     - `qbittorrentvpn`: `58946:58946` and `58946:58946/udp` (BitTorrent peer traffic)
-   - Comment out all other host port mappings across all stacks (including `nginx` `80`, `443`, `81` since NPM binds directly to `192.168.0.4` via the `external_npm` macvlan network), preserving inline comments with internal container ports and historical host ports.
-   - Remove the unused `internal` network from `tandoor/compose.yml`.
+### Step 3: Pull Tracked Configurations and Run `./homelab.sh setup` (Human Approval Checkpoint 2)
+*(Execution Mode: `BypassSandbox: true`)*
 
-5. **Environment Variable & `.env.example` Policy (Global + Per-Stack)**:
-   - **Root `.env.example` (Global Environment Defaults)**:
-     - Define host-level paths and identity variables once at the repository root in `.env.example` (copied to `.env` on initialization, with `${USER}` dynamically resolved by `homelab.sh` instead of hardcoding `brandon`):
-       - `DOCKER_DATA_DIR=/volume1/docker`
-       - `MEDIA_DIR=/volume1/media`
-       - `DOCKGE_DIR=/opt/${USER}/dockge`
-       - `DOCKGE_STACKS_DIR=/opt/${USER}/dockge/stacks`
-       - `PUID=1000`
-       - `PGID=100`
-       - `TZ=America/New_York`
-       - `EXTERNAL_NPM_SUBNET=192.168.0.0/24`
-       - `EXTERNAL_NPM_GATEWAY=192.168.0.1`
-       - `EXTERNAL_NPM_PARENT=eth0`
-       - `NPM_IPV4_ADDRESS=192.168.0.4`
-     - Because Dockge executes `docker compose` inside each `<stack>/` directory (which only reads `<stack>/.env`), `homelab.sh` will automatically sync the global variables from the root `.env` into each `<stack>/.env` (and `.configs/dockge/.env` -> `${DOCKGE_DIR}/.env`), while `compose.yml` files will also use `${DOCKER_DATA_DIR:-/volume1/docker}` / `${MEDIA_DIR:-/volume1/media}` fallback syntax so they never fail even if run standalone.
-     - Replace all hardcoded mentions of `brandon` across scripts, configurations, and documentation with `${USER}` (or `id -u` / `id -g` detection where appropriate).
-   - **Per-Stack `<stack>/.env.example` (Secrets & User-Generated Keys)**:
-     - Extract values that are either true external secrets OR generated per-installation (cannot be defaulted) with blank defaults (`KEY=`):
-       - `qbitorrentvpn/.env.example`: `VPN_USER=`, `VPN_PASS=`, `QBITTORRENT_WIDGET_PASSWORD=`
-       - `tandoor/.env.example`: `SECRET_KEY=`
-       - `jellyfin/.env.example`: `JELLYFIN_WIDGET_KEY=`
-       - `sonarr-radarr/.env.example`: `RADARR_WIDGET_KEY=`, `SONARR_WIDGET_KEY=`, `PROWLARR_WIDGET_KEY=`
-   - Keep the internal Docker `homelab` network (`192.168.255.0/24`) and arbitrary container MAC address (`2E:50:8F:7A:C4:12`) fixed as defaults.
+1. Run `./homelab.sh pull-configs` to populate `.configs/homepage/`, `.configs/nginx/`, and `.configs/qbittorrentvpn/getvpnport.sh` from the migrated `/volume1/docker` directories.
+2. Run `sudo ./homelab.sh setup` to:
+   - Apply the UGREEN NAS `GODEBUG=tlskyber=0` fix.
+   - Verify/create the `homelab` and `external_npm` Docker networks.
+   - Sync `.env` files across all stacks and `${DOCKGE_DIR}/.env`.
+   - Deploy `.configs/dockge/compose.yml` to `${DOCKGE_DIR}/compose.yml`.
+   - Start Dockge and all seven service stacks (`postgres`, `nginx`, `homepage`, `jellyfin`, `qbittorrentvpn`, `sonarr-radarr`, `tandoor`).
+3. Run `./homelab.sh backup` to verify that backup archive creation succeeds into `/volume1/docker/backup/homelab/`.
 
-6. **Unified Automation CLI (`homelab.sh`) and Conflict Prompting**:
-   - Consolidate automation into a single script `homelab.sh` with subcommands (`setup`, `deploy-configs`, `pull-configs`, `backup`), replacing `tools.sh` and keeping `backup-homelab.bash` as a lightweight wrapper to `homelab.sh backup` (or replacing it directly).
-   - Move `/home/brandon/generate-local-cert.sh` into the repository (updated with `DOMAINS=("turing.home" "nas.home")` and no `grace.home` references).
-   - When deploying tracked configurations from `.configs/` to `/volume1/docker/...`, compare each file against the target using `cmp`/`diff`, display a brief diff summary when they differ, and prompt the user with `[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`.
+### Step 4: Verify Service Health and Finalize Git Commit (Human Approval Checkpoint 3)
+*(Execution Mode: `BypassSandbox: true`)*
+
+1. Verify all containers are running without restart loops or permission errors (`docker ps` and `docker logs` check on `postgresql`, `tandoor`, `nginx`, `jellyfin`, `radarr`, `sonarr`, `prowlarr`, `flaresolverr`, `qbittorrentvpn`, `homepage`, `dockge`).
+2. Verify `git status` and `git diff` to confirm:
+   - Zero `.env` files or secrets are tracked in the git index.
+   - `migrate-once.sh`, `portainer/`, and `tools.sh` are removed.
+   - All `.configs/`, `.env.example`, `compose.yml`, `homelab.sh`, `backup-homelab.bash`, `README.md`, and `.agents/` files are clean and formatted without emojis/icons.
+3. Stage all changes (`git add -A`) and commit to `main`.
