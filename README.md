@@ -180,13 +180,30 @@ Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active
    ```
 3. If adding a new stack, create `<new-stack>/compose.yml` (and optional `<new-stack>/.env.example`), then run `sudo ./homelab.sh setup` to sync global `.env` variables and start the stack.
 
-#### Use Case 3: Backing Up Live Configurations, Tagging a Release, and Archiving `.env` Secrets
+#### Use Case 3: Backing Up and Restoring Configurations and `.env` Secrets
+Because all portable service configurations (`.configs/homepage/`, `.configs/nginx/`, `.configs/dockge/`, `.configs/qbittorrentvpn/`) live inside this git repository, `./homelab.sh backup` performs a four-step backup workflow:
+1. **Pull Live Configs (`pull-configs`)**: Syncs any changes made through the Homepage or Nginx Proxy Manager Web UIs (plus `set-qbt-port.sh`) from `/volume1/docker/...` into `.configs/`.
+2. **Git Commit**: If the repository working tree has any modified or new files, stages (`git add -A`) and commits them (using `-m "<message>"` if provided, or a default timestamped commit message).
+3. **Optional Chronological Git Tag (`--tag` / `-t`)**:
+   - Passing `--tag` without an argument creates an annotated PEP 440 / CalVer chronological tag on `HEAD` formatted as `YYYY.M.D` (e.g., `2026.10.28`), automatically incrementing to `YYYY.M.D.1`, `YYYY.M.D.2`, etc. if a tag already exists on that date.
+   - Passing `--tag <custom_name>` tags `HEAD` with `<custom_name>`.
+4. **Archive Untracked `.env` Secrets**: Collects the root `.env` and all per-stack `<stack>/.env` files (which are excluded from git via `.gitignore`) into `/volume1/docker/backup/homelab/YYYY.M.D_env_secrets.tar.gz` (`chmod 0600`) and updates the `/volume1/docker/backup/homelab/latest_env_secrets.tar.gz` symlink.
+
 ```bash
 cd ~/services
-# Pulls live configs, commits any changes, tags HEAD with YYYY.M.D (e.g. 2026.10.28),
-# and archives all untracked .env files into /volume1/docker/backup/homelab/
+
+# Standard backup with auto-generated chronological tag (e.g. 2026.10.28):
 ./homelab.sh backup --tag
-ls -lh /volume1/docker/backup/homelab/
+
+# Backup with custom commit message and custom tag name:
+./homelab.sh backup -m "Pre-upgrade snapshot" --tag 2026.10.28-pre-upgrade
+
+# Push committed configuration history and tags to your remote git server:
+git push && git push --tags
+
+# Restore all untracked .env secret files in-place on a new/restored checkout:
+tar -xzf /volume1/docker/backup/homelab/latest_env_secrets.tar.gz -C ~/services
+sudo ./homelab.sh setup
 ```
 
 ---
