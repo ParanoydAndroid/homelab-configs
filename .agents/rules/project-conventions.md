@@ -16,6 +16,7 @@ This file serves as the primary entrypoint and instruction set for agents instan
   - Recommend and apply established best practices for container orchestration, networking, and declarative configuration management.
   - Work iteratively with the user to refine requirements and designs before executing changes.
 - **No Unverified Assumptions**: Do not invent processes, paths, or procedures. When requirements or existing configurations are ambiguous or contradictory, stop and ask targeted clarifying questions.
+- **Pre-Execution Overview for Ad-Hoc Scripts**: Whenever authoring an ad-hoc or temporary script (e.g., in `/tmp/` or the workspace) and requesting user approval to execute it (`BypassSandbox: true`), provide a concise operational overview explaining what the script does, the key commands/queries/mutations it performs, and any state it modifies before or alongside requesting execution permission. Skip trivial syntax details and focus on overall operations and key behavioral elements so the user can make an informed approval decision without reading the raw script file first.
 
 ## 2. Project Context and Onboarding Entrypoint
 
