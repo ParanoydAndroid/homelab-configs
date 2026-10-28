@@ -987,6 +987,7 @@ test_homelab() {
 
   printf "\n=== 3. NPM Reverse Proxy VirtualHost Routing (Client Impersonation) ===\n"
   check_vhost "homepage.turing.home" "/" "^200$"
+  check_vhost "proxy.turing.home" "/" "^200$"
   check_vhost "dockge.turing.home" "/" "^200$"
   check_vhost "jellyfin.turing.home" "/web/index.html" "^200$"
   check_vhost "radarr.turing.home" "/ping" "^200$"

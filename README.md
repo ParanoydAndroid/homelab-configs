@@ -90,7 +90,7 @@ All HTTP/HTTPS web applications are reverse-proxied by Nginx Proxy Manager over 
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | UGREEN NAS / DSM | Host OS | `5000` / `5001` | N/A | HTTP / HTTPS | Yes (Host OS) | `https://nas.home` | None | N/A |
 | Dockge | `.configs/dockge` | `8010` | `5001` | TCP (HTTP) | **Yes** (`8010:5001`) | `https://dockge.turing.home` | None | `/volume1/docker/dockge/data` |
-| Nginx Proxy Manager | `nginx/` | `8480` / `8443` / `8444` | `80` / `443` / `81` | TCP | Macvlan (`192.168.0.4:80,443,81`) | `http://turing.home:81` | `https://*.kamaka.tech` | `/volume1/docker/nginx/data` |
+| Nginx Proxy Manager | `nginx/` | `8480` / `8443` / `8444` | `80` / `443` / `81` | TCP | Macvlan (`192.168.0.4:80,443,81`) | `https://proxy.turing.home` (or `http://turing.home:81`) | `https://*.kamaka.tech` | `/volume1/docker/nginx/data` |
 | Jellyfin | `jellyfin/` | `8020` / `8021` | `8096` / `8920` | TCP (HTTP/S) | No (Proxied via NPM) | `https://jellyfin.turing.home` | `https://jellyfin.kamaka.tech` | `/volume1/docker/jellyfin/data/config` |
 | Jellyfin Discovery | `jellyfin/` | `8022` | `7359` | UDP | **Yes** (`8022:7359/udp`) | LAN Broadcast | None | N/A |
 | Homepage | `homepage/` | `8030` | `3000` | TCP (HTTP) | No (Proxied via NPM) | `https://homepage.turing.home` | None | `/volume1/docker/homepage/data` |
