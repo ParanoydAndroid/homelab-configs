@@ -1,0 +1,123 @@
+# Homelab Architecture, Scope, and Design Philosophy
+
+## 1. Project Purpose and Scope
+
+This repository is the single source of truth for the declarative configuration, container orchestration, and lifecycle automation of the UGREEN NAS homelab environment (`nas.home` / `turing.home`).
+
+The project encompasses:
+- **Containerized Service Stacks**: Declarative Docker Compose v2+ definitions for reverse proxy routing (`nginx`), dashboard and service discovery (`homepage`), media streaming (`jellyfin`), automated media acquisition (`sonarr-radarr` and `qbittorrentvpn` over PIA WireGuard), recipe management (`tandoor`), relational database storage (`postgres`), and web-based stack orchestration (`dockge`).
+- **Tracked Application Configurations (`.configs/`)**: Version-controlled portable service configurations—including Homepage YAML dashboards, Nginx Proxy Manager routing definitions and generated `.conf` files, local wildcard certificate generation scripts, and VPN port-forwarding helper scripts—bidirectionally synchronized between the repository and host volumes.
+- **Lifecycle and Backup Automation (`homelab.sh`)**: Idempotent CLI tooling for host OS workaround convergence, two-tier `.env` initialization and secret propagation, Docker network provisioning, configuration deployment/retrieval with diff inspection, and git-tagged configuration backups with encrypted/restricted `.env` secret archives.
+
+---
+
+## 2. Core Architectural Philosophy
+
+### 2.1 Coalesced Git-Centric Configuration with Dockge Compatibility
+- **Unified Repository and Orchestrator Directory**: The repository is checked out directly at `/opt/${USER}/dockge/stacks` (and symlinked to `/home/${USER}/services`). Every non-hidden directory at the repository root is a self-contained Docker Compose stack (`<stack>/compose.yml` + `<stack>/.env`) that can be managed either via the `homelab.sh` CLI or interactively through the Dockge Web UI.
+- **Strict Root Directory Hygiene**: Non-stack directories are kept hidden (`.configs/`, `.agents/`) so Dockge never misidentifies documentation, agent metadata, or raw config files as runnable Compose stacks.
+- **Externalized Orchestrator Stack**: Dockge's own `compose.yml` is tracked in `.configs/dockge/compose.yml` and deployed one level above the stacks directory (`${DOCKGE_DIR}/compose.yml`) so Dockge does not list or restart itself as a child stack.
+
+### 2.2 Declarative Convergence and Idempotency
+- Every operation in `homelab.sh` (`setup`, `deploy-configs`, `pull-configs`, `backup`) is idempotent and safe to run repeatedly on both brand-new host installations and routine updates after `git pull`.
+- Host-level appliance workarounds (such as remediating the UGREEN NAS `GODEBUG=tlskyber=0` bug across `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`) are codified directly into `homelab.sh setup`.
+- Deploying tracked configurations from `.configs/` to live host volumes (`/volume1/docker/...`) never blindly overwrites local changes made through service Web UIs; `homelab.sh deploy-configs` performs byte-level comparisons (`cmp -s`), displays unified diffs (`diff -u`), and prompts for conflict resolution (`[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`).
+
+### 2.3 Network Isolation and Reverse Proxy Boundary
+- **Dedicated Reverse Proxy LAN IP (`external_npm` macvlan)**: Nginx Proxy Manager binds to a dedicated LAN IP (`192.168.0.4` / `turing.home`) via a Docker `macvlan` network on `eth0`, cleanly separating reverse-proxied service traffic (`80`, `443`, `81`) from the UGREEN NAS host OS web interface (`192.168.0.3` / `nas.home`).
+- **Internal Service Bridge (`homelab`)**: All backend containers communicate over the isolated `homelab` Docker bridge network (`192.168.255.0/24`) using deterministic container hostnames and internal service ports.
+- **Minimal Host Port Exposure**: Host ports on the NAS (`192.168.0.3`) are exposed only where strictly required for non-HTTP broadcast protocols (`jellyfin` UDP discovery on `8022:7359/udp`) or emergency fallback orchestration (`dockge` on `8010:5001/tcp`). All HTTP/HTTPS web UIs are accessed exclusively through Nginx Proxy Manager.
+- **Defense-in-Depth for Externally Routable Services (`*.kamaka.tech`)**: Services exposed to the public internet through Cloudflare/gateway port forwarding (`jellyfin.kamaka.tech`, `recipes.kamaka.tech`) enforce strict container and proxy hardening: non-root execution, dropped Linux capabilities (`cap_drop: [ALL]`), `no-new-privileges:true`, read-only media mounts (`:ro`), and reverse-proxy blocks on diagnostic/API-doc endpoints (`/swagger`, `/api-docs`, `/metrics`).
+
+### 2.4 Two-Tier Environment and Secret Separation
+- Zero credentials, API tokens, or cryptographic keys are committed to git.
+- Because Dockge executes `docker compose` with the working directory set to each individual `<stack>/` folder, environment variables follow a two-tier `.env.example` -> `.env` model:
+  1. **Root `.env.example`**: Defines global infrastructure defaults (`DOCKER_DATA_DIR`, `MEDIA_DIR`, `DOCKGE_DIR`, `DOCKGE_STACKS_DIR`, `PUID`, `PGID`, `TZ`, `EXTERNAL_NPM_*`, `NPM_IPV4_ADDRESS`). `homelab.sh` resolves dynamic user paths and propagates these global variables into every `<stack>/.env` and `${DOCKGE_DIR}/.env`.
+  2. **Per-Stack `<stack>/.env.example`**: Declares stack-specific secrets and API keys (`VPN_USER`, `VPN_PASS`, `SECRET_KEY`, `*_WIDGET_KEY`, `QBITTORRENT_WIDGET_PASSWORD`, `HOMEPAGE_VAR_PIHOLE_KEY`) with blank defaults (`KEY=`). `homelab.sh` audits these keys on setup and warns if any required secret is unpopulated.
+
+---
+
+## 3. Standardized Repository and Volume Architecture
+
+### 3.1 Repository Structure (`/opt/${USER}/dockge/stacks` / `/home/${USER}/services`)
+```text
+.
+├── .agents/
+│   ├── artifacts/
+│   │   └── architecture.md
+│   └── rules/
+│       └── project-conventions.md
+├── .configs/
+│   ├── dockge/
+│   │   ├── .env.example
+│   │   └── compose.yml
+│   ├── homepage/
+│   │   └── *.yaml
+│   ├── nginx/
+│   │   ├── generate-local-cert.sh
+│   │   ├── npm_hosts.sql
+│   │   └── nginx/
+│   │       ├── dead_host/
+│   │       ├── default_host/
+│   │       ├── default_www/
+│   │       └── proxy_host/
+│   └── qbittorrentvpn/
+│       └── set-qbt-port.sh
+├── .env.example
+├── .gitignore
+├── README.md
+├── homelab.sh
+├── homepage/
+│   ├── .env.example
+│   └── compose.yml
+├── jellyfin/
+│   ├── .env.example
+│   └── compose.yml
+├── nginx/
+│   └── compose.yml
+├── postgres/
+│   └── compose.yml
+├── qbittorrentvpn/
+│   ├── .env.example
+│   └── compose.yml
+├── sonarr-radarr/
+│   ├── .env.example
+│   └── compose.yml
+└── tandoor/
+    ├── .env.example
+    └── compose.yml
+```
+
+### 3.2 Host Volume Layout (`/volume1/docker` and `/volume1/media`)
+- `/volume1/docker/dockge/data` -> `/app/data` (`dockge`)
+- `/volume1/docker/homepage/data` -> `/app/config` (`homepage`)
+- `/volume1/docker/jellyfin/data/config` -> `/config` (`jellyfin`)
+- `/volume1/docker/nginx/data` -> `/data` (`nginx`)
+- `/volume1/docker/nginx/data/letsencrypt` -> `/etc/letsencrypt` (`nginx`)
+- `/volume1/docker/postgres/data` -> `/var/lib/postgresql/data` (`postgresql`)
+- `/volume1/docker/qbittorrentvpn/data/pia` -> `/pia` (`wireguard-pia`)
+- `/volume1/docker/qbittorrentvpn/data/pia-shared` -> `/pia-shared` (`wireguard-pia`)
+- `/volume1/docker/qbittorrentvpn/data/set-qbt-port.sh` -> `/set-qbt-port.sh:ro` (`wireguard-pia`)
+- `/volume1/docker/qbittorrentvpn/data/config` -> `/config` (`qbittorrentvpn`)
+- `/volume1/docker/radarr/data` -> `/config` (`radarr`)
+- `/volume1/docker/sonarr/data` -> `/config` (`sonarr`)
+- `/volume1/docker/prowlarr/data` -> `/config` (`prowlarr`)
+- `/volume1/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
+- `/volume1/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
+- `/volume1/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
+- `/volume1/media` -> `/media` (`radarr`, `sonarr`, `qbittorrentvpn`) and `/data/media:ro` (`jellyfin`)
+
+### 3.3 Container Privilege and UID/GID Model
+
+| Service / Container | Image | UID/GID Mechanism | Host Volume Ownership |
+| :--- | :--- | :--- | :--- |
+| `jellyfin` | `jellyfin/jellyfin:latest` | Compose `user: "${PUID:-1000}:${PGID:-100}"` + `group_add: ["105"]` (official image ignores `PUID`/`PGID` env vars) | `1000:100` |
+| `radarr`, `sonarr`, `prowlarr` | `lscr.io/linuxserver/*:latest` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` (s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
+| `wireguard-pia` | `thrnz/docker-wireguard-pia:latest` | Runs with `cap_add: [NET_ADMIN]` to manage kernel `wg0`, `iptables` kill switch, and PIA port forwarding (`PORT_SCRIPT: /set-qbt-port.sh`) | `1000:100` |
+| `qbittorrentvpn` | `lscr.io/linuxserver/qbittorrent:latest` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` with `network_mode: "service:vpn"` (s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
+| `tandoor` | `vabene1111/recipes` | Env `PUID: ${PUID:-1000}`, `PGID: ${PGID:-100}` (`boot.sh` starts as root then drops to `PUID:PGID`) | `1000:100` |
+| `postgresql` | `postgres:16-alpine` | Internal Alpine `postgres` user (`70:70`); do not set `PUID`/`PGID` or `user:` | `70:70` |
+| `homepage` | `ghcr.io/gethomepage/homepage:latest` | Env `PUID: 0`, `PGID: 0` (requires root for `/var/run/docker.sock`) | `0:0` |
+| `nginx` | `jc21/nginx-proxy-manager:latest` | Runs as `root` internally; do not set `user:` | `0:0` |
+| `flaresolverr` | `ghcr.io/flaresolverr/flaresolverr:latest` | Stateless; uses internal non-root user; no persistent volume | N/A |
+| `dockge` | `louislam/dockge:1` | Runs as `root` for `/var/run/docker.sock` | `0:0` |
