@@ -807,7 +807,8 @@ backup_homelab() {
   mkdir -p "${backup_dir}"
 
   # Collect relative paths (anchored at REPO_DIR) for all existing .env files
-  # so extracting the tarball inside REPO_DIR restores every .env in place.
+  # so extracting the tarball inside REPO_DIR restores every .env in place
+  # (and './homelab.sh setup' automatically syncs root .env into Dockge's .env).
   local env_files=()
   [[ -f "${REPO_DIR}/.env" ]] && env_files+=(".env")
 
@@ -815,11 +816,6 @@ backup_homelab() {
   for stack in "${STACKS[@]}"; do
     [[ -f "${REPO_DIR}/${stack}/.env" ]] && env_files+=("${stack}/.env")
   done
-
-  # Include Dockge's .env (one level above REPO_DIR at ../.env when REPO_DIR is /opt/<user>/dockge/stacks)
-  if [[ -f "${REPO_DIR}/../.env" ]]; then
-    env_files+=("../.env")
-  fi
 
   if [[ "${#env_files[@]}" -gt 0 ]]; then
     tar -czf "${env_archive}" -C "${REPO_DIR}" "${env_files[@]}"
