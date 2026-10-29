@@ -8,7 +8,7 @@
 # Purpose and Operation:
 #   This script manages the declarative convergence of the homelab stack
 #   repository (/opt/${USER}/dockge/stacks, symlinked at ~/services) with the
-#   live host filesystem (/volume1/docker, /volume1/media, /opt/${USER}/dockge)
+#   live host filesystem (/volume2/docker, /volume1/media, /opt/${USER}/dockge)
 #   and the Docker Engine.
 #
 #   It is designed to be idempotent and safe to run repeatedly on both fresh
@@ -29,7 +29,7 @@
 #                        Compose service stacks in dependency order.
 #
 #   deploy-configs  Synchronizes tracked configuration files from '.configs/'
-#                   to live host paths (/volume1/docker/... and Dockge).
+#                   to live host paths (/volume2/docker/... and Dockge).
 #                   Detects local modifications on the host using byte-level
 #                   comparison ('cmp -s'), displays unified diffs ('diff -u'),
 #                   and prompts interactively before overwriting. Includes a
@@ -49,6 +49,11 @@
 #                   untracked live '.env' secret files into
 #                   '${DOCKER_DATA_DIR}/backup/homelab/'.
 #
+#   startup         Non-interactive boot orchestration hook for systemd: waits
+#                   for storage volume mounts, ensures Docker networks, and
+#                   starts Dockge and all stacks in strict dependency order
+#                   with database readiness verification.
+#
 #   test            Runs a fast end-to-end smoke test verifying container
 #                   states, internal 'homelab' DNS and HTTP interconnections,
 #                   Nginx Proxy Manager VirtualHost routing (via curl --resolve
@@ -57,6 +62,7 @@
 #
 # Usage:
 #   sudo ./homelab.sh setup [--overwrite-all | --keep-all]
+#   ./homelab.sh startup
 #   ./homelab.sh deploy-configs [--overwrite-all | --keep-all]
 #   ./homelab.sh pull-configs
 #   ./homelab.sh backup [--tag [tag_name]] [-m <commit_message>]
@@ -266,7 +272,12 @@ init_and_sync_env() {
     sed "s|\${USER}|${TARGET_USER}|g" "${root_example}" > "${root_env}"
   else
     # Even if root .env already exists, ensure no unresolved '${USER}' token remains.
-    sed -i "s|\${USER}|${TARGET_USER}|g" "${root_env}"
+    # Use cat redirection rather than sed -i to avoid EBUSY on bind-mounted .env files.
+    local tmp_env
+    tmp_env="$(mktemp)"
+    sed "s|\${USER}|${TARGET_USER}|g" "${root_env}" > "${tmp_env}"
+    cat "${tmp_env}" > "${root_env}"
+    rm -f "${tmp_env}"
   fi
   chown "${TARGET_USER}:${TARGET_GROUP}" "${root_env}" 2>/dev/null || true
 
@@ -882,6 +893,77 @@ setup_homelab() {
 }
 
 # ------------------------------------------------------------------------------
+# Function: startup_homelab
+# Description:
+#   Non-interactive boot and headless recovery orchestration designed for
+#   systemd execution on host startup:
+#     1. Initializes and exports environment variables from root '.env'.
+#     2. Polls until '${DOCKER_DATA_DIR}' is mounted on the host (up to 60s).
+#     3. Ensures the required external Docker networks ('homelab' and
+#        'external_npm') exist.
+#     4. Launches the Dockge orchestrator.
+#     5. Launches application stacks in strict dependency order ('STACKS'),
+#        verifying PostgreSQL socket readiness before launching dependent
+#        stacks (such as 'tandoor').
+# ------------------------------------------------------------------------------
+startup_homelab() {
+  init_and_sync_env
+
+  log_info "Initiating homelab boot orchestration..."
+
+  # Step 1: Wait for storage volume to mount
+  local timeout=60
+  while [[ ! -d "${DOCKER_DATA_DIR}" ]] && (( timeout > 0 )); do
+    log_info "Waiting for ${DOCKER_DATA_DIR} to mount (${timeout}s remaining)..."
+    sleep 2
+    (( timeout -= 2 )) || true
+  done
+
+  if [[ ! -d "${DOCKER_DATA_DIR}" ]]; then
+    log_error "Timeout waiting for storage directory: ${DOCKER_DATA_DIR}"
+    exit 1
+  fi
+
+  # Step 2: Ensure Docker networks
+  ensure_networks
+
+  # Step 3: Start Dockge orchestrator
+  if [[ -f "${DOCKGE_DIR}/compose.yml" ]]; then
+    log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."
+    docker compose -f "${DOCKGE_DIR}/compose.yml" --env-file "${DOCKGE_DIR}/.env" up -d
+  fi
+
+  # Step 4: Start stacks in dependency order
+  local stack
+  for stack in "${STACKS[@]}"; do
+    if [[ -f "${REPO_DIR}/${stack}/compose.yml" ]]; then
+      log_info "Bootstrapping stack '${stack}'..."
+      (
+        cd "${REPO_DIR}/${stack}"
+        docker compose up -d
+      )
+
+      # When postgres starts, wait for database readiness before starting dependent services
+      if [[ "${stack}" == "postgres" ]]; then
+        log_info "Waiting for PostgreSQL database readiness..."
+        local pg_wait=20
+        while ! docker exec postgres pg_isready -q 2>/dev/null && (( pg_wait > 0 )); do
+          sleep 1
+          (( pg_wait-- )) || true
+        done
+        if docker exec postgres pg_isready -q 2>/dev/null; then
+          log_info "PostgreSQL is ready and accepting connections."
+        else
+          log_warn "PostgreSQL did not report ready within timeout; continuing startup sequence."
+        fi
+      fi
+    fi
+  done
+
+  log_info "Homelab boot orchestration completed successfully."
+}
+
+# ------------------------------------------------------------------------------
 # Function: test_homelab
 # Description:
 #   Executes a fast, non-destructive end-to-end smoke test across four layers
@@ -1093,6 +1175,7 @@ Usage: $(basename "$0") <subcommand> [options]
 
 Subcommands:
   setup           Initialize .env files, apply NAS OS fixes, create networks, deploy configs, and start all stacks
+  startup         Non-interactive boot hook to start networks, Dockge, and stacks in dependency order
   deploy-configs  Deploy tracked configurations from .configs/ to host volumes with diff inspection
   pull-configs    Pull live service configurations from host volumes into .configs/
   backup          Pull live configs, commit changes to git (with optional tag), and archive live .env files
@@ -1159,6 +1242,7 @@ main() {
 
   case "${subcmd}" in
     setup) setup_homelab ;;
+    startup) startup_homelab ;;
     deploy-configs) deploy_configs ;;
     pull-configs) pull_configs ;;
     backup) backup_homelab ;;

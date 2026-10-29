@@ -31,8 +31,8 @@ services:
       DATABASE_URL: postgresql://postgres:password@postgresql:5432/recipes
       TANDOOR_PORT: 8050
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/staticfiles:/opt/recipes/staticfiles
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/mediafiles:/opt/recipes/mediafiles
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/tandoor/data/staticfiles:/opt/recipes/staticfiles
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/tandoor/data/mediafiles:/opt/recipes/mediafiles
     # ports:
     #   - 8050:8050
     networks:

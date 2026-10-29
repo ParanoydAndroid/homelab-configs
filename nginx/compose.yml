@@ -26,12 +26,12 @@ services:
       DB_SQLITE_FILE: /data/db.sqlite
       TZ: ${TZ:-America/New_York}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/nginx/data:/data
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/nginx/data/letsencrypt:/etc/letsencrypt
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/nginx/data:/data
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/nginx/data/letsencrypt:/etc/letsencrypt
       # Required by proxy_host/2.conf (recipes.kamaka.tech): Tandoor's Gunicorn
       # server does not serve user-uploaded media files directly in production,
       # so NPM serves '/media/' directly from Tandoor's mediafiles volume read-only.
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/tandoor/data/mediafiles:/media:ro
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/tandoor/data/mediafiles:/media:ro
     # Host port bindings are omitted because NPM binds directly to 192.168.0.4:80/443/81
     # via the 'external_npm' macvlan interface.
     # ports:

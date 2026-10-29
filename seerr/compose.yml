@@ -34,7 +34,7 @@ services:
       TZ: ${TZ:-America/New_York}
       API_KEY: ${SEERR_API_KEY}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/seerr/data:/app/config
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/seerr/data:/app/config
     # ports:
     #   - 5055:5055
     networks:

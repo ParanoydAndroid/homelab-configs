@@ -26,7 +26,7 @@ services:
       # Injected into .configs/homepage/services.yaml via {{HOMEPAGE_VAR_PIHOLE_KEY}}
       HOMEPAGE_VAR_PIHOLE_KEY: ${HOMEPAGE_VAR_PIHOLE_KEY}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/homepage/data:/app/config
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/homepage/data:/app/config
       - /var/run/docker.sock:/var/run/docker.sock
     # Accessed via Nginx Proxy Manager over the 'homelab' bridge network (homepage:3000).
     # Historical host port 8030 retained below as a comment for emergency debugging.

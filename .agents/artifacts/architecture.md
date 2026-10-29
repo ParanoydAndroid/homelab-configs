@@ -21,7 +21,7 @@ The project encompasses:
 ### 2.2 Declarative Convergence and Idempotency
 - Every operation in `homelab.sh` (`setup`, `deploy-configs`, `pull-configs`, `backup`) is idempotent and safe to run repeatedly on both brand-new host installations and routine updates after `git pull`.
 - Host-level appliance workarounds (such as remediating the UGREEN NAS `GODEBUG=tlskyber=0` bug across `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`) are codified directly into `homelab.sh setup`.
-- Deploying tracked configurations from `.configs/` to live host volumes (`/volume1/docker/...`) never blindly overwrites local changes made through service Web UIs; `homelab.sh deploy-configs` performs byte-level comparisons (`cmp -s`), displays unified diffs (`diff -u`), and prompts for conflict resolution (`[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`).
+- Deploying tracked configurations from `.configs/` to live host volumes (`/volume2/docker/...`) never blindly overwrites local changes made through service Web UIs; `homelab.sh deploy-configs` performs byte-level comparisons (`cmp -s`), displays unified diffs (`diff -u`), and prompts for conflict resolution (`[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`).
 
 ### 2.3 Network Isolation and Reverse Proxy Boundary
 - **Dedicated Reverse Proxy LAN IP (`external_npm` macvlan)**: Nginx Proxy Manager binds to a dedicated LAN IP (`192.168.0.4` / `turing.home`) via a Docker `macvlan` network on `eth0`, cleanly separating reverse-proxied service traffic (`80`, `443`, `81`) from the UGREEN NAS host OS web interface (`192.168.0.3` / `nas.home`).
@@ -94,25 +94,25 @@ The project encompasses:
     └── compose.yml
 ```
 
-### 3.2 Host Volume Layout (`/volume1/docker` and `/volume1/media`)
-- `/volume1/docker/dockge/data` -> `/app/data` (`dockge`)
-- `/volume1/docker/homepage/data` -> `/app/config` (`homepage`)
-- `/volume1/docker/jellyfin/data/config` -> `/config` (`jellyfin`)
-- `/volume1/docker/nginx/data` -> `/data` (`nginx`)
-- `/volume1/docker/nginx/data/letsencrypt` -> `/etc/letsencrypt` (`nginx`)
-- `/volume1/docker/postgres/data` -> `/var/lib/postgresql/data` (`postgresql`)
-- `/volume1/docker/qbittorrentvpn/data/pia` -> `/pia` (`wireguard-pia`)
-- `/volume1/docker/qbittorrentvpn/data/pia-shared` -> `/pia-shared` (`wireguard-pia`)
-- `/volume1/docker/qbittorrentvpn/data/set-qbt-port.sh` -> `/set-qbt-port.sh:ro` (`wireguard-pia`)
-- `/volume1/docker/qbittorrentvpn/data/config` -> `/config` (`qbittorrentvpn`)
-- `/volume1/docker/radarr/data` -> `/config` (`radarr`)
-- `/volume1/docker/sonarr/data` -> `/config` (`sonarr`)
-- `/volume1/docker/prowlarr/data` -> `/config` (`prowlarr`)
-- `/volume1/docker/seerr/data` -> `/app/config` (`seerr`)
-- `/volume1/docker/tailscale/data` -> `/var/lib/tailscale` (`tailscale`)
-- `/volume1/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
-- `/volume1/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
-- `/volume1/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
+### 3.2 Host Volume Layout (`/volume2/docker` and `/volume1/media`)
+- `/volume2/docker/dockge/data` -> `/app/data` (`dockge`)
+- `/volume2/docker/homepage/data` -> `/app/config` (`homepage`)
+- `/volume2/docker/jellyfin/data/config` -> `/config` (`jellyfin`)
+- `/volume2/docker/nginx/data` -> `/data` (`nginx`)
+- `/volume2/docker/nginx/data/letsencrypt` -> `/etc/letsencrypt` (`nginx`)
+- `/volume2/docker/postgres/data` -> `/var/lib/postgresql/data` (`postgresql`)
+- `/volume2/docker/qbittorrentvpn/data/pia` -> `/pia` (`wireguard-pia`)
+- `/volume2/docker/qbittorrentvpn/data/pia-shared` -> `/pia-shared` (`wireguard-pia`)
+- `/volume2/docker/qbittorrentvpn/data/set-qbt-port.sh` -> `/set-qbt-port.sh:ro` (`wireguard-pia`)
+- `/volume2/docker/qbittorrentvpn/data/config` -> `/config` (`qbittorrentvpn`)
+- `/volume2/docker/radarr/data` -> `/config` (`radarr`)
+- `/volume2/docker/sonarr/data` -> `/config` (`sonarr`)
+- `/volume2/docker/prowlarr/data` -> `/config` (`prowlarr`)
+- `/volume2/docker/seerr/data` -> `/app/config` (`seerr`)
+- `/volume2/docker/tailscale/data` -> `/var/lib/tailscale` (`tailscale`)
+- `/volume2/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
+- `/volume2/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
+- `/volume2/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
 - `/volume1/media` -> `/media` (`radarr`, `sonarr`, `qbittorrentvpn`) and `/data/media:ro` (`jellyfin`)
 
 ### 3.3 Container Privilege and UID/GID Model

@@ -1,0 +1,20 @@
+[Unit]
+Description=Antigravity Remote Control Daemon (Aumaka)
+After=network-online.target storage_serv.service docker_serv.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=brandon
+Group=admin
+Environment=HOME=/home/brandon
+Environment=PATH=/home/brandon/.gemini/bin:/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/bin/sh -c 'while [ ! -f /home/brandon/.gemini/bin/agy ]; do sleep 2; done'
+ExecStart=/home/brandon/.gemini/bin/agy remote-control serve
+Restart=always
+RestartSec=5s
+RestartPreventExitStatus=3
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

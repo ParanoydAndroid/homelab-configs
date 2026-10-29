@@ -25,7 +25,7 @@ services:
       TZ: ${TZ:-America/New_York}
       RADARR__AUTH__APIKEY: ${RADARR_API_KEY}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/radarr/data:/config
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/radarr/data:/config
       - ${MEDIA_DIR:-/volume1/media}:/media
     # ports:
     #   - 8040:7878
@@ -53,7 +53,7 @@ services:
       TZ: ${TZ:-America/New_York}
       SONARR__AUTH__APIKEY: ${SONARR_API_KEY}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/sonarr/data:/config
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/sonarr/data:/config
       - ${MEDIA_DIR:-/volume1/media}:/media
     # ports:
     #   - 8041:8989
@@ -81,7 +81,7 @@ services:
       TZ: ${TZ:-America/New_York}
       PROWLARR__AUTH__APIKEY: ${PROWLARR_API_KEY}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/prowlarr/data:/config
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/prowlarr/data:/config
     # ports:
     #   - 8042:9696
     networks:

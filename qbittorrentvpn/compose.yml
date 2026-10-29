@@ -60,9 +60,9 @@ services:
       PORT_SCRIPT: /set-qbt-port.sh
       VPNDNS: 1.1.1.1,1.0.0.1
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/qbittorrentvpn/data/pia:/pia
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/qbittorrentvpn/data/pia-shared:/pia-shared
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/qbittorrentvpn/data/set-qbt-port.sh:/set-qbt-port.sh:ro
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/qbittorrentvpn/data/pia:/pia
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/qbittorrentvpn/data/pia-shared:/pia-shared
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/qbittorrentvpn/data/set-qbt-port.sh:/set-qbt-port.sh:ro
     # WebUI (8081) is accessed over the 'homelab' bridge network by NPM, Radarr,
     # Sonarr, and Homepage. Inbound BitTorrent peer traffic enters directly
     # through the PIA WireGuard tunnel (wg0) on the dynamically assigned port.
@@ -87,7 +87,7 @@ services:
       TZ: ${TZ:-America/New_York}
       WEBUI_PORT: 8081
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/qbittorrentvpn/data/config:/config
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/qbittorrentvpn/data/config:/config
       - ${MEDIA_DIR:-/volume1/media}:/media
     labels:
       - homepage.group=Downloads

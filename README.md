@@ -32,7 +32,12 @@ The repository is checked out at [`${DOCKGE_STACKS_DIR}`](#21-global-settings-ro
   - [6.3 Tailscale Macvlan Dual-Homing & Split DNS Configuration](#63-tailscale-macvlan-dual-homing--split-dns-configuration)
   - [6.4 WireGuard PIA Automated Dynamic Port Forwarding](#64-wireguard-pia-automated-dynamic-port-forwarding)
   - [6.5 Tandoor Recipes Media Serving in NPM](#65-tandoor-recipes-media-serving-in-npm)
-  - [6.6 UGREEN NAS OS Appliance Workarounds (Go 1.23+ GODEBUG Fix)](#66-ugreen-nas-os-appliance-workarounds-go-123-godebug-fix)
+- [7. Host OS Configuration, Services & Appliance Engineering](#7-host-os-configuration-services--appliance-engineering)
+  - [7.1 Dual-Volume Storage Tiering Architecture](#71-dual-volume-storage-tiering-architecture)
+  - [7.2 Host Packages & CLI Dependencies](#72-host-packages--cli-dependencies)
+  - [7.3 Systemd Boot Services](#73-systemd-boot-services)
+  - [7.4 Asynchronous Storage Mount Handling](#74-asynchronous-storage-mount-handling)
+  - [7.5 Appliance OS Workarounds (Go 1.23+ GODEBUG Fix)](#75-appliance-os-workarounds-go-123-godebug-fix)
 
 ---
 
@@ -124,7 +129,7 @@ Configuration follows a two-tier `.env.example` -> `.env` architecture. All live
 The root `.env` defines global host paths, runtime user/group IDs, timezone, and macvlan network parameters that `./homelab.sh setup` automatically propagates into all child `<stack>/.env` files and `${DOCKGE_DIR}/.env`:
 
 `DOCKER_DATA_DIR`  
-Default: `/volume1/docker`  
+Default: `/volume2/docker`  
 Description: Root host directory for persistent container configurations, state, and database volumes.
 
 `MEDIA_DIR`  
@@ -381,6 +386,8 @@ sudo ./homelab.sh setup
     Remediates host OS Go 1.23+ bugs, initializes `.env` files, syncs root global variables into stack `.env` files, audits for blank secrets, provisions `homelab` and `external_npm` networks, deploys tracked configurations, starts Dockge, and brings up all Compose stacks in dependency order.
 *   `./homelab.sh test`:
     Zero-downtime regression and smoke test suite across all 14 containers: verifies container runtimes and healthchecks, direct admin interfaces (Dockge 8010 and NPM API), client-impersonated virtual host routing over NPM (validating SSL status codes and security blocks across `*.turing.home` and `*.kamaka.tech`), internal Docker DNS sockets, PIA VPN port sync, and Tailscale subnet router authentication.
+*   `./homelab.sh startup`:
+    Non-interactive boot and headless recovery orchestration hook designed for systemd execution on host startup: waits for storage volumes to mount, ensures Docker networks exist, and launches Dockge and all stacks in strict dependency order with database socket readiness verification.
 *   `./homelab.sh deploy-configs [--overwrite-all | --keep-all]`:
     Compares tracked files in `.configs/` against live host files in `${DOCKER_DATA_DIR}/...`. Displays unified diffs on conflict, guards against deploying NPM configs referencing missing SSL certificates, and reloads Nginx dynamically on change.
 *   `./homelab.sh pull-configs`:
@@ -424,7 +431,7 @@ cd ~/services
 git push && git push --tags
 
 # To restore all .env secrets on a fresh machine:
-tar -xzf "${DOCKER_DATA_DIR:-/volume1/docker}/backup/homelab/latest_env_secrets.tar.gz" -C ~/services
+tar -xzf "${DOCKER_DATA_DIR:-/volume2/docker}/backup/homelab/latest_env_secrets.tar.gz" -C ~/services
 sudo ./homelab.sh setup
 ```
 
@@ -626,9 +633,92 @@ location /media/ {
 
 ---
 
-### 6.6 UGREEN NAS OS Appliance Workarounds (Go 1.23+ GODEBUG Fix)
+## 7. Host OS Configuration, Services & Appliance Engineering
 
-UGREEN NAS OS injects `GODEBUG=tlskyber=0` into `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`. Because Go 1.23 removed the legacy `tlskyber` flag, Go 1.23+ binaries (including developer tools and remote servers) panic on startup.
+This section documents host-level configurations, background services, package prerequisites, and appliance workarounds implemented directly on the host operating system (UGOS Pro / Debian 12) to support the homelab architecture.
+
+### 7.1 Dual-Volume Storage Tiering Architecture
+
+The homelab divides storage across two distinct physical media tiers rather than using fragile SSD caching layers:
+
+| Mount Point | Physical Tier | Filesystem | Workload & Purpose |
+| :--- | :--- | :--- | :--- |
+| **`/volume1`** | 3x 10TB HDDs (RAID 5) | Btrfs | Shared media libraries (`/volume1/media`) and compressed backup archives (`/volume1/backups`). Sequential I/O excels on mechanical drives. |
+| **`/volume2`** | 500GB NVMe SSD (M.2 Slot 1) | Btrfs | High-IOPS container configurations, databases, and image caches (`/volume2/docker`). Delivers 300,000+ random 4K IOPS with sub-millisecond seek latency. |
+
+**Reasoning**:
+Jellyfin, Nginx Proxy Manager, and Homepage perform continuous random read/write transactions against SQLite databases (`jellyfin.db`, `db.sqlite`) and look up tens of thousands of individual thumbnail files. On spinning disks, 10–15 ms mechanical head seeks cause severe library scrolling stutter and blank poster pop-in. Moving `${DOCKER_DATA_DIR}` to native PCIe NVMe eliminates seek latency entirely (reducing page load times from 15+ seconds down to <1.5 seconds) while keeping large sequential video files on fault-tolerant HDD storage.
+
+### 7.2 Host Packages & CLI Dependencies
+
+The host operating system requires the following standard packages to support `homelab.sh` automation, testing, and backups:
+
+*   **`sqlite3`**: Required by `homelab.sh pull-configs` and `homelab.sh backup` to perform clean, non-sensitive SQL table dumps of NPM routing tables (`npm_hosts.sql`) and atomic online SQLite database snapshots without taking services offline.
+*   **`rsync`**: Required for archive-grade configuration and data synchronization preserving exact Unix UIDs, GIDs, file modes, and extended attributes (`-aHX`).
+*   **`tar` & `zstd`**: Used to generate compressed `.env` secret archives and Docker volume backups.
+*   **`curl` & `jq`**: Required by `./homelab.sh test` to execute HTTPS client impersonation probes, validate TLS certificates, and inspect Docker network state.
+
+To install missing dependencies on Debian/UGOS Pro:
+```bash
+sudo apt update && sudo apt install -y sqlite3 rsync zstd curl jq
+```
+
+**User Lingering**:
+To allow background user processes and systemd managers to persist when no interactive SSH session is open:
+```bash
+sudo loginctl enable-linger brandon
+```
+
+### 7.3 Systemd Boot Services
+
+Tracked unit definitions are maintained in `.configs/systemd/` and deployed to `/etc/systemd/system/`.
+
+#### 1. Antigravity Remote Control Daemon (`antigravity-remote-control.service`)
+
+*   **Unit File**: `/etc/systemd/system/antigravity-remote-control.service`
+*   **Tracked Template**: `.configs/systemd/antigravity-remote-control.service`
+*   **Purpose**: Keeps the Google Antigravity Remote Control daemon (`Aumaka`) persistently online across system reboots.
+*   **Operational Behavior**:
+    Runs `/home/brandon/.gemini/bin/agy remote-control serve` as user `brandon`. Includes an `ExecStartPre` polling loop that waits until `/home/brandon/.gemini/bin/agy` exists on disk before attempting startup, and sets `Restart=always` with `RestartSec=5s` so the daemon recovers instantly once user files are accessible.
+
+To install or reload the service:
+```bash
+sudo cp ~/services/.configs/systemd/antigravity-remote-control.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now antigravity-remote-control.service
+```
+
+#### 2. Homelab Startup Orchestrator (`homelab-startup.service`)
+
+*   **Unit File**: `/etc/systemd/system/homelab-startup.service`
+*   **Tracked Template**: `.configs/systemd/homelab-startup.service`
+*   **Purpose**: Automatically initializes Docker networks, Dockge, and all application stacks in strict dependency order on host boot.
+*   **Operational Behavior**:
+    Executes `/home/brandon/services/homelab.sh startup` after `docker.service` and `storage_serv.service` reach readiness. The script:
+    1. Polls until `${DOCKER_DATA_DIR}` (`/volume2/docker`) is mounted (up to a 60-second safety window).
+    2. Provisions the `homelab` (`192.168.255.0/24`) and `external_npm` (`192.168.0.0/24`) Docker networks if absent.
+    3. Launches the Dockge orchestrator.
+    4. Launches stacks in order (`postgres`, `nginx`, `tailscale`, `homepage`, `jellyfin`, `qbittorrentvpn`, `sonarr-radarr`, `seerr`, `tandoor`), actively verifying PostgreSQL socket readiness via `docker exec postgres pg_isready` before starting dependent services.
+
+To install or reload the service:
+```bash
+sudo cp ~/services/.configs/systemd/homelab-startup.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable homelab-startup.service
+```
+
+### 7.4 Asynchronous Storage Mount Handling
+
+On UGOS Pro, user home directories (`/home/<user>`) and secondary storage pools (`/volume2`) are mounted **asynchronously** by UGREEN's internal Go storage daemon (`storage_serv`) well after systemd's early boot phase.
+
+*   **The Problem with Standard User Units (`systemd --user`)**:
+    When systemd starts `user@1000.service`, `/home/brandon` is not yet mounted from `/volume1/@home/brandon`. As a result, `systemd --user` processes an empty directory, misses user unit files in `~/.config/systemd/user/`, and reaches `default.target` prematurely. When `/home/brandon` is finally mounted minutes later, user units remain dormant.
+*   **The Architectural Remediation**:
+    Critical background services (like Antigravity Remote Control and Homelab Stack Orchestration) are placed in `/etc/systemd/system/` under `multi-user.target`, bound to `User=brandon`, and equipped with startup polling loops. This guarantees reliable execution regardless of how late UGOS mounts underlying volumes.
+
+### 7.5 Appliance OS Workarounds (Go 1.23+ GODEBUG Fix)
+
+UGREEN NAS OS injects `GODEBUG=tlskyber=0` into `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`. Because Go 1.23 removed the legacy `tlskyber` flag, Go 1.23+ binaries (including developer tools, telemetry agents, and remote servers) panic on startup.
 
 `sudo ./homelab.sh setup` automatically remediates this idempotently on every run. To apply the fix manually after an OS firmware update:
 ```bash

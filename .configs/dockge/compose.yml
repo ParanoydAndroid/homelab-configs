@@ -22,7 +22,7 @@ services:
       TZ: ${TZ:-America/New_York}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/dockge/data:/app/data
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/dockge/data:/app/data
       # If you want to use private registries, share the auth file with Dockge:
       # - /root/.docker/:/root/.docker
       # Stacks Directory:

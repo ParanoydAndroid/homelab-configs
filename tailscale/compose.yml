@@ -39,7 +39,7 @@ services:
       - TS_ROUTES=192.168.0.0/24
       - TS_EXTRA_ARGS=${TS_EXTRA_ARGS:---snat-subnet-routes=true --accept-dns=false}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/tailscale/data:/var/lib/tailscale
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/tailscale/data:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
     networks:
       homelab:

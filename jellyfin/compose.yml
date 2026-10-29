@@ -39,7 +39,7 @@ services:
       TZ: ${TZ:-America/New_York}
       JELLYFIN_PublishedServerUrl: http://jellyfin:8096
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume1/docker}/jellyfin/data/config:/config
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/jellyfin/data/config:/config
       - ${MEDIA_DIR:-/volume1/media}:/data/media:ro
     ports:
       # HTTP/HTTPS traffic is reverse-proxied via NPM on the 'homelab' network.
