@@ -21,10 +21,11 @@ sudo ./homelab.sh setup
 
 # 3. Populate required per-stack secrets and API keys in the generated .env files:
 #    - homepage/.env       (HOMEPAGE_VAR_PIHOLE_KEY: Pi-hole Web UI password / API token)
-#    - qbittorrentvpn/.env (VPN_USER, VPN_PASS: PIA credentials; QBITTORRENT_WIDGET_PASSWORD: WebUI password)
+#    - qbittorrentvpn/.env (VPN_USER, VPN_PASS: PIA credentials; QBITTORRENT_PASSWORD: WebUI password)
 #    - tandoor/.env        (SECRET_KEY: generate via `base64 /dev/urandom | head -c50`)
-#    - jellyfin/.env       (JELLYFIN_WIDGET_KEY: Jellyfin Dashboard -> Administration -> API Keys)
-#    - sonarr-radarr/.env  (RADARR_WIDGET_KEY, SONARR_WIDGET_KEY, PROWLARR_WIDGET_KEY: Settings -> General -> Security -> API Key)
+#    - jellyfin/.env       (JELLYFIN_API_KEY: Jellyfin Dashboard -> Administration -> API Keys)
+#    - sonarr-radarr/.env  (RADARR_API_KEY, SONARR_API_KEY, PROWLARR_API_KEY: deterministic API keys)
+#    - seerr/.env          (SEERR_API_KEY: deterministic API key)
 #    - cloudflared/.env    (CLOUDFLARE_TUNNEL_TOKEN: Zero Trust Dashboard -> Networks -> Tunnels)
 
 # 4. Re-run setup to sync variables, deploy tracked configs, and start all containers
@@ -125,6 +126,7 @@ All HTTP/HTTPS web applications are reverse-proxied by Nginx Proxy Manager over 
 | Sonarr | `sonarr-radarr/` | `8041` | `8989` | TCP (HTTP) | No (Proxied via NPM) | `https://sonarr.turing.home` | None | `/volume1/docker/sonarr/data` |
 | Prowlarr | `sonarr-radarr/` | `8042` | `9696` | TCP (HTTP) | No (Proxied via NPM) | `https://prowlarr.turing.home` | None | `/volume1/docker/prowlarr/data` |
 | FlareSolverr | `sonarr-radarr/` | `8043` | `8191` | TCP (HTTP) | No (Internal / NPM) | `https://flaresolverr.turing.home` | None | Stateless |
+| Seerr | `seerr/` | `8055` | `5055` | TCP (HTTP) | No (Proxied via NPM) | `https://seerr.turing.home` | None | `/volume1/docker/seerr/data` |
 | Tandoor Recipes | `tandoor/` | `8050` | `8050` | TCP (HTTP) | No (Proxied via NPM) | `https://recipes.turing.home` | `https://recipes.kamaka.tech` | `/volume1/docker/tandoor/data/{staticfiles,mediafiles}` |
 | PostgreSQL | `postgres/` | None | `5432` | TCP | No (`homelab` only) | `postgresql:5432` (Internal) | None | `/volume1/docker/postgres/data` |
 | WireGuard PIA VPN | `qbittorrentvpn/` | `8081` | `8081` | TCP (WebUI) | No (Proxied via NPM) | `https://torrent.turing.home` | None | `/volume1/docker/qbittorrentvpn/data/{pia,pia-shared}` |
@@ -143,9 +145,10 @@ All live `.env` files are ignored by git (`.gitignore`). Configuration uses a tw
    - Defines external credentials and per-installation API/cryptographic keys with blank defaults (`KEY=`):
      - `cloudflared/.env.example`: `CLOUDFLARE_TUNNEL_TOKEN=` (Cloudflare Zero Trust Tunnel authentication token)
      - `homepage/.env.example`: `HOMEPAGE_VAR_PIHOLE_KEY=` (Pi-hole admin password or API token from Pi-hole **Settings -> API / Web interface**)
-     - `jellyfin/.env.example`: `JELLYFIN_WIDGET_KEY=` (Generated in Jellyfin **Dashboard -> Administration -> API Keys -> `+`**)
-     - `qbittorrentvpn/.env.example`: `VPN_USER=`, `VPN_PASS=` (Private Internet Access OpenVPN/account credentials), `QBITTORRENT_WIDGET_PASSWORD=` (qBittorrent WebUI password configured in **Tools -> Options -> Web UI -> Authentication**)
-     - `sonarr-radarr/.env.example`: `RADARR_WIDGET_KEY=`, `SONARR_WIDGET_KEY=`, `PROWLARR_WIDGET_KEY=` (Found in each app under **Settings -> General -> Security -> API Key**)
+     - `jellyfin/.env.example`: `JELLYFIN_API_KEY=` (Generated in Jellyfin **Dashboard -> Administration -> API Keys -> `+`**)
+     - `qbittorrentvpn/.env.example`: `VPN_USER=`, `VPN_PASS=` (Private Internet Access OpenVPN/account credentials), `QBITTORRENT_PASSWORD=` (qBittorrent WebUI password configured in **Tools -> Options -> Web UI -> Authentication**)
+     - `sonarr-radarr/.env.example`: `RADARR_API_KEY=`, `SONARR_API_KEY=`, `PROWLARR_API_KEY=` (Deterministic API keys for Servarr authentication)
+     - `seerr/.env.example`: `SEERR_API_KEY=` (Deterministic API key for Seerr media request management)
      - `tandoor/.env.example`: `SECRET_KEY=` (Random 50-character secret generated via `base64 /dev/urandom | head -c50`)
 
 ### 4.1 How Homepage Dashboard Service Discovery and Widget Keys Work
@@ -163,9 +166,9 @@ Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active
        - homepage.widget.type=jellyfin
        - homepage.widget.version=2
        - homepage.widget.url=http://jellyfin:8096
-       - homepage.widget.key=${JELLYFIN_WIDGET_KEY}
+       - homepage.widget.key=${JELLYFIN_API_KEY}
      ```
-   - When `docker compose up -d` runs inside `<stack>/`, Docker Compose reads `<stack>/.env` and interpolates `${JELLYFIN_WIDGET_KEY}` into the running container's metadata labels.
+   - When `docker compose up -d` runs inside `<stack>/`, Docker Compose reads `<stack>/.env` and interpolates `${JELLYFIN_API_KEY}` into the running container's metadata labels.
    - Homepage reads those resolved labels from `/var/run/docker.sock` and queries `http://jellyfin:8096` directly over the `homelab` bridge network (so backend ports never need to be exposed on the NAS host).
 
 2. **Static YAML Environment Substitution (`HOMEPAGE_VAR_*` for Non-Docker Appliances)**:

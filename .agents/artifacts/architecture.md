@@ -33,7 +33,7 @@ The project encompasses:
 - Zero credentials, API tokens, or cryptographic keys are committed to git.
 - Because Dockge executes `docker compose` with the working directory set to each individual `<stack>/` folder, environment variables follow a two-tier `.env.example` -> `.env` model:
   1. **Root `.env.example`**: Defines global infrastructure defaults (`DOCKER_DATA_DIR`, `MEDIA_DIR`, `DOCKGE_DIR`, `DOCKGE_STACKS_DIR`, `PUID`, `PGID`, `TZ`, `EXTERNAL_NPM_*`, `NPM_IPV4_ADDRESS`). `homelab.sh` resolves dynamic user paths and propagates these global variables into every `<stack>/.env` and `${DOCKGE_DIR}/.env`.
-  2. **Per-Stack `<stack>/.env.example`**: Declares stack-specific secrets and API keys (`VPN_USER`, `VPN_PASS`, `SECRET_KEY`, `*_WIDGET_KEY`, `QBITTORRENT_WIDGET_PASSWORD`, `HOMEPAGE_VAR_PIHOLE_KEY`) with blank defaults (`KEY=`). `homelab.sh` audits these keys on setup and warns if any required secret is unpopulated.
+  2. **Per-Stack `<stack>/.env.example`**: Declares stack-specific secrets and API keys (`VPN_USER`, `VPN_PASS`, `SECRET_KEY`, `*_API_KEY`, `QBITTORRENT_PASSWORD`, `HOMEPAGE_VAR_PIHOLE_KEY`) with blank defaults (`KEY=`). `homelab.sh` audits these keys on setup and warns if any required secret is unpopulated.
 
 ---
 
@@ -80,6 +80,9 @@ The project encompasses:
 ├── qbittorrentvpn/
 │   ├── .env.example
 │   └── compose.yml
+├── seerr/
+│   ├── .env.example
+│   └── compose.yml
 ├── sonarr-radarr/
 │   ├── .env.example
 │   └── compose.yml
@@ -102,6 +105,7 @@ The project encompasses:
 - `/volume1/docker/radarr/data` -> `/config` (`radarr`)
 - `/volume1/docker/sonarr/data` -> `/config` (`sonarr`)
 - `/volume1/docker/prowlarr/data` -> `/config` (`prowlarr`)
+- `/volume1/docker/seerr/data` -> `/app/config` (`seerr`)
 - `/volume1/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
 - `/volume1/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
 - `/volume1/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)

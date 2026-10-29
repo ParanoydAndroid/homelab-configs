@@ -98,7 +98,7 @@ services:
       - homepage.widget.type=qbittorrent
       - homepage.widget.url=http://qbittorrentvpn:8081
       - homepage.widget.username=admin
-      - homepage.widget.password=${QBITTORRENT_WIDGET_PASSWORD}
+      - homepage.widget.password=${QBITTORRENT_PASSWORD}
 
 networks:
   homelab:

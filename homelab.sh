@@ -95,6 +95,7 @@ STACKS=(
   "jellyfin"
   "qbittorrentvpn"
   "sonarr-radarr"
+  "seerr"
   "tandoor"
   "cloudflared"
 )
@@ -300,10 +301,20 @@ init_and_sync_env() {
       fi
     fi
 
-    # Propagate every non-comment KEY=VALUE line from root .env into the stack's .env.
+    # Propagate variables from root .env only if referenced in the stack's compose.yml
+    # or explicitly declared in its .env.example template.
+    local stack_compose="${REPO_DIR}/${stack}/compose.yml"
     while IFS='=' read -r key val || [[ -n "${key}" ]]; do
       [[ -z "${key}" || "${key}" =~ ^[[:space:]]*# ]] && continue
-      upsert_env_var "${target_env}" "${key}" "${val}"
+      local is_needed=0
+      if [[ -f "${stack_compose}" ]] && grep -qE "(\\\$|\\\$\{)${key}[:}]?" "${stack_compose}" 2>/dev/null; then
+        is_needed=1
+      elif [[ -f "${stack_example}" ]] && grep -qE "^[[:space:]]*${key}=" "${stack_example}" 2>/dev/null; then
+        is_needed=1
+      fi
+      if [[ "${is_needed}" -eq 1 ]]; then
+        upsert_env_var "${target_env}" "${key}" "${val}"
+      fi
     done < "${root_env}"
 
     chown "${TARGET_USER}:${TARGET_GROUP}" "${target_env}" 2>/dev/null || true
@@ -955,6 +966,7 @@ test_homelab() {
     "sonarr"
     "prowlarr"
     "flaresolverr"
+    "seerr"
     "tandoor"
     "cloudflared"
   )
@@ -996,6 +1008,7 @@ test_homelab() {
   check_vhost "sonarr.turing.home" "/ping" "^200$"
   check_vhost "prowlarr.turing.home" "/ping" "^200$"
   check_vhost "flaresolverr.turing.home" "/health" "^200$"
+  check_vhost "seerr.turing.home" "/api/v1/status" "^200$"
   check_vhost "torrent.turing.home" "/" "^200$"
   check_vhost "recipes.turing.home" "/" "^(200|302)$"
   check_vhost "jellyfin.kamaka.tech" "/web/index.html" "^200$"
@@ -1003,6 +1016,12 @@ test_homelab() {
   check_vhost "recipes.kamaka.tech" "/" "^(200|302)$"
 
   printf "\n=== 4. Inter-Container DNS & Service Interconnections ===\n"
+  # Jellyfin -> Seerr (5055)
+  if docker exec jellyfin curl -fsS --max-time 5 "http://seerr:5055/api/v1/status" >/dev/null 2>&1; then
+    record_pass "jellyfin -> http://seerr:5055/api/v1/status"
+  else
+    record_fail "jellyfin -> http://seerr:5055/api/v1/status"
+  fi
   # Radarr -> qBittorrentVPN (8081) and Prowlarr (9696)
   if docker exec radarr curl -fsS --max-time 5 "http://qbittorrentvpn:8081/api/v2/app/version" >/dev/null 2>&1; then
     record_pass "radarr -> http://qbittorrentvpn:8081/api/v2/app/version"

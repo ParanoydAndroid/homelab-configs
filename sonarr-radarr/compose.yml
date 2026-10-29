@@ -23,6 +23,7 @@ services:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-100}
       TZ: ${TZ:-America/New_York}
+      RADARR__AUTH__APIKEY: ${RADARR_API_KEY}
     volumes:
       - ${DOCKER_DATA_DIR:-/volume1/docker}/radarr/data:/config
       - ${MEDIA_DIR:-/volume1/media}:/media
@@ -38,7 +39,7 @@ services:
       - homepage.description=Movie Autodownloader
       - homepage.widget.type=radarr
       - homepage.widget.url=http://radarr:7878
-      - homepage.widget.key=${RADARR_WIDGET_KEY}
+      - homepage.widget.key=${RADARR_API_KEY}
       - homepage.widget.enableQueue=true
 
   sonarr:
@@ -50,6 +51,7 @@ services:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-100}
       TZ: ${TZ:-America/New_York}
+      SONARR__AUTH__APIKEY: ${SONARR_API_KEY}
     volumes:
       - ${DOCKER_DATA_DIR:-/volume1/docker}/sonarr/data:/config
       - ${MEDIA_DIR:-/volume1/media}:/media
@@ -65,7 +67,7 @@ services:
       - homepage.description=TV Autodownloader
       - homepage.widget.type=sonarr
       - homepage.widget.url=http://sonarr:8989
-      - homepage.widget.key=${SONARR_WIDGET_KEY}
+      - homepage.widget.key=${SONARR_API_KEY}
       - homepage.widget.enableQueue=true
 
   prowlarr:
@@ -77,6 +79,7 @@ services:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-100}
       TZ: ${TZ:-America/New_York}
+      PROWLARR__AUTH__APIKEY: ${PROWLARR_API_KEY}
     volumes:
       - ${DOCKER_DATA_DIR:-/volume1/docker}/prowlarr/data:/config
     # ports:
@@ -91,7 +94,7 @@ services:
       - homepage.description=Indexer Management
       - homepage.widget.type=prowlarr
       - homepage.widget.url=http://prowlarr:9696
-      - homepage.widget.key=${PROWLARR_WIDGET_KEY}
+      - homepage.widget.key=${PROWLARR_API_KEY}
 
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
