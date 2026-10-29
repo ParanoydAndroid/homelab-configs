@@ -96,6 +96,7 @@ STACKS=(
   "qbittorrentvpn"
   "sonarr-radarr"
   "tandoor"
+  "cloudflared"
 )
 
 # Controls conflict resolution behavior in sync_file() when a live host config
@@ -955,6 +956,7 @@ test_homelab() {
     "prowlarr"
     "flaresolverr"
     "tandoor"
+    "cloudflared"
   )
   local c state health
   for c in "${expected_containers[@]}"; do

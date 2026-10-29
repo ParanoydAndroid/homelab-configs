@@ -1,0 +1,33 @@
+# ==============================================================================
+# Stack: Cloudflare Tunnel (cloudflared/compose.yml)
+#
+# Purpose:
+#   Maintains an encrypted, outbound-only tunnel to Cloudflare's edge network,
+#   bypassing residential Carrier-Grade NAT (CGNAT) without opening inbound
+#   firewall ports on the gateway. Incoming requests to *.kamaka.tech are
+#   tunneled securely from Cloudflare down to Nginx Proxy Manager on the
+#   'homelab' bridge network.
+# ==============================================================================
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    hostname: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - homelab
+    labels:
+      - homepage.group=Network
+      - homepage.name=Cloudflare Tunnel
+      - homepage.icon=cloudflare
+      - homepage.href=https://one.dash.cloudflare.com/
+      - homepage.description=Zero Trust CGNAT Ingress Tunnel
+
+networks:
+  homelab:
+    external: true
+

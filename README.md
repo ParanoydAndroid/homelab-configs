@@ -25,6 +25,7 @@ sudo ./homelab.sh setup
 #    - tandoor/.env        (SECRET_KEY: generate via `base64 /dev/urandom | head -c50`)
 #    - jellyfin/.env       (JELLYFIN_WIDGET_KEY: Jellyfin Dashboard -> Administration -> API Keys)
 #    - sonarr-radarr/.env  (RADARR_WIDGET_KEY, SONARR_WIDGET_KEY, PROWLARR_WIDGET_KEY: Settings -> General -> Security -> API Key)
+#    - cloudflared/.env    (CLOUDFLARE_TUNNEL_TOKEN: Zero Trust Dashboard -> Networks -> Tunnels)
 
 # 4. Re-run setup to sync variables, deploy tracked configs, and start all containers
 sudo ./homelab.sh setup
@@ -39,15 +40,15 @@ sudo ./homelab.sh setup
 
 ---
 
-## 2. Network Architecture and Topology
+## 2. Network Architecture & Ingress/Egress Model
 
 ### 2.1 Subnets and Docker Networks
 
 | Network Name | Type / Driver | Subnet | Gateway | Parent Interface | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| LAN | Physical Ethernet | `192.168.0.0/24` | `192.168.0.1` | `eth0` | Primary home LAN (Single NAT; WAN IP assigned to gateway `192.168.0.1`) |
+| LAN | Physical Ethernet | `192.168.0.0/24` | `192.168.0.1` | `eth0` | Primary home LAN |
 | WireGuard VPN | Routed VPN | `192.168.1.128/25` | `192.168.1.128` | Gateway | Remote WireGuard VPN subnet exposed by router/gateway |
-| `homelab` | Docker `bridge` | `192.168.255.0/24` | `192.168.255.1` | `br-*` | Internal container-to-container network linking NPM and backend services |
+| `homelab` | Docker `bridge` | `192.168.255.0/24` | `192.168.255.1` | `br-*` | Internal container-to-container network linking NPM, `cloudflared`, and backend services |
 | `external_npm` | Docker `macvlan` | `192.168.0.0/24` | `192.168.0.1` | `eth0` | Attaches Nginx Proxy Manager directly to the LAN at `192.168.0.4` (`turing.home`) |
 
 To create the Docker networks manually (automated by `./homelab.sh setup`):
@@ -64,21 +65,46 @@ docker network create -d macvlan \
   external_npm
 ```
 
-### 2.2 Static IP and DNS Assignments
+### 2.2 LAN Configuration (DHCP, Local DNS, and Static IP Addressing)
+
+- **Gateway & DHCP Server (`192.168.0.1`)**:
+  - Acts as the primary DHCP server for `192.168.0.0/24`.
+  - Distributes `192.168.0.2` (Pi-hole) as the primary DNS server to all LAN clients.
+  - Advertises `.home` as the local domain search suffix.
+- **Pi-hole Local DNS Resolver (`192.168.0.2`)**:
+  - Resolves upstream DNS queries with ad-blocking.
+  - Configured with conditional forwarding for `.home` directed back to `192.168.0.1`.
+  - Defines local CNAME records mapping all internal `<service>.turing.home` hostnames to `turing.home` (`192.168.0.4`).
+- **Static IP and LAN Host Assignments**:
 
 | Hostname / Domain | IP Address | Role and DNS Behavior |
 | :--- | :--- | :--- |
-| Gateway / Router | `192.168.0.1` | DHCP server; assigns `192.168.0.2` (Pi-hole) as DNS server and `.home` as local domain |
-| Pi-hole | `192.168.0.2` | Local DNS resolver; conditional forwarding for `.home` to `192.168.0.1`; serves CNAME records for `<service>.turing.home` -> `turing.home` |
+| Gateway / Router | `192.168.0.1` | DHCP server; forwards DNS queries to Pi-hole (`192.168.0.2`); authoritative for `.home` hostnames |
+| Pi-hole | `192.168.0.2` | Local DNS resolver; CNAME entries for `<service>.turing.home` -> `turing.home` |
 | `nas.home` | `192.168.0.3` | UGREEN NAS host OS (`eth0`); exposes NAS web UI and emergency Dockge port (`8010`) |
-| `turing.home` | `192.168.0.4` | Nginx Proxy Manager (`external_npm` macvlan IP); terminates HTTP (`80`), HTTPS (`443`), and NPM Admin UI (`81`) for all `*.turing.home` and `*.kamaka.tech` subdomains |
+| `turing.home` | `192.168.0.4` | Nginx Proxy Manager (`external_npm` macvlan IP); terminates HTTP (`80`), HTTPS (`443`), and NPM Admin UI (`81`) |
 
-### 2.3 Gateway Firewall Rules
-```text
-SOURCE 192.168.0.0/16 ALLOW
-PORT 443 ALLOW (Forwarded to 192.168.0.4:443 for *.kamaka.tech)
-ALL DENY
-```
+### 2.3 WAN Configuration, CGNAT, and Cloudflare Ingress Architecture
+
+- **Carrier-Grade NAT (CGNAT) Context**:
+  - The residential gateway interface is assigned a carrier private WAN IP in the `100.64.0.0/10` block (RFC 6598) and exits through a shared public IP.
+  - Because upstream ISP CGNAT routers do not maintain inbound port mappings to subscriber WAN interfaces, traditional inbound IPv4 port forwarding (e.g. forwarding WAN `443` -> `192.168.0.4:443`) cannot receive inbound connections from the internet.
+- **Cloudflare Zero Trust Tunnel (`cloudflared`)**:
+  - External ingress is implemented using an outbound-only Cloudflare Tunnel (`homelab-media` stack running `cloudflare/cloudflared:latest`).
+  - The `cloudflared` container connects outbound from the `homelab` Docker bridge network to Cloudflare edge data centers over encrypted QUIC / HTTP/2.
+  - No gateway router ports need to be forwarded, and no public IPv4 address is required.
+- **Wildcard Ingress & NPM Centralization (`*.kamaka.tech`)**:
+  - Cloudflare Tunnel Public Hostnames routes wildcard `*.kamaka.tech` down the tunnel to `https://nginx:443` (with `No TLS Verify` enabled).
+  - Nginx Proxy Manager remains the single declarative ingress controller for all traffic:
+    - `jellyfin.kamaka.tech` routes to `jellyfin:8096` with exploit blocking, WebSockets, and `/metrics` / `/swagger` denial rules.
+    - `recipes.kamaka.tech` routes to `tandoor:8080` with static `/media/` mounts.
+    - Unconfigured or unexpected subdomains hit NPM's default host and are dropped or return a 404.
+- **Gateway Firewall Rules**:
+  ```text
+  SOURCE 192.168.0.0/16 ALLOW
+  ALL DENY
+  ```
+  All external inbound access enters strictly through the outbound-established Cloudflare tunnel rather than exposed WAN ports.
 
 ---
 
@@ -90,7 +116,8 @@ All HTTP/HTTPS web applications are reverse-proxied by Nginx Proxy Manager over 
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | UGREEN NAS / DSM | Host OS | `5000` / `5001` | N/A | HTTP / HTTPS | Yes (Host OS) | `https://nas.home` | None | N/A |
 | Dockge | `.configs/dockge` | `8010` | `5001` | TCP (HTTP) | **Yes** (`8010:5001`) | `https://dockge.turing.home` | None | `/volume1/docker/dockge/data` |
-| Nginx Proxy Manager | `nginx/` | `8480` / `8443` / `8444` | `80` / `443` / `81` | TCP | Macvlan (`192.168.0.4:80,443,81`) | `https://proxy.turing.home` (or `http://turing.home:81`) | `https://*.kamaka.tech` | `/volume1/docker/nginx/data` |
+| Nginx Proxy Manager | `nginx/` | `8480` / `8443` / `8444` | `80` / `443` / `81` | TCP | Macvlan (`192.168.0.4:80,443,81`) | `https://proxy.turing.home` (or `http://turing.home:81`) | `https://*.kamaka.tech` (via Tunnel) | `/volume1/docker/nginx/data` |
+| Cloudflare Tunnel | `cloudflared/` | None | None | QUIC / HTTP/2 | No (Egress Tunnel) | None | Ingress for `*.kamaka.tech` | Stateless |
 | Jellyfin | `jellyfin/` | `8020` / `8021` | `8096` / `8920` | TCP (HTTP/S) | No (Proxied via NPM) | `https://jellyfin.turing.home` | `https://jellyfin.kamaka.tech` | `/volume1/docker/jellyfin/data/config` |
 | Jellyfin Discovery | `jellyfin/` | `8022` | `7359` | UDP | **Yes** (`8022:7359/udp`) | LAN Broadcast | None | N/A |
 | Homepage | `homepage/` | `8030` | `3000` | TCP (HTTP) | No (Proxied via NPM) | `https://homepage.turing.home` | None | `/volume1/docker/homepage/data` |
@@ -114,6 +141,7 @@ All live `.env` files are ignored by git (`.gitignore`). Configuration uses a tw
    - When `./homelab.sh setup` runs, it initializes the root `.env` (resolving `${SUDO_USER:-${USER}}` into literal paths) and automatically syncs those global keys into every `<stack>/.env` and `${DOCKGE_DIR}/.env`.
 2. **Per-Stack `<stack>/.env.example` (Secrets and Per-Install Keys)**:
    - Defines external credentials and per-installation API/cryptographic keys with blank defaults (`KEY=`):
+     - `cloudflared/.env.example`: `CLOUDFLARE_TUNNEL_TOKEN=` (Cloudflare Zero Trust Tunnel authentication token)
      - `homepage/.env.example`: `HOMEPAGE_VAR_PIHOLE_KEY=` (Pi-hole admin password or API token from Pi-hole **Settings -> API / Web interface**)
      - `jellyfin/.env.example`: `JELLYFIN_WIDGET_KEY=` (Generated in Jellyfin **Dashboard -> Administration -> API Keys -> `+`**)
      - `qbittorrentvpn/.env.example`: `VPN_USER=`, `VPN_PASS=` (Private Internet Access OpenVPN/account credentials), `QBITTORRENT_WIDGET_PASSWORD=` (qBittorrent WebUI password configured in **Tools -> Options -> Web UI -> Authentication**)
@@ -133,6 +161,7 @@ Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active
        - homepage.icon=jellyfin
        - homepage.href=http://jellyfin.turing.home
        - homepage.widget.type=jellyfin
+       - homepage.widget.version=2
        - homepage.widget.url=http://jellyfin:8096
        - homepage.widget.key=${JELLYFIN_WIDGET_KEY}
      ```
@@ -152,6 +181,8 @@ Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active
 
 - `sudo ./homelab.sh setup`:
   Idempotently applies the UGREEN NAS `GODEBUG` fix, initializes missing `.env` files from `.env.example`, syncs root `.env` globals into stack `.env` files, warns on blank required variables, creates the `homelab` and `external_npm` Docker networks if missing, runs `deploy-configs`, deploys Dockge to `${DOCKGE_DIR}/compose.yml`, and starts Dockge and all Compose stacks in dependency order.
+- `./homelab.sh test`:
+  Executes an automated, zero-downtime smoke test suite across all 13 containers, validating container health status, direct admin interfaces (Dockge port 8010 and NPM Admin API), client-impersonated virtual host routing over NPM (verifying SSL status codes and security headers across both `*.turing.home` and `*.kamaka.tech`), and inter-container network sockets (Radarr/Sonarr to qBittorrent, Prowlarr to FlareSolverr, Tandoor to PostgreSQL, and PIA VPN port synchronization).
 - `./homelab.sh deploy-configs`:
   Compares tracked files in `.configs/` against live files in `/volume1/docker/...` and `${DOCKGE_DIR}/compose.yml`. When differences are detected, shows a unified diff and prompts `[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`. Skips deploying NPM proxy host `.conf` files whose referenced SSL certificates do not yet exist on disk, and reloads Nginx if any NPM config changes.
 - `./homelab.sh pull-configs`:
@@ -162,7 +193,7 @@ Homepage (`ghcr.io/gethomepage/homepage`) aggregates live status metrics (active
 ### 5.2 Use-Case Quick Guides
 
 #### Use Case 1: Editing Proxy Hosts in the NPM UI and Versioning Changes in Git
-1. Open the NPM Admin UI at `http://192.168.0.4:81` (or `http://turing.home:81`) and save your proxy host changes.
+1. Open the NPM Admin UI at `https://proxy.turing.home` (or `http://192.168.0.4:81`) and save your proxy host changes.
 2. Pull the updated NPM database export and generated `.conf` files into the repository:
    ```bash
    cd ~/services
@@ -208,7 +239,7 @@ sudo ./homelab.sh setup
 
 ---
 
-## 6. One-Time Manual Setup and Hardening Procedures
+## 6. Service-Specific Configuration & Hardening Procedures
 
 ### 6.1 Combined Local Self-Signed Certificate (`turing.home` and `nas.home`)
 To avoid browser certificate warnings across both `*.turing.home` (NPM) and `*.nas.home` (UGREEN NAS web UI) using a single certificate:
@@ -221,24 +252,36 @@ To avoid browser certificate warnings across both `*.turing.home` (NPM) and `*.n
 2. **Import into Client Devices**: Import `turing.crt` into your OS/browser Trusted Root Certification Authorities store.
 3. **Upload to UGREEN NAS (`nas.home`)**: In the UGREEN NAS Control Panel -> Security -> Certificate, upload `turing.key` and `turing.crt` and set as default.
 4. **Upload to Nginx Proxy Manager (`turing.home`)**:
-   - Open `http://192.168.0.4:81` -> SSL Certificates -> Add SSL Certificate -> Custom.
+   - Open `https://proxy.turing.home` (or `http://192.168.0.4:81`) -> SSL Certificates -> Add SSL Certificate -> Custom.
    - Name: `Local Wildcard (turing.home + nas.home)`, Certificate Key: `turing.key`, Certificate: `turing.crt`.
    - Assign this certificate to all `*.turing.home` Proxy Hosts.
 
 ### 6.2 Let's Encrypt Wildcard Certificate (`*.kamaka.tech`) in NPM
-1. In NPM (`http://192.168.0.4:81`), go to **SSL Certificates -> Add SSL Certificate -> Let's Encrypt**.
+1. In NPM (`https://proxy.turing.home`), go to **SSL Certificates -> Add SSL Certificate -> Let's Encrypt**.
 2. Set Domain Names to `kamaka.tech` and `*.kamaka.tech`.
 3. Enable **Use a DNS Challenge**, select **Cloudflare**, and supply `dns_cloudflare_api_token = <your-cloudflare-dns-edit-token>`.
 4. Assign the certificate to external Proxy Hosts (`jellyfin.kamaka.tech`, `recipes.kamaka.tech`).
 5. If setting up a fresh host where `deploy-configs` skipped NPM `.conf` files due to missing certs, re-run `./homelab.sh deploy-configs` after creating the certificates.
 
-### 6.3 Tandoor Recipes Media Serving in NPM (`recipes.kamaka.tech`)
-Tandoor's Gunicorn container does not serve `/media/` directly in production. Instead, `nginx/compose.yml` mounts `/volume1/docker/tandoor/data/mediafiles:/media:ro` and the `recipes.kamaka.tech` proxy host includes the custom Nginx configuration:
-```nginx
-location /media/ {
-    root /;
-}
-```
+### 6.3 Cloudflare Zero Trust Ingress & Cache Rules
+
+#### 1. Wildcard Ingress Routing to NPM
+In [one.dash.cloudflare.com](https://one.dash.cloudflare.com/) -> **Networks -> Tunnels -> homelab-media -> Public Hostnames**:
+- **Subdomain**: `*`
+- **Domain**: `kamaka.tech`
+- **Type**: `HTTPS`
+- **URL**: `nginx:443`
+- **Additional Application Settings -> TLS**:
+  - **No TLS Verify**: `Enabled`
+  - **Origin Server Name**: `jellyfin.kamaka.tech` (Required: provides the TLS SNI during the handshake with NPM; prevents Nginx from aborting the connection with `tls: unrecognized name` / 502 Bad Gateway)
+  - **HTTP Host Header**: Blank (preserves client Host header)
+
+#### 2. Cache Bypass for Video Streaming
+To prevent Cloudflare's CDN caching layer from throttling or buffering video chunks:
+1. In Cloudflare Dashboard -> `kamaka.tech` -> **Caching -> Cache Rules -> Create Rule**.
+2. Rule Name: `Bypass Jellyfin Video Cache`.
+3. When incoming requests match: Field `Hostname` equals `jellyfin.kamaka.tech`.
+4. Action: **Bypass cache**.
 
 ### 6.4 External Jellyfin Security Hardening (`jellyfin.kamaka.tech`)
 
@@ -248,11 +291,20 @@ location /media/ {
 
 #### Jellyfin Application Settings (One-Time Manual UI Check)
 In **Jellyfin Dashboard -> Networking** and **Dashboard -> Users**:
-1. **Known Proxies**: Set `Known Proxies` to `192.168.255.0/24` (or NPM's `homelab` container hostname/IP `nginx`) and restart Jellyfin so Jellyfin logs and rate-limits real external client IPs instead of NPM's bridge IP.
-2. **Disable Remote Admin Login**: Select your administrative user -> Profile -> uncheck **Allow remote connections to this server** (use a separate non-admin user account for remote playback).
-3. **Hide Users & Enable Lockout**: Check **Hide this user from login screens on remote devices** for all users, and set **Maximum invalid login attempts before user is locked out** (e.g., `3` or `5`).
+1. **Local Network Subnets**: Add `192.168.255.0/24` so local Docker communication is classified as internal.
+2. **Known Proxies**: Set `Known Proxies` to `192.168.255.0/24` (or NPM's `homelab` container hostname/IP `nginx`) and restart Jellyfin so Jellyfin logs and rate-limits real external client IPs instead of NPM's bridge IP.
+3. **Disable Remote Admin Login**: Select your administrative user -> Profile -> uncheck **Allow remote connections to this server** (use a separate non-admin user account for remote playback).
+4. **Hide Users & Enable Lockout**: Check **Hide this user from login screens on remote devices** for all users, and set **Maximum invalid login attempts before user is locked out** (e.g., `3` or `5`).
 
-### 6.5 UGREEN NAS `GODEBUG=tlskyber=0` Remediation (Go 1.23+ & Antigravity Remote Fix)
+### 6.5 Tandoor Recipes Media Serving in NPM (`recipes.kamaka.tech`)
+Tandoor's Gunicorn container does not serve `/media/` directly in production. Instead, `nginx/compose.yml` mounts `/volume1/docker/tandoor/data/mediafiles:/media:ro` and the `recipes.kamaka.tech` proxy host includes the custom Nginx configuration:
+```nginx
+location /media/ {
+    root /;
+}
+```
+
+### 6.6 UGREEN NAS `GODEBUG=tlskyber=0` Remediation (Go 1.23+ & Antigravity Remote Fix)
 UGREEN NAS OS sets `GODEBUG=tlskyber=0` in `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`, which causes Go 1.23+ binaries (including the Antigravity remote server) to panic on startup because the legacy `tlskyber` flag was removed in Go 1.23.
 
 `sudo ./homelab.sh setup` automatically checks and remediates this on every run. To run the fix manually after a UGREEN firmware update:
@@ -264,7 +316,7 @@ systemctl --user unset-environment GODEBUG || true
 sudo systemctl daemon-reexec
 ```
 
-### 6.6 WireGuard PIA VPN + qBittorrent Architecture and Automated Port Forwarding
+### 6.7 WireGuard PIA VPN + qBittorrent Architecture and Automated Port Forwarding
 
 #### Decoupled Two-Container Network Namespace (`wireguard-pia` + `qbittorrentvpn`)
 The `qbittorrentvpn/compose.yml` stack decouples the VPN gateway and BitTorrent client into two dedicated containers sharing a single network namespace:
