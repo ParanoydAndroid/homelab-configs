@@ -48,9 +48,9 @@ sudo ./homelab.sh setup
 | Network Name | Type / Driver | Subnet | Gateway | Parent Interface | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | LAN | Physical Ethernet | `192.168.0.0/24` | `192.168.0.1` | `eth0` | Primary home LAN |
-| WireGuard VPN | Routed VPN | `192.168.1.128/25` | `192.168.1.128` | Gateway | Remote WireGuard VPN subnet exposed by router/gateway |
+| Tailscale Overlay | WireGuard Mesh | `100.64.0.0/10` | N/A | Subnet Router | P2P encrypted mesh connecting remote devices to homelab LAN |
 | `homelab` | Docker `bridge` | `192.168.255.0/24` | `192.168.255.1` | `br-*` | Internal container-to-container network linking NPM, `cloudflared`, and backend services |
-| `external_npm` | Docker `macvlan` | `192.168.0.0/24` | `192.168.0.1` | `eth0` | Attaches Nginx Proxy Manager directly to the LAN at `192.168.0.4` (`turing.home`) |
+| `external_npm` | Docker `macvlan` | `192.168.0.0/24` | `192.168.0.1` | `eth0` | Attaches Nginx Proxy Manager (`192.168.0.4`) and Tailscale (`192.168.0.5`) directly to LAN |
 
 To create the Docker networks manually (automated by `./homelab.sh setup`):
 ```bash
@@ -339,3 +339,43 @@ Private Internet Access (PIA) assigns a dynamic incoming port per VPN session on
 1. **Token & Signature Negotiation**: When `PORT_FORWARDING: 1` and `PORT_PERSIST: 1` are enabled, `wireguard-pia`'s `/scripts/pf.sh` daemon requests a cryptographic port signature and payload from the PIA WireGuard gateway (`https://<cn>:19999/getSignature`), persists the token in `/pia/portsig.json` so the same port is reused across restarts until its ~60-day expiry, and opens the assigned TCP/UDP port on `wg0` in `iptables`.
 2. **Automatic qBittorrent Listening Port Sync (`.configs/qbittorrentvpn/set-qbt-port.sh`)**: As soon as the port is bound, `wireguard-pia` executes `PORT_SCRIPT: /set-qbt-port.sh <port>` (tracked at `.configs/qbittorrentvpn/set-qbt-port.sh` and deployed to `/volume1/docker/qbittorrentvpn/data/set-qbt-port.sh`). The script waits until qBittorrent's WebUI listener (`127.0.0.1:8081`) is up and sends an HTTP POST request to `/api/v2/app/setPreferences` with `json={"listen_port":<port>}`. Because `WebUI\LocalHostAuth=false` is set in `qBittorrent.conf` (and `127.0.0.1` is isolated inside the container network namespace), qBittorrent immediately updates its listening port to match the PIA-forwarded port.
 3. **15-Minute Keepalive Loop & Health Monitoring**: `pf.sh` automatically re-binds the port (`https://<cn>:19999/bindPort`) every 900 seconds (15 minutes). Because `PORT_FATAL: 1` is set, the container healthcheck verifies both `wg show wg0` and `pidof pf.sh`.
+
+### 6.8 Tailscale Mesh Overlay & Subnet Routing Architecture
+
+#### Purpose and Operational Model
+The `tailscale/compose.yml` stack runs an authenticated Tailscale node (`tailscale/tailscale:latest`, container `tailscale`, node name `homelab`) that integrates the homelab into a private WireGuard mesh network. It replaces traditional gateway-routed WireGuard tunnels, allowing remote client devices (phones, laptops) to connect peer-to-peer across residential CGNAT boundaries without exposing public WAN ports or requiring cloud VPS relays.
+
+#### Dual-Homed Network Architecture (`external_npm` + `homelab`)
+The Tailscale container connects simultaneously to two Docker networks to overcome Linux kernel macvlan isolation constraints:
+1. **`external_npm` (Docker macvlan on `eth0`, static IP `192.168.0.5`)**:
+   - The Linux kernel strictly isolates macvlan child interfaces from communicating directly with the parent host interface (`eth0` on `192.168.0.3`).
+   - However, macvlan child interfaces **can** communicate with other macvlan children on the same bridge mode network, as well as all physical LAN devices.
+   - Dual-homing Tailscale on `external_npm` grants the container layer-2 ARP reachability to Nginx Proxy Manager (`192.168.0.4` / `turing.home`), the router/gateway (`192.168.0.1`), and the Pi-hole DNS resolver (`192.168.0.2`).
+2. **`homelab` (Docker bridge, subnet `192.168.255.0/24`)**:
+   - Attaches Tailscale directly to internal backend containers and the host bridge gateway interface (`192.168.255.1`).
+
+#### Accessing the UGREEN NAS OS Portal (`nas.turing.home`)
+Because the host OS (`192.168.0.3`) drops direct ARP frames from the macvlan child interface (`192.168.0.5`), direct connections to `https://192.168.0.3:9443` over Tailscale fail. Instead, access is standardized through Nginx Proxy Manager:
+- NPM defines a dedicated proxy host for `nas.turing.home` forwarding across the `homelab` Docker bridge to `https://192.168.255.1:9443` with WebSockets and Local Wildcard SSL enabled.
+- Pi-hole CNAME maps `nas.turing.home` -> `turing.home` (`192.168.0.4`).
+- Remote Tailscale clients access the NAS OS web interface securely via `https://nas.turing.home`.
+
+#### Internal IP Restrictions (`192.168.0.0/16`)
+All `*.turing.home` proxy hosts enforce local subnet restriction directives:
+```nginx
+allow 192.168.0.0/16;
+allow 127.0.0.1;
+deny all;
+```
+Because the Tailscale subnet router performs SNAT (`--snat-subnet-routes=true`), remote client traffic arrives at NPM bearing source IP `192.168.0.5` (allowed). Any unauthorized ingress attempted from outside `192.168.0.0/16` is rejected with `HTTP 403 Forbidden`.
+
+#### Subnet Route Advertisement & Route Approval
+- Tailscale advertises the home LAN subnet via `TS_ROUTES=192.168.0.0/24`.
+- Before remote clients can route packets to LAN devices, the advertised route must be approved in the [Tailscale Admin Console](https://login.tailscale.com/admin/machines): locate node `homelab` -> **Edit route settings...** -> enable `192.168.0.0/24`.
+
+#### Pi-hole Split DNS Configuration
+To allow mobile clients on cellular or remote Wi-Fi to resolve `<service>.turing.home` seamlessly:
+1. In Tailscale Admin Console -> **DNS -> Nameservers -> Add nameserver -> Custom**.
+2. Enter the Pi-hole LAN IP: `192.168.0.2`.
+3. Enable **Restrict to search domain** and set the domain to **`.home`**.
+Remote clients query Pi-hole exclusively for `.home` queries while general internet traffic uses the client device's local DNS.
