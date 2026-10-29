@@ -86,6 +86,9 @@ The project encompasses:
 ├── sonarr-radarr/
 │   ├── .env.example
 │   └── compose.yml
+├── tailscale/
+│   ├── .env.example
+│   └── compose.yml
 └── tandoor/
     ├── .env.example
     └── compose.yml
@@ -106,6 +109,7 @@ The project encompasses:
 - `/volume1/docker/sonarr/data` -> `/config` (`sonarr`)
 - `/volume1/docker/prowlarr/data` -> `/config` (`prowlarr`)
 - `/volume1/docker/seerr/data` -> `/app/config` (`seerr`)
+- `/volume1/docker/tailscale/data` -> `/var/lib/tailscale` (`tailscale`)
 - `/volume1/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
 - `/volume1/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
 - `/volume1/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
@@ -123,6 +127,7 @@ The project encompasses:
 | `postgresql` | `postgres:16-alpine` | Internal Alpine `postgres` user (`70:70`); do not set `PUID`/`PGID` or `user:` | `70:70` |
 | `homepage` | `ghcr.io/gethomepage/homepage:latest` | Env `PUID: 0`, `PGID: 0` (requires root for `/var/run/docker.sock`) | `0:0` |
 | `nginx` | `jc21/nginx-proxy-manager:latest` | Runs as `root` internally; do not set `user:` | `0:0` |
+| `tailscale` | `tailscale/tailscale:latest` | Runs as `root` with `cap_add: [NET_ADMIN, NET_RAW]` and `/dev/net/tun` to manage kernel WireGuard and `iptables` | `0:0` |
 | `flaresolverr` | `ghcr.io/flaresolverr/flaresolverr:latest` | Stateless; uses internal non-root user; no persistent volume | N/A |
 | `dockge` | `louislam/dockge:1` | Runs as `root` for `/var/run/docker.sock` | `0:0` |
 

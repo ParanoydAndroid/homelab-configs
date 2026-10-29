@@ -91,6 +91,7 @@ TARGET_GROUP="$(id -gn "${TARGET_USER}" 2>/dev/null || echo "admin")"
 STACKS=(
   "postgres"
   "nginx"
+  "tailscale"
   "homepage"
   "jellyfin"
   "qbittorrentvpn"
@@ -249,7 +250,7 @@ get_env_var() {
 # Globals Exported (from root .env):
 #   DOCKER_DATA_DIR, MEDIA_DIR, DOCKGE_DIR, DOCKGE_STACKS_DIR, PUID, PGID, TZ,
 #   EXTERNAL_NPM_SUBNET, EXTERNAL_NPM_GATEWAY, EXTERNAL_NPM_PARENT,
-#   NPM_IPV4_ADDRESS
+#   NPM_IPV4_ADDRESS, TAILSCALE_IPV4_ADDRESS
 # Side Effects:
 #   Creates/updates '.env' files across the repository and '${DOCKGE_DIR}/.env',
 #   and sets ownership to TARGET_USER:TARGET_GROUP.
@@ -958,6 +959,7 @@ test_homelab() {
     "dockge"
     "postgresql"
     "nginx"
+    "tailscale"
     "homepage"
     "jellyfin"
     "wireguard-pia"
@@ -1011,6 +1013,7 @@ test_homelab() {
   check_vhost "seerr.turing.home" "/api/v1/status" "^200$"
   check_vhost "torrent.turing.home" "/" "^200$"
   check_vhost "recipes.turing.home" "/" "^(200|302)$"
+  check_vhost "nas.turing.home" "/" "^(200|302|307)$"
   check_vhost "jellyfin.kamaka.tech" "/web/index.html" "^200$"
   check_vhost "jellyfin.kamaka.tech" "/metrics" "^403$" "https://jellyfin.kamaka.tech/metrics (hardening block)"
   check_vhost "recipes.kamaka.tech" "/" "^(200|302)$"
@@ -1064,6 +1067,15 @@ test_homelab() {
     record_pass "wireguard-pia <-> qbittorrentvpn port sync (PIA port ${pia_port} == qBittorrent listen_port ${qbt_port})"
   else
     record_fail "wireguard-pia <-> qbittorrentvpn port mismatch (PIA port='${pia_port}', qBittorrent listen_port='${qbt_port}')"
+  fi
+
+  # Tailscale subnet router status and authentication
+  local ts_status
+  ts_status="$(docker exec tailscale tailscale status --json 2>/dev/null || true)"
+  if [[ -n "${ts_status}" ]] && echo "${ts_status}" | grep -qE '"BackendState":[[:space:]]*"Running"'; then
+    record_pass "tailscale subnet router is authenticated and running (BackendState: Running)"
+  else
+    record_fail "tailscale subnet router not running or unauthenticated"
   fi
 
   printf "\n=== Smoke Test Summary: %d passed, %d failed ===\n" "${pass_count}" "${fail_count}"

@@ -84,6 +84,7 @@ docker network create -d macvlan \
 | Pi-hole | `192.168.0.2` | Local DNS resolver; CNAME entries for `<service>.turing.home` -> `turing.home` |
 | `nas.home` | `192.168.0.3` | UGREEN NAS host OS (`eth0`); exposes NAS web UI and emergency Dockge port (`8010`) |
 | `turing.home` | `192.168.0.4` | Nginx Proxy Manager (`external_npm` macvlan IP); terminates HTTP (`80`), HTTPS (`443`), and NPM Admin UI (`81`) |
+| `homelab` (Tailscale) | `192.168.0.5` | Tailscale Subnet Router (`external_npm` macvlan IP); advertises `192.168.0.0/24` to Tailscale mesh |
 
 ### 2.3 WAN Configuration, CGNAT, and Cloudflare Ingress Architecture
 
@@ -115,9 +116,10 @@ All HTTP/HTTPS web applications are reverse-proxied by Nginx Proxy Manager over 
 
 | Service Name | Stack / Path | Host Port (`nas.home`) | Container Port | Protocol | Active Host Binding | LAN Address (`turing.home`) | External Address (`kamaka.tech`) | Persistent Host Data Path |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| UGREEN NAS / DSM | Host OS | `5000` / `5001` | N/A | HTTP / HTTPS | Yes (Host OS) | `https://nas.home` | None | N/A |
+| UGREEN NAS (UGOS) | Host OS | `9443` / `80` / `443` | N/A | HTTP / HTTPS | Yes (Host OS) | `https://nas.turing.home` (or `https://nas.home:9443`) | None | N/A |
 | Dockge | `.configs/dockge` | `8010` | `5001` | TCP (HTTP) | **Yes** (`8010:5001`) | `https://dockge.turing.home` | None | `/volume1/docker/dockge/data` |
 | Nginx Proxy Manager | `nginx/` | `8480` / `8443` / `8444` | `80` / `443` / `81` | TCP | Macvlan (`192.168.0.4:80,443,81`) | `https://proxy.turing.home` (or `http://turing.home:81`) | `https://*.kamaka.tech` (via Tunnel) | `/volume1/docker/nginx/data` |
+| Tailscale Subnet Router | `tailscale/` | None | None | WireGuard | Macvlan (`192.168.0.5`) | `homelab` (Tailscale mesh) | None | `/volume1/docker/tailscale/data` |
 | Cloudflare Tunnel | `cloudflared/` | None | None | QUIC / HTTP/2 | No (Egress Tunnel) | None | Ingress for `*.kamaka.tech` | Stateless |
 | Jellyfin | `jellyfin/` | `8020` / `8021` | `8096` / `8920` | TCP (HTTP/S) | No (Proxied via NPM) | `https://jellyfin.turing.home` | `https://jellyfin.kamaka.tech` | `/volume1/docker/jellyfin/data/config` |
 | Jellyfin Discovery | `jellyfin/` | `8022` | `7359` | UDP | **Yes** (`8022:7359/udp`) | LAN Broadcast | None | N/A |
@@ -144,6 +146,7 @@ All live `.env` files are ignored by git (`.gitignore`). Configuration uses a tw
 2. **Per-Stack `<stack>/.env.example` (Secrets and Per-Install Keys)**:
    - Defines external credentials and per-installation API/cryptographic keys with blank defaults (`KEY=`):
      - `cloudflared/.env.example`: `CLOUDFLARE_TUNNEL_TOKEN=` (Cloudflare Zero Trust Tunnel authentication token)
+     - `tailscale/.env.example`: `TS_AUTHKEY=` (Tailscale Pre-Authentication Key for automated subnet router registration)
      - `homepage/.env.example`: `HOMEPAGE_VAR_PIHOLE_KEY=` (Pi-hole admin password or API token from Pi-hole **Settings -> API / Web interface**)
      - `jellyfin/.env.example`: `JELLYFIN_API_KEY=` (Generated in Jellyfin **Dashboard -> Administration -> API Keys -> `+`**)
      - `qbittorrentvpn/.env.example`: `VPN_USER=`, `VPN_PASS=` (Private Internet Access OpenVPN/account credentials), `QBITTORRENT_PASSWORD=` (qBittorrent WebUI password configured in **Tools -> Options -> Web UI -> Authentication**)
