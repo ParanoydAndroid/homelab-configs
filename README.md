@@ -2,7 +2,7 @@
 
 This repository defines the Docker Compose service stacks, tracked application configurations, and management automation for the UGREEN NAS homelab environment (`nas.home` / `turing.home`).
 
-The repository is checked out at `/opt/${USER}/dockge/stacks` (symlinked to `/home/${USER}/services`) so that all service stacks are simultaneously version-controlled in git and manageable through Dockge. For a detailed overview of the architectural principles, directory layout, and container privilege model, see [.agents/artifacts/architecture.md](file:///home/brandon/services/.agents/artifacts/architecture.md).
+The repository is checked out at `/opt/${USER}/dockge/stacks` (symlinked to `/home/${USER}/services`) so that all service stacks are simultaneously version-controlled in git and manageable through Dockge. For a detailed overview of the architectural principles, directory layout, and container privilege model, see [the architecture](.agents/artifacts/architecture.md).
 
 ---
 
