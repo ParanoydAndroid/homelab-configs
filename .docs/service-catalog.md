@@ -8,7 +8,7 @@ This catalog documents every containerized service, orchestrator, and host porta
 
 Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where strictly required for non-HTTP broadcast discovery or emergency orchestrator fallback. All other web applications communicate strictly over the internal `homelab` Docker bridge network (`192.168.255.0/24`) and are reverse-proxied by Nginx Proxy Manager.
 
-| Service Name | Stack Directory | Container Name | Active Host / Network Binding | Container Port | Protocol | Internal Address (`turing.home`) | External Address (`kamaka.tech`) |
+| Service Name | Stack Directory | Container Name | Active Host / Network Binding | Container Port | Protocol | LAN Address (`turing.home`) | WAN Address (`kamaka.tech`) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **UGREEN NAS (UGOS)** | Host OS | N/A | `192.168.0.3:9443` | `9443` | HTTPS | `https://nas.turing.home` | None |
 | **Dockge** | `.configs/dockge` | `dockge` | `127.0.0.1:8010` / `192.168.0.3:8010` | `5001` | HTTP | `https://dockge.turing.home` | None |
@@ -38,8 +38,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | :--- | :--- |
 | **Component** | Host Storage Appliance Operating System (Debian 12 base) |
 | **Host IP & Port** | `192.168.0.3:9443` (Web Portal) / `80` (HTTP) / `443` (HTTPS) |
-| **Internal Address** | `https://nas.turing.home` |
-| **External Address** | None (Restricted to private LAN / Tailscale) |
+| **LAN Address** | `https://nas.turing.home` |
+| **WAN Address** | None (Restricted to private LAN / Tailscale) |
 | **Active Host Binding** | Native Host OS Listeners |
 
 * **Role & Capabilities**: Appliance operating system managing storage pools (`/volume1` HDD array and `/volume2` NVMe SSD), user permissions, SMB/NFS file shares, and system-level daemons.
@@ -56,8 +56,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `dockge` |
 | **Host / Network Binding** | `8010:5001` (Emergency Host Fallback) + `homelab` bridge |
 | **Internal Container Port**| `5001` |
-| **Internal Address** | `https://dockge.turing.home` (or direct `http://192.168.0.3:8010`) |
-| **External Address** | None |
+| **LAN Address** | `https://dockge.turing.home` (or direct `http://192.168.0.3:8010`) |
+| **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/dockge/data` |
 | **Associated Secrets** | None |
 
@@ -76,8 +76,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `nginx` |
 | **Host / Network Binding** | Macvlan `192.168.0.4` (`80`, `443`, `81`) + `homelab` bridge (`192.168.255.0/24`) |
 | **Internal Container Port**| `80` (HTTP), `443` (HTTPS), `81` (Admin UI) |
-| **Internal Address** | `https://proxy.turing.home` (Admin UI) |
-| **External Address** | `https://*.kamaka.tech` (Terminates Cloudflare Tunnel ingress) |
+| **LAN Address** | `https://proxy.turing.home` (Admin UI) |
+| **WAN Address** | `https://*.kamaka.tech` (Terminates Cloudflare Tunnel ingress) |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/nginx/data` |
 | **Associated Secrets** | Cloudflare DNS API Token (Let's Encrypt automated challenge) |
 
@@ -96,8 +96,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `tailscale` |
 | **Host / Network Binding** | Macvlan `192.168.0.5` (`external_npm`) + `homelab` bridge |
 | **Internal Container Port**| N/A (WireGuard Mesh Daemon) |
-| **Internal Address** | Node `homelab` on Tailscale Mesh |
-| **External Address** | None |
+| **LAN Address** | Node `homelab` on Tailscale Mesh |
+| **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/tailscale/data` |
 | **Associated Secrets** | `TS_AUTHKEY` |
 
@@ -116,8 +116,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `cloudflared` |
 | **Host / Network Binding** | Outbound Tunnel (No host ports or LAN IP) |
 | **Internal Container Port**| N/A |
-| **Internal Address** | None |
-| **External Address** | Egress tunnel for `*.kamaka.tech` |
+| **LAN Address** | None |
+| **WAN Address** | Egress tunnel for `*.kamaka.tech` |
 | **Persistent Data Path** | Stateless (No persistent volume) |
 | **Associated Secrets** | `CLOUDFLARE_TUNNEL_TOKEN` |
 
@@ -136,8 +136,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `jellyfin` |
 | **Host / Network Binding** | `8022:7359/udp` (LAN Discovery) + `homelab` bridge |
 | **Internal Container Port**| `8096` (HTTP), `8920` (HTTPS), `7359` (UDP Discovery) |
-| **Internal Address** | `https://jellyfin.turing.home` |
-| **External Address** | `https://jellyfin.kamaka.tech` |
+| **LAN Address** | `https://jellyfin.turing.home` |
+| **WAN Address** | `https://jellyfin.kamaka.tech` |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/jellyfin/data` |
 | **Associated Secrets** | `JELLYFIN_API_KEY` |
 
@@ -156,8 +156,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `homepage` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `3000` |
-| **Internal Address** | `https://homepage.turing.home` |
-| **External Address** | None |
+| **LAN Address** | `https://homepage.turing.home` |
+| **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/homepage/data` |
 | **Associated Secrets** | `HOMEPAGE_VAR_PIHOLE_KEY` |
 
@@ -176,8 +176,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `radarr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `7878` |
-| **Internal Address** | `https://radarr.turing.home` |
-| **External Address** | None |
+| **LAN Address** | `https://radarr.turing.home` |
+| **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/radarr/data` |
 | **Associated Secrets** | `RADARR_API_KEY` |
 
@@ -196,8 +196,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `sonarr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `8989` |
-| **Internal Address** | `https://sonarr.turing.home` |
-| **External Address** | None |
+| **LAN Address** | `https://sonarr.turing.home` |
+| **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/sonarr/data` |
 | **Associated Secrets** | `SONARR_API_KEY` |
 
@@ -216,8 +216,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `prowlarr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `9696` |
-| **Internal Address** | `https://prowlarr.turing.home` |
-| **External Address** | None |
+| **LAN Address** | `https://prowlarr.turing.home` |
+| **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/prowlarr/data` |
 | **Associated Secrets** | `PROWLARR_API_KEY` |
 
@@ -236,8 +236,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `flaresolverr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `8191` |
-| **Internal Address** | `https://flaresolverr.turing.home` |
-| **External Address** | None |
+| **LAN Address** | `https://flaresolverr.turing.home` |
+| **WAN Address** | None |
 | **Persistent Data Path** | Stateless |
 | **Associated Secrets** | None |
 
@@ -256,8 +256,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `seerr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `5055` |
-| **Internal Address** | `https://seerr.turing.home` |
-| **External Address** | None |
+| **LAN Address** | `https://seerr.turing.home` |
+| **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/seerr/data` |
 | **Associated Secrets** | `SEERR_API_KEY` |
 
@@ -276,8 +276,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `tandoor` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `8050` |
-| **Internal Address** | `https://recipes.turing.home` |
-| **External Address** | `https://recipes.kamaka.tech` |
+| **LAN Address** | `https://recipes.turing.home` |
+| **WAN Address** | `https://recipes.kamaka.tech` |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/tandoor/data` |
 | **Associated Secrets** | `SECRET_KEY`, `POSTGRES_PASSWORD` |
 
@@ -296,8 +296,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `postgres` |
 | **Host / Network Binding** | Internal `homelab` bridge only (Isolated from host) |
 | **Internal Container Port**| `5432` |
-| **Internal Address** | `postgresql:5432` (Internal) |
-| **External Address** | None |
+| **LAN Address** | `postgresql:5432` (Internal) |
+| **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/postgres/data` |
 | **Associated Secrets** | `POSTGRES_PASSWORD` |
 
@@ -316,8 +316,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Names** | `wireguard-pia` (VPN) & `qbittorrentvpn` (BitTorrent) |
 | **Host / Network Binding** | Internal `homelab` bridge only (`8081` WebUI) |
 | **Internal Container Port**| `8081` (WebUI), Dynamic Forwarded Port (BitTorrent) |
-| **Internal Address** | `https://torrent.turing.home` |
-| **External Address** | None (Traffic routes exclusively via WireGuard tunnel `wg0`) |
+| **LAN Address** | `https://torrent.turing.home` |
+| **WAN Address** | None (Traffic routes exclusively via WireGuard tunnel `wg0`) |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/qbittorrentvpn/data` |
 | **Associated Secrets** | `VPN_USER`, `VPN_PASS`, `QBITTORRENT_PASSWORD` |
 
