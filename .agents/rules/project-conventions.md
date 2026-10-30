@@ -84,3 +84,6 @@ When newly instantiated against this repository, orient yourself using the follo
   - Respect existing tests. Never arbitrarily loosen assertions, remove checks, or rewrite test logic simply to make a failing test pass. If a test fails, investigate and fix the underlying configuration, networking, or service defect. Any intentional modification to an existing test assertion must be explicitly justified by an intentional architectural or requirement change.
 - **Regression and Bug Fix Testing**:
   - Whenever a bug or regression is identified (such as routing failures, disallowed host headers, missing SSL certificates, or VPN port desynchronization), write a reproducing test case in `homelab.sh test` before or alongside applying the fix to verify remediation and permanently prevent regressions.
+- **RAID Transition Test Avoidance**:
+  - While a storage array transition or rebuild (such as the active RAID 5 rebuild/reshape on the host) is underway, avoid running tests, full test suites, or heavy container probes unless strictly necessary. High disk I/O latency causes container executions to stall or hit timeouts.
+
