@@ -966,202 +966,32 @@ startup_homelab() {
 # ------------------------------------------------------------------------------
 # Function: test_homelab
 # Description:
-#   Executes a fast, non-destructive end-to-end smoke test across four layers
-#   to catch configuration, DNS, networking, or reverse-proxy regressions:
-#     1. Container Runtime State:
-#        Verifies all 12 expected containers are in the 'running' state and
-#        none have healthcheck status 'unhealthy'.
-#     2. Host Port Fallback & NPM Admin UI Reachability:
-#        Verifies emergency Dockge UI on host port 8010 and NPM Admin UI on
-#        port 81 over the 'homelab' bridge network.
-#     3. Reverse Proxy VirtualHost Impersonation ('curl --resolve'):
-#        Impersonates a LAN/external HTTPS client hitting Nginx Proxy Manager
-#        over the 'homelab' bridge network with SNI and Host headers for every
-#        configured '*.turing.home' and '*.kamaka.tech' subdomain, verifying
-#        both HTTP status codes (200/302) and security blocks (403 on
-#        jellyfin.kamaka.tech/metrics).
-#        Note: Because 'nginx' also attaches to a macvlan network ('external_npm'),
-#        its default route inside the container points to the LAN gateway
-#        (192.168.0.1) rather than the host bridge IP (192.168.255.1), so
-#        requests to 'nginx' on the 'homelab' subnet (192.168.255.0/24) must
-#        originate from a container on the 'homelab' subnet.
-#     4. Inter-Container DNS & Service-to-Service Interconnections:
-#        Executes probes inside running containers ('radarr', 'sonarr',
-#        'prowlarr', 'tandoor', 'wireguard-pia') to confirm that internal
-#        Docker DNS names ('qbittorrentvpn:8081', 'prowlarr:9696',
-#        'flaresolverr:8191', 'postgresql:5432') resolve and accept connections,
-#        and that WireGuard ('wg0') and PIA dynamic port forwarding are active.
+#   Delegates execution to the modular test suite runner in '.tests/run.sh'.
+#   Runs non-destructive smoke and regression tests across five modular suites:
+#     1. Container Runtime State and Healthchecks (.tests/suites/test_containers.sh)
+#     2. Direct Admin Interfaces & Fallback Ports (.tests/suites/test_direct_admin.sh)
+#     3. Reverse Proxy VirtualHost Routing (.tests/suites/test_routing.sh)
+#     4. Inter-Container DNS, Sockets & Service Links (.tests/suites/test_interconnect.sh)
+#     5. Negative Isolation, Auth & Hardening Blocks (.tests/suites/test_negative_security.sh)
+#
+# Arguments:
+#   $@ - Optional test suite or specific test function name to execute.
+#        Examples:
+#          ./homelab.sh test
+#          ./homelab.sh test containers
+#          ./homelab.sh test routing
+#          ./homelab.sh test security
+#          ./homelab.sh test interconnect
+#          ./homelab.sh test direct
+#
+# Globals Read:
+#   REPO_DIR
 #
 # Returns:
-#   0 if all checks pass, 1 if one or more checks fail.
+#   0 if all executed tests pass, 1 if one or more tests fail.
 # ------------------------------------------------------------------------------
 test_homelab() {
-  local pass_count=0
-  local fail_count=0
-  local npm_bridge_ip
-  npm_bridge_ip="$(docker inspect -f '{{with index .NetworkSettings.Networks "homelab"}}{{.IPAddress}}{{end}}' nginx 2>/dev/null || echo "192.168.255.4")"
-
-  # Helper closure to record a passing check.
-  record_pass() {
-    printf "  [PASS] %s\n" "$1"
-    ((pass_count++)) || true
-  }
-
-  # Helper closure to record a failing check.
-  record_fail() {
-    printf "  [FAIL] %s\n" "$1" >&2
-    ((fail_count++)) || true
-  }
-
-  # Helper closure to impersonate an HTTPS client against NPM from inside the
-  # 'homelab' Docker bridge network using curl --resolve (providing full TLS
-  # SNI + HTTP Host header matching) and verify the HTTP status code.
-  check_vhost() {
-    local domain="$1"
-    local path="${2:-/}"
-    local expected_regex="${3:-^(200|301|302|307|308|401)$}"
-    local label="${4:-https://${domain}${path}}"
-    local code
-
-    code="$(docker exec radarr curl -ksS -o /dev/null -w '%{http_code}' --max-time 10 --retry 2 --retry-delay 1 \
-      -A "Mozilla/5.0 (X11; Linux x86_64) HomelabSmokeTest/1.0" \
-      --resolve "${domain}:443:${npm_bridge_ip}" \
-      "https://${domain}${path}" 2>/dev/null || true)"
-    [[ -z "${code}" ]] && code="000"
-
-    if [[ "${code}" =~ ${expected_regex} ]]; then
-      record_pass "${label} -> HTTP ${code}"
-    else
-      record_fail "${label} -> HTTP ${code} (expected ${expected_regex})"
-    fi
-  }
-
-  printf "=== 1. Container Runtime & Health Checks ===\n"
-  local expected_containers=(
-    "dockge"
-    "postgresql"
-    "nginx"
-    "tailscale"
-    "homepage"
-    "jellyfin"
-    "wireguard-pia"
-    "qbittorrentvpn"
-    "radarr"
-    "sonarr"
-    "prowlarr"
-    "flaresolverr"
-    "seerr"
-    "tandoor"
-    "cloudflared"
-  )
-  local c state health
-  for c in "${expected_containers[@]}"; do
-    state="$(docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null || echo "missing")"
-    health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "${c}" 2>/dev/null || echo "none")"
-    if [[ "${state}" == "running" && "${health}" != "unhealthy" ]]; then
-      record_pass "Container '${c}' is ${state} (health: ${health})"
-    else
-      record_fail "Container '${c}' state=${state}, health=${health}"
-    fi
-  done
-
-  printf "\n=== 2. Direct Admin Interfaces (Dockge Host Port & NPM Admin UI) ===\n"
-  local dockge_code npm_admin_code
-  dockge_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:8010" 2>/dev/null || true)"
-  [[ -z "${dockge_code}" ]] && dockge_code="000"
-  if [[ "${dockge_code}" =~ ^(200|301|302)$ ]]; then
-    record_pass "Dockge emergency host port (http://127.0.0.1:8010) -> HTTP ${dockge_code}"
-  else
-    record_fail "Dockge emergency host port (http://127.0.0.1:8010) -> HTTP ${dockge_code}"
-  fi
-
-  npm_admin_code="$(docker exec radarr curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "http://nginx:81/api/" 2>/dev/null || true)"
-  [[ -z "${npm_admin_code}" ]] && npm_admin_code="000"
-  if [[ "${npm_admin_code}" == "200" ]]; then
-    record_pass "NPM Admin UI API (http://nginx:81/api/) -> HTTP ${npm_admin_code}"
-  else
-    record_fail "NPM Admin UI API (http://nginx:81/api/) -> HTTP ${npm_admin_code}"
-  fi
-
-  printf "\n=== 3. NPM Reverse Proxy VirtualHost Routing (Client Impersonation) ===\n"
-  check_vhost "homepage.turing.home" "/" "^200$"
-  check_vhost "proxy.turing.home" "/" "^200$"
-  check_vhost "dockge.turing.home" "/" "^200$"
-  check_vhost "jellyfin.turing.home" "/web/index.html" "^200$"
-  check_vhost "radarr.turing.home" "/ping" "^200$"
-  check_vhost "sonarr.turing.home" "/ping" "^200$"
-  check_vhost "prowlarr.turing.home" "/ping" "^200$"
-  check_vhost "flaresolverr.turing.home" "/health" "^200$"
-  check_vhost "seerr.turing.home" "/api/v1/status" "^200$"
-  check_vhost "torrent.turing.home" "/" "^200$"
-  check_vhost "recipes.turing.home" "/" "^(200|302)$"
-  check_vhost "nas.turing.home" "/" "^(200|302|307)$"
-  check_vhost "jellyfin.kamaka.tech" "/web/index.html" "^200$"
-  check_vhost "jellyfin.kamaka.tech" "/metrics" "^403$" "https://jellyfin.kamaka.tech/metrics (hardening block)"
-  check_vhost "recipes.kamaka.tech" "/" "^(200|302)$"
-
-  printf "\n=== 4. Inter-Container DNS & Service Interconnections ===\n"
-  # Jellyfin -> Seerr (5055)
-  if docker exec jellyfin curl -fsS --max-time 5 "http://seerr:5055/api/v1/status" >/dev/null 2>&1; then
-    record_pass "jellyfin -> http://seerr:5055/api/v1/status"
-  else
-    record_fail "jellyfin -> http://seerr:5055/api/v1/status"
-  fi
-  # Radarr -> qBittorrentVPN (8081) and Prowlarr (9696)
-  if docker exec radarr curl -fsS --max-time 5 "http://qbittorrentvpn:8081/api/v2/app/version" >/dev/null 2>&1; then
-    record_pass "radarr -> http://qbittorrentvpn:8081/api/v2/app/version"
-  else
-    record_fail "radarr -> http://qbittorrentvpn:8081/api/v2/app/version"
-  fi
-
-  if docker exec radarr curl -fsS --max-time 5 "http://prowlarr:9696/ping" >/dev/null 2>&1; then
-    record_pass "radarr -> http://prowlarr:9696/ping"
-  else
-    record_fail "radarr -> http://prowlarr:9696/ping"
-  fi
-
-  # Sonarr -> qBittorrentVPN (8081) and Prowlarr (9696)
-  if docker exec sonarr curl -fsS --max-time 5 "http://qbittorrentvpn:8081/api/v2/app/version" >/dev/null 2>&1; then
-    record_pass "sonarr -> http://qbittorrentvpn:8081/api/v2/app/version"
-  else
-    record_fail "sonarr -> http://qbittorrentvpn:8081/api/v2/app/version"
-  fi
-
-  # Prowlarr -> FlareSolverr (8191)
-  if docker exec prowlarr curl -fsS --max-time 5 "http://flaresolverr:8191/health" >/dev/null 2>&1; then
-    record_pass "prowlarr -> http://flaresolverr:8191/health"
-  else
-    record_fail "prowlarr -> http://flaresolverr:8191/health"
-  fi
-
-  # Tandoor -> PostgreSQL (5432) via Python socket connection
-  if docker exec tandoor python3 -c "import socket; s = socket.create_connection(('postgresql', 5432), 3); s.close()" >/dev/null 2>&1; then
-    record_pass "tandoor -> postgresql:5432 (TCP socket open)"
-  else
-    record_fail "tandoor -> postgresql:5432 (TCP socket unreachable)"
-  fi
-
-  # WireGuard PIA tunnel + forwarded port match with qBittorrent listen_port
-  local pia_port qbt_port
-  pia_port="$(docker exec wireguard-pia cat /pia-shared/port.dat 2>/dev/null || true)"
-  qbt_port="$(docker exec wireguard-pia curl -fsS --max-time 5 "http://127.0.0.1:8081/api/v2/app/preferences" 2>/dev/null | grep -oE '"listen_port":[0-9]+' | cut -d: -f2 || true)"
-  if [[ -n "${pia_port}" && "${pia_port}" == "${qbt_port}" ]]; then
-    record_pass "wireguard-pia <-> qbittorrentvpn port sync (PIA port ${pia_port} == qBittorrent listen_port ${qbt_port})"
-  else
-    record_fail "wireguard-pia <-> qbittorrentvpn port mismatch (PIA port='${pia_port}', qBittorrent listen_port='${qbt_port}')"
-  fi
-
-  # Tailscale subnet router status and authentication
-  local ts_status
-  ts_status="$(docker exec tailscale tailscale status --json 2>/dev/null || true)"
-  if [[ -n "${ts_status}" ]] && echo "${ts_status}" | grep -qE '"BackendState":[[:space:]]*"Running"'; then
-    record_pass "tailscale subnet router is authenticated and running (BackendState: Running)"
-  else
-    record_fail "tailscale subnet router not running or unauthenticated"
-  fi
-
-  printf "\n=== Smoke Test Summary: %d passed, %d failed ===\n" "${pass_count}" "${fail_count}"
-  [[ "${fail_count}" -eq 0 ]]
+  "${REPO_DIR}/.tests/run.sh" "$@"
 }
 
 # ------------------------------------------------------------------------------
@@ -1179,7 +1009,7 @@ Subcommands:
   deploy-configs  Deploy tracked configurations from .configs/ to host volumes with diff inspection
   pull-configs    Pull live service configurations from host volumes into .configs/
   backup          Pull live configs, commit changes to git (with optional tag), and archive live .env files
-  test            Run fast end-to-end smoke tests (containers, NPM VirtualHosts, internal DNS, and VPN port sync)
+  test [suite]    Run modular smoke and regression tests (suites: containers, direct, routing, interconnect, security)
 
 Options for deploy-configs / setup:
   -O, --overwrite-all      Overwrite all differing target config files without prompting
@@ -1201,6 +1031,13 @@ EOF
 main() {
   local subcmd="${1:-}"
   shift || true
+
+  # If subcommand is 'test', bypass standard option parsing and delegate
+  # all remaining arguments directly to the modular test suite runner.
+  if [[ "${subcmd}" == "test" ]]; then
+    test_homelab "$@"
+    return $?
+  fi
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
