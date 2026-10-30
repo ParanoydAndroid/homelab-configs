@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.2.1] / [2026.10.30] - Modular Architecture & Documentation Overhaul (2026-10-30)
+
+### Added
+* Modular smoke and regression test suite under `.tests/` with 5 category suites, explicit `test_*` naming, exit-code 77 skip support, and 7 negative security & isolation assertions.
+* Modular automation library under `.scripts/` (`common.sh`, `env-tools.sh`, `system.sh`, `configs.sh`, `backup.sh`) eliminating ~225 lines of duplicate boilerplate.
+* Deep topic documentation under `.docs/` (`project-organization.md`, `service-catalog.md`, `env-reference.md`, `networking.md`, `operations.md`).
+* Project technical backlog (`BACKLOG.md`) tracking pending optimizations.
+
+### Changed
+* Refactored `homelab.sh` from 1,092 lines to 243 lines, delegating specialized routines to `.scripts/` and test execution to `.tests/run.sh`.
+* Streamlined root `README.md` from 730 lines down to 82 lines as an executive portal and quickstart guide.
+* Updated service catalog to reflect true active network bindings and standardized LAN/WAN addresses.
+
+---
+
 ## [2.2.0] / [2026.10.29] - Tailscale Mesh Overlay & Subnet Routing (2026-10-29)
 
 ### Added
