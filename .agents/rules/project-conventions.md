@@ -73,6 +73,11 @@ When newly instantiated against this repository, orient yourself using the follo
 - **Documentation and Artifact Rules**:
   - Do not use icons, emojis, or advanced/non-standard Markdown extensions in documentation, artifacts, or instructions. Use plain Markdown (headings, lists, standard tables, and fenced code blocks).
   - Store all agent-generated artifacts in `.agents/artifacts/` and commit them to git as part of the project workflow.
+  - **Changelog Governance**:
+    - Update `CHANGELOG.md` exclusively upon major, semantically tagged releases (e.g. via `./homelab.sh backup --tag <semver>`).
+    - Format each major release entry with a semantic version header paired with its CalVer tag (e.g. `## [2.2.0] / [2026.10.29] - Headline Name (YYYY-MM-DD)`), a short descriptive headline, and categorized bulleted lists (`Added`, `Changed`, `Fixed`, `Security`).
+    - Aggregate changes between releases into curated, meaningful bullet points; omit negligible micro-commits, syntax tweaks, or documentation typos.
+
 
 ## 5. Testing and Quality Assurance Standards
 
@@ -84,3 +89,6 @@ When newly instantiated against this repository, orient yourself using the follo
   - Respect existing tests. Never arbitrarily loosen assertions, remove checks, or rewrite test logic simply to make a failing test pass. If a test fails, investigate and fix the underlying configuration, networking, or service defect. Any intentional modification to an existing test assertion must be explicitly justified by an intentional architectural or requirement change.
 - **Regression and Bug Fix Testing**:
   - Whenever a bug or regression is identified (such as routing failures, disallowed host headers, missing SSL certificates, or VPN port desynchronization), write a reproducing test case in `homelab.sh test` before or alongside applying the fix to verify remediation and permanently prevent regressions.
+- **RAID Transition Test Avoidance**:
+  - While a storage array transition or rebuild (such as the active RAID 5 rebuild/reshape on the host) is underway, avoid running tests, full test suites, or heavy container probes unless strictly necessary. High disk I/O latency causes container executions to stall or hit timeouts.
+
