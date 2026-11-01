@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.4.0] / [2026.11.1.1] - Dedicated Tailscale PIA VPN Bridge & Environment Variable Standardization (2026-11-01)
+
+### Added
+* Dedicated `vpn-bridge` stack (`vpn-bridge/compose.yml`) pairing a Private Internet Access (PIA) WireGuard container (`vpn-bridge-pia`) with a Tailscale container (`vpn-bridge-tailscale`) advertising itself as an exit node (`--advertise-exit-node`).
+* Kernel policy routing rule (`priority 5200`) directing Tailscale daemon traffic (`fwmark 0x80000`) into WireGuard table `51820`, enabling seamless DERP/control plane connectivity over WireGuard without tripping PIA's LAN kill switch.
+* Automated container health and egress assertions in test suite (`test_docker_up_vpn_bridge_*`, `test_interconnect_vpn_bridge_pia_egress`, `test_interconnect_vpn_bridge_tailscale_backend_state`).
+* Standardized feature completion runbook and skill (`.agents/skills/feature-completion/SKILL.md`) with strict stop-on-failure verification, changelog roll-up synthesis, and dual SemVer/CalVer tagging.
+
+### Changed
+* Overhauled repository-wide environment variable defaults to enforce a Single Source of Truth: all defaults are declared strictly in `.env.example` templates, while all Compose files use required assertion syntax `${VAR:?See env.example for default.}`.
+* Inlined immutable stack invariants (`HOMEPAGE_ALLOWED_HOSTS`, `LOG_LEVEL`, `TS_EXTRA_ARGS`, and `CAPTCHA_SOLVER`) directly into `compose.yml` rather than exposing them as environment variables.
+* Automated generation of 50-character cryptographic tokens for Django `SECRET_KEY` inside `.scripts/env-tools.sh` during `homelab.sh setup` if unpopulated.
+* Switched `vpn-bridge` upstream resolver (`VPNDNS`) to Quad9 (`9.9.9.9`, `149.112.112.112`) for Swiss GDPR-compliant, privacy-audited, malware-blocking DNS with DNSSEC validation.
+* Removed Tailscale CGNAT subnet (`100.64.0.0/10`) from `LOCAL_NETWORK` to eliminate routing conflicts with the Linux Forwarding Information Base.
+
+### Security
+* Complete isolation of exit node WAN traffic through domestic US PIA endpoints (Chicago / East Coast), masking mobile and remote client ISP addresses while preserving split-LAN access to private homelab services (`*.turing.home`).
+
+---
+
 ## [2.3.0] / [2026.11.1] - Restic Backup Engine & Storage IOPS Hardening (2026-11-01)
 
 ### Added
