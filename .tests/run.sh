@@ -30,6 +30,8 @@ source "${SCRIPT_DIR}/suites/test_routing.sh"
 source "${SCRIPT_DIR}/suites/test_interconnect.sh"
 # shellcheck source=.tests/suites/test_negative_security.sh
 source "${SCRIPT_DIR}/suites/test_negative_security.sh"
+# shellcheck source=.tests/suites/test_backup.sh
+source "${SCRIPT_DIR}/suites/test_backup.sh"
 
 main() {
   local target="${1:-all}"
@@ -42,6 +44,7 @@ main() {
       suite_routing
       suite_interconnect
       suite_negative_security
+      suite_backup
       ;;
     containers|docker)
       suite_containers
@@ -57,6 +60,9 @@ main() {
       ;;
     security|negative)
       suite_negative_security
+      ;;
+    backup|restic)
+      suite_backup
       ;;
     test_*)
       init_suite "Single Test Execution"
@@ -78,6 +84,7 @@ Targets:
   routing         Run reverse proxy virtual host routing checks
   interconnect    Run inter-container DNS, socket, and VPN sync checks
   security        Run negative isolation, hardening, and auth checks
+  backup          Run restic backup and automation checks
   test_<name>     Run a single test function directly
 EOF
       exit 0

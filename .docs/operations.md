@@ -14,53 +14,72 @@ Usage: homelab.sh <subcommand> [options]
 
 ### Subcommands
 
-* **`setup`** (`sudo ./homelab.sh setup [-O | -K]`):
-  Complete host and service convergence workflow. Remediates host OS Go 1.23+ bugs, initializes `.env` files, syncs root global variables into stack `.env` files, audits for blank secrets, provisions `homelab` and `external_npm` networks, deploys tracked configurations, starts Dockge, and brings up all Compose stacks in dependency order.
+* **`setup`** (`sudo ./homelab.sh setup`):
+  Complete host and service convergence workflow. Remediates host OS Go 1.23+ bugs, initializes `.env` files, syncs root global variables into stack `.env` files, audits for blank secrets, provisions `homelab` and `external_npm` networks, deploys Dockge orchestrator compose, starts Dockge, and brings up all Compose stacks in dependency order.
 * **`startup`** (`./homelab.sh startup`):
   Non-interactive boot hook designed for systemd execution on host startup. Waits for storage volume mounts (up to 60s), ensures Docker networks exist, and launches Dockge and all stacks in strict dependency order with PostgreSQL database readiness verification.
-* **`deploy-configs`** (`./homelab.sh deploy-configs [-O | -K]`):
-  Synchronizes tracked configuration files from `.configs/` to live host volumes (`${DOCKER_DATA_DIR}/...`). Compares files using byte-level checks (`cmp -s`), displays unified diffs (`diff -u`) on conflict, validates referenced SSL certificates before installing NPM `.conf` files, and gracefully reloads Nginx upon change.
-* **`pull-configs`** (`./homelab.sh pull-configs`):
-  Extracts live configuration changes made through Web UIs (Homepage YAML, NPM SQLite routing tables, generated Nginx `.conf` files, and `set-qbt-port.sh`) back into `.configs/` for git review and version control.
-* **`backup`** (`./homelab.sh backup [-t [tag_name]] [-m <message>]`):
-  Pulls live service configurations, stages and commits tracked repository changes, optionally applies a chronological PEP 440 / CalVer tag (`YYYY.M.D[.N]`) or semantic tag, and creates an archive of all live untracked `.env` secret files in `${DOCKER_DATA_DIR}/backup/homelab/`.
+* **`backup`** (`sudo ./homelab.sh backup [-t <type|name>] [-m <message>]`):
+  Stages zero-downtime database dumps (`pg_dumpall` for PostgreSQL, SQLite `.backup` / WAL checkpoints for NPM/Jellyfin/Sonarr/Radarr), creates untracked `.env` secret archives, and streams incremental deduplicated snapshots of `${DOCKER_DATA_DIR}` to `${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}` via native Restic (`--insecure-no-password`) with 30-day retention pruning. If requested, automatically commits repository changes, applies repeatable SemVer (`semver-major`, `semver-minor`, `semver-patch`), CalVer (`YYYY.M.D[.N]`), and custom git tags, pushes commits and tags to remote `origin`, and forwards the exact same tags into Restic.
+* **`snapshots`** (`./homelab.sh snapshots`):
+  Displays all historical Restic backup snapshots, timestamps, snapshot IDs, tags, and summary metrics.
+* **`restore`** (`sudo ./homelab.sh restore [snapshot_id] [service_name] [-f]`):
+  Restores persistent volume state from a designated Restic snapshot (defaults to `latest`). Supports restoring the full volume or isolating a single service (e.g. `jellyfin`). Validates that containers mounting the volume are stopped before overwriting data, ensuring database coherence.
 * **`test`** (`./homelab.sh test [suite] [name]`):
-  Modular smoke and regression test suite verifying container runtimes, direct admin interfaces, client-impersonated virtual host routing over NPM, internal service-to-service interconnections, and negative security/isolation blocks.
+  Modular smoke and regression test suite verifying container runtimes, direct admin interfaces, client-impersonated virtual host routing over NPM, internal service-to-service interconnections, negative security/isolation blocks, and restic backup automation.
 
 ---
 
 ## 2. Common Operational Runbooks
 
-### 2.1 Editing Proxy Hosts in NPM & Versioning in Git
-1. Configure proxy hosts in the NPM Admin UI at `https://proxy.turing.home` (or `http://192.168.0.4:81`).
-2. Pull the updated SQLite dump and generated `.conf` files back into the repository:
-   ```bash
-   cd ~/services
-   ./homelab.sh pull-configs
-   git diff .configs/nginx/
-   git add .configs/nginx/
-   git commit -m "Update NPM proxy host configuration"
-   ```
-
-### 2.2 Updating Homepage Dashboard YAML
-1. Edit [.configs/homepage/services.yaml](file:///home/brandon/services/.configs/homepage/services.yaml) or [.configs/homepage/settings.yaml](file:///home/brandon/services/.configs/homepage/settings.yaml).
-2. Deploy the changes to the live volume:
-   ```bash
-   ./homelab.sh deploy-configs
-   ```
-
-### 2.3 Creating Backups and Tagging Releases
+### 2.1 Performing Volume Backups & Tagging Releases
 ```bash
 cd ~/services
 
-# Run full backup with automatic chronological tag (e.g., 2026.10.30):
-./homelab.sh backup --tag
+# Run standard volume backup (no git commit or tags created):
+sudo ./homelab.sh backup
 
-# Run backup with custom commit message and semantic tag:
-./homelab.sh backup -m "Release 2.3.0: Storage optimizations" --tag 2.3.0
+# Snapshot volumes and auto-tag git and Restic with today's CalVer tag (e.g. 2026.11.1):
+sudo ./homelab.sh backup --tag
 
-# Push history and tags to GitHub:
-git push && git push --tags
+# Automatically bump SemVer patch, add CalVer tag, add custom tag, commit, and push:
+sudo ./homelab.sh backup -m "Release updates" -t semver-patch -t calver -t prod-ready
+
+# Major / Minor version releases:
+sudo ./homelab.sh backup -m "Major architectural release" -t semver-major
+sudo ./homelab.sh backup -m "Feature release" -t semver-minor
+
+# List all available snapshots and tags:
+./homelab.sh snapshots
+```
+
+### 2.2 Restoring from Backup (Disaster Recovery or Rollback)
+To restore persistent volume data from the latest snapshot:
+```bash
+cd ~/services
+
+# Stop running containers first to prevent database corruption during overwrite
+docker compose stop
+
+# Restore full volume from latest snapshot
+sudo ./homelab.sh restore latest
+
+# Or restore an individual service only (e.g. nginx or jellyfin)
+sudo ./homelab.sh restore latest nginx
+
+# Restart stacks
+sudo ./homelab.sh setup
+```
+
+### 2.3 Automated Nightly Backups (Systemd Timer)
+Nightly backups are managed via `homelab-backup.timer`:
+```bash
+# Enable and start the nightly backup timer (runs at 03:00 daily)
+sudo cp .configs/systemd/homelab-backup.* /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now homelab-backup.timer
+
+# Check timer status and next scheduled run
+systemctl list-timers homelab-backup.timer
 ```
 
 ### 2.4 Restoring Secrets on a Fresh Host
@@ -77,7 +96,8 @@ sudo ./homelab.sh setup
 
 ### 3.1 Host Packages & Prerequisites
 The Debian 12 / UGOS Pro host operating system requires the following standard packages:
-* **`sqlite3`**: Used by `pull-configs` and `backup` for non-sensitive SQL table dumps.
+* **`restic`** (v0.19+): Used for incremental, deduplicated persistent volume snapshots and restores.
+* **`sqlite3`**: Used for safe online SQLite database backups.
 * **`rsync`**: Used for archive-grade data synchronization.
 * **`tar` & `zstd`**: Used for compressed `.env` secret archives and volume backups.
 * **`curl` & `jq`**: Used by test suites and health probes.

@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.3.0] / [2026.11.1] - Restic Backup Engine & Storage IOPS Hardening (2026-11-01)
+
+### Added
+* Unified Restic backup engine (`.scripts/backup.sh`) snapshotting persistent volume state (`/volume2/docker`) to `/volume1/backups/homelab-docker` with 30-day retention pruning.
+* Zero-downtime database staging (`pg_dumpall` for PostgreSQL, SQLite `.backup` for NPM, Jellyfin, Sonarr, Radarr, Prowlarr) and encrypted/sanitized `.env` secret bundle archiving.
+* Systemd background backup timer (`homelab-backup.timer`) and service (`homelab-backup.service`) executing scheduled nightly backups at 03:00.
+* Declarative NVMe incomplete torrents directory mount (`/volume2/docker/qbittorrentvpn/data/incomplete`) isolating random write thrashing during active downloads.
+* Automated backup and disaster recovery test suite (`.tests/suites/test_backup.sh`) integrated into `homelab.sh test`.
+
+### Changed
+* Deprecated legacy bidirectional `pull-configs` and `deploy-configs` scripts in favor of native Restic snapshot management and disaster recovery (`./homelab.sh restore`).
+* Migrated Docker daemon root storage (`data-root`) from RAID 5 HDD (`/volume1/@docker`) to PCIe NVMe SSD (`/volume2/@docker`), eliminating container overlayfs I/O contention.
+* Hardened qBittorrent disk queueing, piece extent affinity, and POSIX asynchronous I/O (`pread`/`pwrite`), dropping mechanical array utilization from 100% to under 5%.
+* Upgraded host `restic` binary to v0.19.1 with repository format v2.
+
+### Fixed
+* Purged unlinked duplicate and orphaned download clutter in `/volume1/media/downloads/` while preserving library hardlinks.
+* Restored active automated Tailscale subnet router backend health verification (`test_interconnect_tailscale_backend_state`) in test suite.
+
+---
+
 ## [2.2.1] / [2026.10.30] - Modular Architecture & Documentation Overhaul (2026-10-30)
 
 ### Added
