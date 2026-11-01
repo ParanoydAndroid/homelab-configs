@@ -88,6 +88,7 @@ services:
       WEBUI_PORT: 8081
     volumes:
       - ${DOCKER_DATA_DIR:-/volume2/docker}/qbittorrentvpn/data/config:/config
+      - ${DOCKER_DATA_DIR:-/volume2/docker}/qbittorrentvpn/data/incomplete:/incomplete
       - ${MEDIA_DIR:-/volume1/media}:/media
     labels:
       - homepage.group=Downloads
