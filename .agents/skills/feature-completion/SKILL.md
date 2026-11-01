@@ -29,10 +29,17 @@ Execute the entire test suite against the live environment:
   4. Do NOT commit, merge, or tag.
   5. Report the exact test failure and logs to the user and wait for instructions.
 
-### Step 2: Update Changelog (Features Only)
-* **Scope**: Only substantive feature completions receive a `CHANGELOG.md` entry and a semantic minor version bump. Bugfixes, micro-patches, and minor refactors are excluded.
+### Step 2: Update Changelog (SemVer Minor/Major Releases)
+* **Tagging & Changelog Scope**:
+  - Only features are automatically `semver.minor` or `semver.major`.
+  - All `semver.minor` and `semver.major` changes require a curated `CHANGELOG.md` entry.
+  - Critical or major security remediations may also warrant a `semver.minor` release.
+  - Routine security updates, bugfixes, and patches are typically `semver.patch` or CalVer-only on their own and do not generate a standalone semantic minor version or changelog entry.
+* **Roll-Up Overview**:
+  - The `CHANGELOG.md` entry must provide a high-level overview of ALL changes across the codebase since the previous changelog entry.
+  - The entry rolls up and synthesizes intermediate CalVer commits, hotfixes, refactors, and the completed feature into a unified milestone summary.
 * Calculate next minor SemVer (e.g. via `bump_semver minor` from `.scripts/backup.sh`) and today's CalVer (`date +%Y.%-m.%-d`).
-* Prepend a new release section to `CHANGELOG.md` directly below the top header:
+* Prepend the new release section to `CHANGELOG.md` directly below the top header:
   ```markdown
   ## [<Next-SemVer>] / [<CalVer>] - <Feature Title> (YYYY-MM-DD)
 
@@ -44,6 +51,9 @@ Execute the entire test suite against the live environment:
 
   ### Fixed
   - <Bullet points describing remediated issues>
+
+  ### Security
+  - <Bullet points describing security hardening or access control updates>
   ```
 
 ### Step 3: Clean Up Temporary Planning Artifacts

@@ -80,9 +80,15 @@ When newly instantiated against this repository, orient yourself using the follo
   - Do not use icons, emojis, or advanced/non-standard Markdown extensions in documentation, artifacts, or instructions. Use plain Markdown (headings, lists, standard tables, and fenced code blocks).
   - Store all agent-generated artifacts in `.agents/artifacts/` and commit them to git as part of the project workflow.
   - **Changelog Governance**:
-    - Update `CHANGELOG.md` exclusively upon major, semantically tagged releases (e.g. via `./homelab.sh backup -t semver-minor` or `-t semver-major`).
-    - Format each major release entry with a semantic version header paired with its CalVer tag (e.g. `## [2.2.0] / [2026.10.29] - Headline Name (YYYY-MM-DD)`), a short descriptive headline, and categorized bulleted lists (`Added`, `Changed`, `Fixed`, `Security`).
-    - Aggregate changes between releases into curated, meaningful bullet points; omit negligible micro-commits, syntax tweaks, or documentation typos.
+    - Update `CHANGELOG.md` exclusively upon major or minor semantic releases (`semver-major` or `semver-minor`).
+    - **Release Versioning Tiers**:
+      - Only substantive feature completions automatically qualify for `semver-minor` or `semver-major` bumps.
+      - All `semver-minor` and `semver-major` releases require a curated `CHANGELOG.md` entry.
+      - Critical or major security remediations may warrant a `semver-minor` release.
+      - Most routine security updates, bugfixes, refactors, and micro-patches are `semver-patch` (or CalVer-only) on their own and do NOT individually generate a full semantic minor release or changelog entry.
+    - **Roll-Up Overview**: Each `CHANGELOG.md` entry must provide a high-level overview of ALL changes made across the codebase since the previous changelog entry. This means a SemVer release rolls up and synthesizes changes across multiple intermediate CalVer commits and routine patches merged to `main`.
+    - Format each release entry with a semantic version header paired with its CalVer tag (e.g. `## [2.4.0] / [2026.11.1.1] - Headline Name (YYYY-MM-DD)`), a short descriptive headline, and categorized bulleted lists (`Added`, `Changed`, `Fixed`, `Security`).
+    - Aggregate changes into curated, meaningful bullet points; omit negligible micro-commits, syntax tweaks, or documentation typos.
 
 
 ## 5. Testing and Quality Assurance Standards
@@ -105,9 +111,10 @@ When completing a feature branch, agents must strictly follow this sequential co
 1. **Full Test Suite Verification**:
    - Run the full test suite on the feature branch: `./homelab.sh test all`.
    - **Strict Stop-on-Failure**: If any test fails, STOP immediately. Do NOT proceed to clean artifacts, update changelogs, commit, merge, or tag. Report the specific test failure and error log to the user and wait for explicit instruction.
-2. **Changelog Governance (Features Only)**:
-   - **Feature Scope**: Only substantive feature completions receive a `CHANGELOG.md` update and a semantic minor version bump (`semver-minor`). Routine bugfixes, minor refactors, and micro-patches do NOT generate semantic minor releases.
-   - Add a curated release entry to `CHANGELOG.md` formatted with the next SemVer minor version paired with its CalVer tag (e.g., `## [2.4.0] / [2026.11.1.1] - Dedicated Tailscale PIA VPN Bridge (YYYY-MM-DD)`), summarizing changes under categorized bullet points (`Added`, `Changed`, `Fixed`, `Security`).
+2. **Changelog Governance & Roll-Up Release Notes**:
+   - **Version Bump Scope**: Only features automatically receive a semantic minor (`semver-minor`) or major (`semver-major`) version bump. All `semver-minor` and `semver-major` releases mandate a corresponding `CHANGELOG.md` entry. Critical or major security remediations may also qualify for `semver-minor`. Most routine security updates, bugfixes, and patches are `semver-patch` or CalVer-only and do not generate semantic minor versions on their own.
+   - **Roll-Up Synthesis**: The changelog entry must deliver a comprehensive, high-level overview of ALL modifications introduced since the previous changelog release, rolling up intermediate CalVer commits, hotfixes, and documentation updates along with the completed feature.
+   - Add the release entry to `CHANGELOG.md` formatted with the next SemVer version paired with its chronological CalVer tag (e.g., `## [2.4.0] / [2026.11.1.1] - Dedicated Tailscale PIA VPN Bridge (YYYY-MM-DD)`), summarizing changes under categorized bullet points (`Added`, `Changed`, `Fixed`, `Security`).
 3. **Planning Artifact Cleanup**:
    - Delete temporary feature planning artifacts from `.agents/artifacts/` (e.g., `plan_*.md`).
    - Strictly preserve persistent architectural specifications (such as `.agents/artifacts/architecture.md`).
