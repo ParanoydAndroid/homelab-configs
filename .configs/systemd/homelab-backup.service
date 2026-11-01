@@ -1,0 +1,16 @@
+[Unit]
+Description=Homelab Docker Volume Restic Backup
+After=docker.service storage_serv.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+Environment=HOME=/root
+WorkingDirectory=/opt/brandon/dockge/stacks
+ExecStart=/opt/brandon/dockge/stacks/homelab.sh backup
+TimeoutStartSec=1800s
+
+[Install]
+WantedBy=multi-user.target

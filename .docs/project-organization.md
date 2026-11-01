@@ -23,18 +23,16 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 │   ├── sonarr-radarr/
 │   ├── tailscale/
 │   └── tandoor/
-├── .configs/                      # Tracked portable service configurations
+├── .configs/                      # Bootstrapping assets and systemd service templates
 │   ├── dockge/                    # Dockge's own compose.yml and .env.example
-│   ├── homepage/                  # Homepage dashboard YAML, CSS, and JS files
-│   ├── nginx/                     # NPM SQLite host table dump and generated .conf files
+│   ├── nginx/                     # Local fallback certificate generator script
 │   ├── qbittorrentvpn/            # Port-sync callback script (set-qbt-port.sh)
-│   └── systemd/                   # Host systemd unit files
+│   └── systemd/                   # Host systemd unit and timer files
 ├── .scripts/                      # Modular automation library for homelab.sh
 │   ├── common.sh                  # Logging, user resolution, and atomic dotenv utilities
 │   ├── env-tools.sh               # Two-tier .env initialization and propagation
 │   ├── system.sh                  # Host OS bug fixes and Docker network creation
-│   ├── configs.sh                 # Bidirectional config deployment and synchronization
-│   └── backup.sh                  # Git commits, CalVer/SemVer tagging, and secret tarballs
+│   └── backup.sh                  # Restic volume backup, retention pruning, and restore automation
 ├── .tests/                        # Modular smoke and regression test suite
 │   ├── run.sh                     # Master test runner
 │   ├── lib/common.sh              # Shared test assertions, timers, and counters
@@ -103,13 +101,15 @@ To satisfy Dockge's per-stack working directory model while eliminating configur
 
 ---
 
-## 5. Bidirectional Configuration Sync Model
+## 5. Persistent Volume Backup and Disaster Recovery Model
 
-Service configurations modified through web interfaces or on the host filesystem are bidirectionally synchronized with the git repository:
+All container application state and persistent volumes under `${DOCKER_DATA_DIR}` (`/volume2/docker`) are protected via Restic snapshots and secret archiving:
 
-* **Deploy (`./homelab.sh deploy-configs`)**:
-  Transfers tracked templates from `.configs/` to live host volumes (`${DOCKER_DATA_DIR}/...`), running byte-for-byte comparisons (`cmp -s`), showing unified diffs (`diff -u`), and prompting before overwriting local changes.
-* **Pull (`./homelab.sh pull-configs`)**:
-  Extracts active configurations from host volumes into `.configs/` (Homepage YAML, qBittorrent port-sync script, and NPM non-sensitive SQLite tables + generated `.conf` files), allowing changes to be reviewed with `git diff` and committed.
-* **Backup (`./homelab.sh backup`)**:
-  Pulls live configs, stages and commits git changes, applies optional chronological (CalVer) or semantic git tags, and archives all live untracked `.env` secret files into a timestamped tarball in `${DOCKER_DATA_DIR}/backup/homelab/`.
+* **Zero-Downtime Database Staging**:
+  Prior to snapshotting, `homelab.sh backup` stages non-disruptive online database backups (`pg_dumpall` for PostgreSQL and SQLite `.backup` / WAL checkpoints for NPM, Jellyfin, Sonarr, and Radarr) under `${DOCKER_DATA_DIR}/.backups`.
+* **Untracked Secret Archiving**:
+  All untracked live `.env` files are archived into a timestamped tarball in `${DOCKER_DATA_DIR}/backup/homelab/latest_env_secrets.tar.gz`.
+* **Deduplicated & Compressed Snapshots (`./homelab.sh backup`)**:
+  Streams deduplicated, compressed snapshots of `${DOCKER_DATA_DIR}` to `${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}` using native Restic (`--insecure-no-password`) with automatic cache and log exclusions, enforcing 30-day retention (`--keep-daily 30 --prune`).
+* **Granular & Full Restoration (`./homelab.sh restore`)**:
+  Restores either the full Docker volume or a single targeted service directory from any snapshot, with safety checks to ensure running containers are stopped before active files are modified.

@@ -6,8 +6,8 @@ This repository is the single source of truth for the declarative configuration,
 
 The project encompasses:
 - **Containerized Service Stacks**: Declarative Docker Compose v2+ definitions for reverse proxy routing (`nginx`), dashboard and service discovery (`homepage`), media streaming (`jellyfin`), automated media acquisition (`sonarr-radarr` and `qbittorrentvpn` over PIA WireGuard), recipe management (`tandoor`), relational database storage (`postgres`), and web-based stack orchestration (`dockge`).
-- **Tracked Application Configurations (`.configs/`)**: Version-controlled portable service configurations—including Homepage YAML dashboards, Nginx Proxy Manager routing definitions and generated `.conf` files, local wildcard certificate generation scripts, and VPN port-forwarding helper scripts—bidirectionally synchronized between the repository and host volumes.
-- **Lifecycle, Testing, and Backup Automation (`homelab.sh`)**: Idempotent CLI tooling for host OS workaround convergence, two-tier `.env` initialization and secret propagation, Docker network provisioning, configuration deployment/retrieval with diff inspection, fast end-to-end smoke testing across virtual hosts and container interconnections, and git-tagged configuration backups with encrypted/restricted `.env` secret archives.
+- **Tracked Application Configurations (`.configs/`)**: Bootstrapping assets and templates—including Dockge orchestrator compose definitions, local certificate scripts, qBittorrent port-forwarding scripts, and systemd units/timers.
+- **Lifecycle, Testing, and Backup Automation (`homelab.sh`)**: Idempotent CLI tooling for host OS workaround convergence, two-tier `.env` initialization and secret propagation, Docker network provisioning, non-disruptive Restic-based volume backups with online database staging, fast end-to-end smoke testing, and disaster recovery restoration.
 
 ---
 
@@ -19,9 +19,9 @@ The project encompasses:
 - **Externalized Orchestrator Stack**: Dockge's own `compose.yml` is tracked in `.configs/dockge/compose.yml` and deployed one level above the stacks directory (`${DOCKGE_DIR}/compose.yml`) so Dockge does not list or restart itself as a child stack.
 
 ### 2.2 Declarative Convergence and Idempotency
-- Every operation in `homelab.sh` (`setup`, `deploy-configs`, `pull-configs`, `backup`) is idempotent and safe to run repeatedly on both brand-new host installations and routine updates after `git pull`.
+- Every operation in `homelab.sh` (`setup`, `startup`, `backup`, `snapshots`, `restore`) is idempotent and safe to run repeatedly on both brand-new host installations and routine updates after `git pull`.
 - Host-level appliance workarounds (such as remediating the UGREEN NAS `GODEBUG=tlskyber=0` bug across `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`) are codified directly into `homelab.sh setup`.
-- Deploying tracked configurations from `.configs/` to live host volumes (`/volume2/docker/...`) never blindly overwrites local changes made through service Web UIs; `homelab.sh deploy-configs` performs byte-level comparisons (`cmp -s`), displays unified diffs (`diff -u`), and prompts for conflict resolution (`[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`).
+- Persistent volume state and databases on `${DOCKER_DATA_DIR}` (`/volume2/docker`) are protected via automated Restic snapshots streamed to `${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}` with zero container downtime and 30-day retention pruning. Full or per-service disaster recovery is performed via `homelab.sh restore`.
 
 ### 2.3 Network Isolation and Reverse Proxy Boundary
 - **Dedicated Reverse Proxy LAN IP (`external_npm` macvlan)**: Nginx Proxy Manager binds to a dedicated LAN IP (`192.168.0.4` / `turing.home`) via a Docker `macvlan` network on `eth0`, cleanly separating reverse-proxied service traffic (`80`, `443`, `81`) from the UGREEN NAS host OS web interface (`192.168.0.3` / `nas.home`).

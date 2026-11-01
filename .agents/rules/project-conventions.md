@@ -35,7 +35,7 @@ When newly instantiated against this repository, orient yourself using the follo
 - **Declarative and Idempotent Automation**:
   - Favor declarative configuration over imperative state manipulation.
   - Keep project configurations and `homelab.sh` automation clean and focused exclusively on the standardized architecture.
-  - All setup, configuration deployment, and backup subcommands in `homelab.sh` must be idempotent. Re-running `homelab.sh` after an update must safely converge on the desired state without duplicating Docker networks, failing on existing resources, or silently overwriting locally modified configuration files.
+  - All setup, backup, and restore subcommands in `homelab.sh` must be idempotent. Re-running `homelab.sh` after an update must safely converge on the desired state without duplicating Docker networks or failing on existing resources.
   - Codify host appliance OS workarounds (such as the UGREEN NAS `GODEBUG=tlskyber=0` remediation in `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`) idempotently in `homelab.sh setup` and document them in `README.md`.
 - **Network and Port Exposure Model**:
   - Backend services run on the user-defined `homelab` Docker bridge network (`192.168.255.0/24`).
@@ -51,7 +51,7 @@ When newly instantiated against this repository, orient yourself using the follo
   - Internal container-to-container database credentials isolated to the `homelab` bridge network (such as `postgres:password`) may remain inline in `compose.yml`.
 - **Host Volume Standardization and Bidirectional Configuration Sync**:
   - Standardize persistent service data and configuration paths by container/service name under `${DOCKER_DATA_DIR:-/volume1/docker}/<service>/data/...` and shared media under `${MEDIA_DIR:-/volume1/media}` (avoiding redundant `/data/data` nesting or cross-service nesting).
-  - Track portable service configurations in `.configs/<service>/` (including exported human-readable NPM host definitions and generated `.conf` files, Homepage YAML configurations, `generate-local-cert.sh`, and container helper scripts) and provide bidirectional commands in `homelab.sh` to pull live configs into the repo and deploy tracked configs to host volumes with diff inspection and conflict prompts (`[o]verwrite / [k]eep / [O]verwrite all / [K]eep all`).
+  - Protect persistent container volumes (`${DOCKER_DATA_DIR:-/volume2/docker}`) via Restic snapshots to primary RAID storage (`${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}`) using `homelab.sh backup` with online database staging (zero container downtime) and 30-day retention pruning. Use `homelab.sh restore` for full-volume or granular service disaster recovery.
   - Maintain `1000:100` ownership on non-root service data directories, explicitly excluding containers with fixed internal UIDs (`postgres` UID `70`) or root privileges (`nginx`, `homepage`, `dockge`).
 
 ## 4. Code Style and Documentation Standards

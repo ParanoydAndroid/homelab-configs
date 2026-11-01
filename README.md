@@ -60,12 +60,12 @@ sudo ./homelab.sh setup
 
 | Subcommand | Description |
 | :--- | :--- |
-| `sudo ./homelab.sh setup` | End-to-end host convergence: applies OS fixes, syncs `.env` files, provisions networks, deploys configs, and starts all stacks. |
+| `sudo ./homelab.sh setup` | End-to-end host convergence: applies OS fixes, syncs `.env` files, provisions networks, deploys Dockge orchestrator compose, and starts all stacks. |
 | `./homelab.sh startup` | Non-interactive boot hook designed for systemd execution on host startup with database readiness checks. |
-| `./homelab.sh deploy-configs` | Deploys tracked configs from `.configs/` to live host volumes with diff inspection and conflict resolution. |
-| `./homelab.sh pull-configs` | Extracts live configurations (Homepage YAML, NPM SQLite routing tables, and `.conf` files) into `.configs/`. |
-| `./homelab.sh backup [--tag]` | Pulls live configs, commits git changes, applies CalVer/SemVer tags, and archives all live `.env` secrets. |
-| `./homelab.sh test [suite]` | Modular smoke and regression test suite verifying containers, direct admin ports, routing, interconnects, and security. |
+| `sudo ./homelab.sh backup` | Stages zero-downtime database dumps, snapshots `/volume2/docker` via Restic to `/volume1`, enforces 30-day retention, and archives `.env` secrets. |
+| `./homelab.sh snapshots` | Lists historical Restic backup snapshots with timestamps, snapshot IDs, and repository sizes. |
+| `sudo ./homelab.sh restore [snap] [svc]` | Restores full volume state or an individual service from a Restic snapshot with pre-restore safety checks. |
+| `./homelab.sh test [suite]` | Modular smoke and regression test suite verifying containers, direct admin ports, routing, interconnects, security, and backup automation. |
 
 ---
 
@@ -73,7 +73,7 @@ sudo ./homelab.sh setup
 
 Detailed architectural specifications, configuration runbooks, and references are organized into dedicated documents under `.docs/`:
 
-* **[Project Organization & Architecture](.docs/project-organization.md)**: Filesystem layout, Dockge compatibility constraints, storage tiering rationale (PCIe NVMe vs mechanical RAID 5), and the bidirectional configuration synchronization model.
+* **[Project Organization & Architecture](.docs/project-organization.md)**: Filesystem layout, Dockge compatibility constraints, storage tiering rationale (PCIe NVMe vs mechanical RAID 5), and the Restic-based volume backup and disaster recovery model.
 * **[Service Catalog and Port Reference](.docs/service-catalog.md)**: Uniform catalog entries for all 15 services and the host OS portal, active port bindings, internal/external addresses, volume mappings, and container interconnections.
 * **[Environment Variable Reference & Cheat Sheet](.docs/env-reference.md)**: Central dictionary of every global and per-stack environment variable, defaults, secrets, and Homepage dashboard discovery mechanisms.
 * **[Dual-Ingress Networking & Security](.docs/networking.md)**: Subnet topology (`192.168.0.0/24` LAN, `192.168.255.0/24` bridge), macvlan routing, static IP table, split DNS, TLS certificates, and edge security hardening.

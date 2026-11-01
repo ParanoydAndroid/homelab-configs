@@ -7,28 +7,27 @@
 #
 # Architecture:
 #   Serves as the high-level orchestration entrypoint. Specialized subroutines
-#   are organized modularly under .scripts/ (common, env-tools, system, configs, backup)
+#   are organized modularly under .scripts/ (common, env-tools, system, backup)
 #   and .tests/ (modular smoke & regression test suites).
 #
 # Subcommands:
 #   setup           Initialize .env files, apply NAS OS fixes, create networks,
-#                   deploy configs, and start all stacks
+#                   and start all stacks
 #   startup         Non-interactive boot hook to start networks, Dockge, and
 #                   stacks in dependency order (used by systemd)
-#   deploy-configs  Deploy tracked configurations from .configs/ to host volumes
-#                   with diff inspection and conflict resolution
-#   pull-configs    Pull live service configurations from host volumes into .configs/
-#   backup          Pull live configs, commit changes to git (with optional tag),
-#                   and archive live .env files
+#   backup          Snapshot persistent volumes to Restic repository and archive
+#                   live .env secret files
+#   snapshots       List historical Restic backup snapshots
+#   restore         Restore volume state from Restic snapshot
 #   test [suite]    Run modular smoke and regression tests (suites: containers,
 #                   direct, routing, interconnect, security)
 #
 # Usage:
-#   sudo ./homelab.sh setup [-O | -K]
+#   sudo ./homelab.sh setup
 #   ./homelab.sh startup
-#   ./homelab.sh deploy-configs [-O | -K]
-#   ./homelab.sh pull-configs
-#   ./homelab.sh backup [-t [tag_name]] [-m <commit_message>]
+#   sudo ./homelab.sh backup
+#   ./homelab.sh snapshots
+#   sudo ./homelab.sh restore [snapshot_id] [service_name] [-f]
 #   ./homelab.sh test [suite] [test_name]
 # ==============================================================================
 set -euo pipefail
@@ -38,7 +37,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/.scripts/common.sh"
 source "${SCRIPT_DIR}/.scripts/env-tools.sh"
 source "${SCRIPT_DIR}/.scripts/system.sh"
-source "${SCRIPT_DIR}/.scripts/configs.sh"
 source "${SCRIPT_DIR}/.scripts/backup.sh"
 
 # ------------------------------------------------------------------------------
@@ -48,14 +46,20 @@ source "${SCRIPT_DIR}/.scripts/backup.sh"
 #     1. Remediates UGREEN NAS OS GODEBUG=tlskyber=0 defect.
 #     2. Initializes and syncs all .env files.
 #     3. Creates 'homelab' bridge and 'external_npm' macvlan networks.
-#     4. Deploys tracked configs from .configs/ with diff checks.
+#     4. Ensures Dockge orchestrator compose.yml is deployed.
 #     5. Starts Dockge orchestrator and all service stacks in dependency order.
 # ------------------------------------------------------------------------------
 setup_homelab() {
   remediate_godebug
   init_and_sync_env
   ensure_networks
-  deploy_configs
+
+  log_info "Ensuring Dockge orchestrator compose is present (${DOCKGE_DIR}/compose.yml)..."
+  mkdir -p "${DOCKGE_DIR}"
+  if [[ -f "${REPO_DIR}/.configs/dockge/compose.yml" ]]; then
+    cp -p "${REPO_DIR}/.configs/dockge/compose.yml" "${DOCKGE_DIR}/compose.yml"
+    chown "${TARGET_USER}:${TARGET_GROUP}" "${DOCKGE_DIR}/compose.yml" 2>/dev/null || true
+  fi
 
   log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."
   docker compose -f "${DOCKGE_DIR}/compose.yml" --env-file "${DOCKGE_DIR}/.env" up -d
@@ -160,20 +164,15 @@ usage() {
 Usage: $(basename "$0") <subcommand> [options]
 
 Subcommands:
-  setup           Initialize .env files, apply NAS OS fixes, create networks, deploy configs, and start all stacks
-  startup         Non-interactive boot hook to start networks, Dockge, and stacks in dependency order
-  deploy-configs  Deploy tracked configurations from .configs/ to host volumes with diff inspection
-  pull-configs    Pull live service configurations from host volumes into .configs/
-  backup          Pull live configs, commit changes to git (with optional tag), and archive live .env files
-  test [suite]    Run modular smoke and regression tests (suites: containers, direct, routing, interconnect, security)
+  setup                    Initialize .env files, apply NAS OS fixes, create networks, and start all stacks
+  startup                  Non-interactive boot hook to start networks, Dockge, and stacks in dependency order
+  backup                   Snapshot persistent volumes to Restic repository and archive live .env files
+  snapshots                List historical Restic backup snapshots
+  restore [snap] [svc]     Restore persistent volume state from Restic snapshot (optional specific service)
+  test [suite]             Run modular smoke and regression tests (suites: containers, direct, routing, interconnect, security)
 
-Options for deploy-configs / setup:
-  -O, --overwrite-all      Overwrite all differing target config files without prompting
-  -K, --keep-all           Keep all existing target config files without prompting
-
-Options for backup:
-  -t, --tag [tag_name]     Tag HEAD after committing (defaults to chronological YYYY.M.D[.N] if tag_name is omitted)
-  -m, --message <msg>      Custom git commit message for backup
+Options for restore:
+  -f, --force              Bypass active container checks and overwrite prompts
 EOF
 }
 
@@ -185,36 +184,19 @@ main() {
   local subcmd="${1:-}"
   shift || true
 
-  # If subcommand is 'test', bypass standard flag parsing and delegate directly
+  # Subcommands with passthrough arguments
   if [[ "${subcmd}" == "test" ]]; then
     test_homelab "$@"
     return $?
   fi
 
+  if [[ "${subcmd}" == "restore" ]]; then
+    restore_homelab "$@"
+    return $?
+  fi
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -O|--overwrite-all)
-        OVERWRITE_MODE="overwrite_all"
-        ;;
-      -K|--keep-all)
-        OVERWRITE_MODE="keep_all"
-        ;;
-      -t|--tag)
-        BACKUP_TAG_ENABLED=1
-        if [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
-          BACKUP_TAG_NAME="$2"
-          shift
-        fi
-        ;;
-      -m|--message)
-        if [[ $# -lt 2 ]]; then
-          log_error "Option '$1' requires a commit message argument."
-          usage
-          exit 1
-        fi
-        BACKUP_COMMIT_MSG="$2"
-        shift
-        ;;
       -h|--help)
         usage
         exit 0
@@ -231,10 +213,8 @@ main() {
   case "${subcmd}" in
     setup) setup_homelab ;;
     startup) startup_homelab ;;
-    deploy-configs) deploy_configs ;;
-    pull-configs) pull_configs ;;
     backup) backup_homelab ;;
-    test) test_homelab ;;
+    snapshots) snapshots_homelab ;;
     -h|--help|"") usage; exit 0 ;;
     *) log_error "Unknown subcommand: ${subcmd}"; usage; exit 1 ;;
   esac
