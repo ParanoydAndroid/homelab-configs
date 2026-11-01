@@ -21,9 +21,9 @@ services:
       # POSTGRES_USER: postgres # this is already the system default
       POSTGRES_PASSWORD: password
       POSTGRES_DB: recipes
-      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      TZ: ${TZ:?See env.example for default.}
     volumes:
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/postgres/data:/var/lib/postgresql/data
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/postgres/data:/var/lib/postgresql/data
     # Isolated strictly to the internal 'homelab' bridge network; no host port exposed.
     # ports:
     #   - 5432:5432/tcp

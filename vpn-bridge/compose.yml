@@ -36,14 +36,14 @@ services:
       - net.ipv6.conf.all.disable_ipv6=1
       - net.ipv6.conf.lo.disable_ipv6=1
     environment:
-      USER: ${VPN_USER:?VPN_USER is required (see .env.example for defaults)}
-      PASS: ${VPN_PASS:?VPN_PASS is required (see .env.example for defaults)}
-      LOC: ${PIA_REGION:?PIA_REGION is required (see .env.example for defaults)}
+      USER: ${VPN_USER:?See env.example for default.}
+      PASS: ${VPN_PASS:?See env.example for default.}
+      LOC: ${PIA_REGION:?See env.example for default.}
       PORT_FORWARDING: 0
       FIREWALL: 1
       FWD_IFACE: tailscale+
       LOCAL_NETWORK: 192.168.0.0/16
-      VPNDNS: 1.1.1.1,1.0.0.1
+      VPNDNS: 9.9.9.9,149.112.112.112
       # By default, Tailscale marks daemon packets with fwmark 0x80000 and routes them
       # to table 'main' (eth0), where PIA's firewall drops non-LAN WAN traffic.
       # Rule 5200 routes Tailscale's mark to PIA's WireGuard table (51820), allowing
@@ -51,7 +51,7 @@ services:
       POST_UP: ip rule add fwmark 0x80000/0xff0000 table 51820 priority 5200 2>/dev/null || true
       POST_RECONNECT: ip rule add fwmark 0x80000/0xff0000 table 51820 priority 5200 2>/dev/null || true
     volumes:
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/vpn-bridge/data/pia:/pia
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/vpn-bridge/data/pia:/pia
     networks:
       - homelab
 
@@ -75,7 +75,7 @@ services:
       TS_USERSPACE: "false"
       TS_EXTRA_ARGS: --advertise-exit-node --snat-subnet-routes=true --accept-dns=false --netfilter-mode=off
     volumes:
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/vpn-bridge/data/tailscale:/var/lib/tailscale
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/vpn-bridge/data/tailscale:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
     tmpfs:
       - /tmp

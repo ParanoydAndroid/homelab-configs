@@ -8,7 +8,7 @@ Configuration follows a two-tier model with explicit runtime assertions:
 
 ### Single Source of Truth & Required Variable Enforcement
 - **Default Value Single Source of Truth**: All runtime variable defaults are defined strictly in `.env.example` templates.
-- **Compose Assertion Syntax**: Docker Compose files (`compose.yml`) treat runtime variables as required using `${VAR:?VAR is required (see .env.example for defaults)}`. This guarantees that missing variables are caught immediately at deploy time without duplicating default values across multiple Compose files.
+- **Compose Assertion Syntax**: Docker Compose files (`compose.yml`) treat runtime variables as required using `${VAR:?See env.example for default.}`. This guarantees that missing variables are caught immediately at deploy time without duplicating default values across multiple Compose files.
 - **Fixed Invariants**: Variables representing immutable architectural decisions (such as `HOMEPAGE_ALLOWED_HOSTS`, `LOG_LEVEL`, `TS_EXTRA_ARGS`, and `CAPTCHA_SOLVER`) are inlined directly as literal values in `compose.yml` and omitted from `.env.example`.
 - **Automatic Secret Generation**: Cryptographic secrets like Django `SECRET_KEY` are automatically generated from `/dev/urandom` during `./homelab.sh setup` if left blank.
 

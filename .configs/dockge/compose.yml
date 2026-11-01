@@ -17,18 +17,18 @@ services:
     # and ignores PUID/PGID environment variables.
     environment:
       # Tell Dockge where the stacks directory is located inside the container
-      DOCKGE_STACKS_DIR: ${DOCKGE_STACKS_DIR:?DOCKGE_STACKS_DIR is required (see .env.example for defaults)}
+      DOCKGE_STACKS_DIR: ${DOCKGE_STACKS_DIR:?See env.example for default.}
       DOCKGE_ENABLE_CONSOLE: "true"
-      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      TZ: ${TZ:?See env.example for default.}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/dockge/data:/app/data
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/dockge/data:/app/data
       # If you want to use private registries, share the auth file with Dockge:
       # - /root/.docker/:/root/.docker
       # Stacks Directory:
       # 1. FULL path only. No relative path (MUST)
       # 2. Left Stacks Path === Right Stacks Path (MUST) so host bind mounts resolve identically
-      - ${DOCKGE_STACKS_DIR:?DOCKGE_STACKS_DIR is required (see .env.example for defaults)}:${DOCKGE_STACKS_DIR:?DOCKGE_STACKS_DIR is required (see .env.example for defaults)}
+      - ${DOCKGE_STACKS_DIR:?See env.example for default.}:${DOCKGE_STACKS_DIR:?See env.example for default.}
     ports:
       # Exposed directly on the NAS host (nas.home:8010) for emergency orchestrator
       # access if Nginx Proxy Manager is down, in addition to https://dockge.turing.home.

@@ -19,7 +19,7 @@ services:
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
     hostname: jellyfin
-    user: "${PUID:?PUID is required (see .env.example for defaults)}:${PGID:?PGID is required (see .env.example for defaults)}"
+    user: "${PUID:?See env.example for default.}:${PGID:?See env.example for default.}"
     restart: unless-stopped
     cap_drop:
       - ALL
@@ -32,14 +32,14 @@ services:
     group_add:
       - "105"
     environment:
-      PUID: ${PUID:?PUID is required (see .env.example for defaults)}
-      PGID: ${PGID:?PGID is required (see .env.example for defaults)}
+      PUID: ${PUID:?See env.example for default.}
+      PGID: ${PGID:?See env.example for default.}
       UMASK: "022"
-      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      TZ: ${TZ:?See env.example for default.}
       JELLYFIN_PublishedServerUrl: http://jellyfin:8096
     volumes:
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/jellyfin/data/config:/config
-      - ${MEDIA_DIR:?MEDIA_DIR is required (see .env.example for defaults)}:/data/media:ro
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/jellyfin/data/config:/config
+      - ${MEDIA_DIR:?See env.example for default.}:/data/media:ro
     ports:
       # HTTP/HTTPS traffic is reverse-proxied via NPM on the 'homelab' network.
       # Only UDP port 8022->7359 is bound on the host for LAN client auto-discovery.
@@ -57,7 +57,7 @@ services:
       - homepage.widget.type=jellyfin
       - homepage.widget.version=2
       - homepage.widget.url=http://jellyfin:8096
-      - homepage.widget.key=${JELLYFIN_API_KEY:?JELLYFIN_API_KEY is required (see .env.example for defaults)}
+      - homepage.widget.key=${JELLYFIN_API_KEY:?See env.example for default.}
 
 networks:
   homelab:

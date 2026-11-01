@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN is required (see .env.example for defaults)}
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?See env.example for default.}
     networks:
       - homelab
     labels:

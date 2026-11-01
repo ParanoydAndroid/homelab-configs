@@ -24,14 +24,14 @@ services:
     environment:
       DISABLE_IPV6: "true"
       DB_SQLITE_FILE: /data/db.sqlite
-      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      TZ: ${TZ:?See env.example for default.}
     volumes:
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/nginx/data:/data
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/nginx/data/letsencrypt:/etc/letsencrypt
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/nginx/data:/data
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/nginx/data/letsencrypt:/etc/letsencrypt
       # Required by proxy_host/2.conf (recipes.kamaka.tech): Tandoor's Gunicorn
       # server does not serve user-uploaded media files directly in production,
       # so NPM serves '/media/' directly from Tandoor's mediafiles volume read-only.
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/tandoor/data/mediafiles:/media:ro
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/tandoor/data/mediafiles:/media:ro
     # Host port bindings are omitted because NPM binds directly to 192.168.0.4:80/443/81
     # via the 'external_npm' macvlan interface.
     # ports:
@@ -43,7 +43,7 @@ services:
         aliases:
           - services
       external_npm:
-        ipv4_address: ${NPM_IPV4_ADDRESS:?NPM_IPV4_ADDRESS is required (see .env.example for defaults)}
+        ipv4_address: ${NPM_IPV4_ADDRESS:?See env.example for default.}
 
 networks:
   external_npm:

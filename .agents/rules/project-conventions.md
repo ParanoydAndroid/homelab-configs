@@ -49,7 +49,7 @@ When newly instantiated against this repository, orient yourself using the follo
     2. **Per-Stack `<stack>/.env.example`**: Defines true external secrets (`VPN_USER`, `VPN_PASS`), application cryptographic secrets (`SECRET_KEY`), per-stack runtime selections (`PIA_REGION`), and per-installation service API keys (`*_API_KEY`, `QBITTORRENT_PASSWORD`, `HOMEPAGE_VAR_PIHOLE_KEY`, `CLOUDFLARE_TUNNEL_TOKEN`) with blank defaults (`KEY=`).
   - **Single Source of Truth for Defaults & Required Compose Syntax**:
     - All runtime environment defaults are declared once in `.env.example` templates.
-    - All Docker Compose files (`compose.yml`) treat runtime variables as required, using the strict assertion syntax: `${VAR:?VAR is required (see .env.example for defaults)}`. Do NOT use inline fallback defaults (`${VAR:-default}`) in `compose.yml`.
+    - All Docker Compose files (`compose.yml`) treat runtime variables as required, using the strict assertion syntax: `${VAR:?See env.example for default.}`. Do NOT use inline fallback defaults (`${VAR:-default}`) in `compose.yml`.
     - Fixed stack invariants (such as `HOMEPAGE_ALLOWED_HOSTS`, `LOG_LEVEL`, and `TS_EXTRA_ARGS`) must be directly inlined as static values in `compose.yml` rather than exposed as unnecessary environment variables.
     - Intentionally optional secrets (such as one-time `TS_AUTHKEY`) remain `${TS_AUTHKEY:-}` so subsequent restarts succeed after the auth key is consumed.
     - **Script Boundary**: Required-variable assertion syntax (`:?`) applies strictly to Docker Compose files (`compose.yml`). Shell scripts (`.scripts/*.sh`, `homelab.sh`) must use normal parameter expansion (`${VAR}`) without `:?`.
@@ -66,7 +66,7 @@ When newly instantiated against this repository, orient yourself using the follo
   - Name all stack files `compose.yml`.
   - Omit the deprecated top-level `version` property and top-level `name` property (Docker Compose Specification v2+ best practice).
   - Maintain explicit `container_name` definitions on all services and standardize `hostname` usage so service identity on the `homelab` network and inside containers is consistent.
-  - Standardize non-root execution via `${PUID:?PUID is required (see .env.example for defaults)}` and `${PGID:?PGID is required (see .env.example for defaults)}`. Use Compose `user: "${PUID:?...}:${PGID:?...}"` only for images like `jellyfin/jellyfin` that do not read `PUID`/`PGID` environment variables; do NOT set Compose `user:` on images (`lscr.io/linuxserver/*`, `vabene1111/recipes`) whose entrypoints require root startup before dropping privileges via `PUID`/`PGID`.
+  - Standardize non-root execution via `${PUID:?See env.example for default.}` and `${PGID:?See env.example for default.}`. Use Compose `user: "${PUID:?...}:${PGID:?...}"` only for images like `jellyfin/jellyfin` that do not read `PUID`/`PGID` environment variables; do NOT set Compose `user:` on images (`lscr.io/linuxserver/*`, `vabene1111/recipes`) whose entrypoints require root startup before dropping privileges via `PUID`/`PGID`.
   - Order service keys consistently (`image`, `container_name`, `hostname`, `user`, `restart`, `privileged`, `cap_add`, `cap_drop`, `security_opt`, `sysctls`, `devices`, `group_add`, `mac_address`, `environment`, `volumes`, `ports`, `networks`, `logging`, `labels`) with 2-space indentation and uniform `environment` syntax.
 - **Shell Scripting Conventions**:
   - Use `#!/usr/bin/env bash` with `set -euo pipefail`.
@@ -97,4 +97,31 @@ When newly instantiated against this repository, orient yourself using the follo
   - Whenever a bug or regression is identified (such as routing failures, disallowed host headers, missing SSL certificates, or VPN port desynchronization), write a reproducing test case in `homelab.sh test` before or alongside applying the fix to verify remediation and permanently prevent regressions.
 - **RAID Transition Test Avoidance**:
   - While a storage array transition or rebuild (such as the active RAID 5 rebuild/reshape on the host) is underway, avoid running tests, full test suites, or heavy container probes unless strictly necessary. High disk I/O latency causes container executions to stall or hit timeouts.
+
+## 6. Feature Completion and Release Lifecycle
+
+When completing a feature branch, agents must strictly follow this sequential completion workflow:
+
+1. **Full Test Suite Verification**:
+   - Run the full test suite on the feature branch: `./homelab.sh test all`.
+   - **Strict Stop-on-Failure**: If any test fails, STOP immediately. Do NOT proceed to clean artifacts, update changelogs, commit, merge, or tag. Report the specific test failure and error log to the user and wait for explicit instruction.
+2. **Changelog Governance (Features Only)**:
+   - **Feature Scope**: Only substantive feature completions receive a `CHANGELOG.md` update and a semantic minor version bump (`semver-minor`). Routine bugfixes, minor refactors, and micro-patches do NOT generate semantic minor releases.
+   - Add a curated release entry to `CHANGELOG.md` formatted with the next SemVer minor version paired with its CalVer tag (e.g., `## [2.4.0] / [2026.11.1.1] - Dedicated Tailscale PIA VPN Bridge (YYYY-MM-DD)`), summarizing changes under categorized bullet points (`Added`, `Changed`, `Fixed`, `Security`).
+3. **Planning Artifact Cleanup**:
+   - Delete temporary feature planning artifacts from `.agents/artifacts/` (e.g., `plan_*.md`).
+   - Strictly preserve persistent architectural specifications (such as `.agents/artifacts/architecture.md`).
+4. **Final Feature Commit & Remote Push**:
+   - Stage all remaining modified files and create a clean commit on the feature branch:
+     `git commit -m "feat(<scope>): ..."`
+   - Push the feature branch to the remote repository (`git push origin <feature-branch>`).
+5. **Mainline Merge & Dual Version Tagging**:
+   - Checkout `main`, pull latest remote changes, and merge the feature branch:
+     `git checkout main && git pull origin main && git merge <feature-branch>`
+   - Tag the release with both the semantic version (minor bump) and the chronological CalVer tag:
+     `git tag -a v<SemVer> -m "Release v<SemVer> / <CalVer>"`
+     `git tag -a <CalVer> -m "Release <CalVer>"`
+   - Push the merged `main` branch and new release tags to remote origin:
+     `git push origin main --tags`
+   - Cleanly remove the local feature branch if no longer needed.
 

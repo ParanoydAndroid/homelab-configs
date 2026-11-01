@@ -21,18 +21,18 @@ services:
     hostname: tandoor
     restart: unless-stopped
     environment:
-      PUID: ${PUID:?PUID is required (see .env.example for defaults)}
-      PGID: ${PGID:?PGID is required (see .env.example for defaults)}
-      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      PUID: ${PUID:?See env.example for default.}
+      PGID: ${PGID:?See env.example for default.}
+      TZ: ${TZ:?See env.example for default.}
       # Random cryptographic secret key (populated in tandoor/.env)
-      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required (see .env.example for defaults)}
+      SECRET_KEY: ${SECRET_KEY:?See env.example for default.}
       # Restrict allowed HTTP Host headers to configured external, LAN, and internal domains
       ALLOWED_HOSTS: recipes.kamaka.tech,recipes.turing.home,tandoor,localhost,127.0.0.1
       DATABASE_URL: postgresql://postgres:password@postgresql:5432/recipes
       TANDOOR_PORT: 8050
     volumes:
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/tandoor/data/staticfiles:/opt/recipes/staticfiles
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/tandoor/data/mediafiles:/opt/recipes/mediafiles
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/tandoor/data/staticfiles:/opt/recipes/staticfiles
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/tandoor/data/mediafiles:/opt/recipes/mediafiles
     # ports:
     #   - 8050:8050
     networks:

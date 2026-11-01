@@ -20,13 +20,13 @@ services:
       PUID: 0
       PGID: 0
       UMASK: "022"
-      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      TZ: ${TZ:?See env.example for default.}
       # Host header validation whitelist required by Homepage v0.8+ when accessed via reverse proxy
       HOMEPAGE_ALLOWED_HOSTS: homepage.turing.home,www.turing.home,turing.home,192.168.0.4
       # Injected into .configs/homepage/services.yaml via {{HOMEPAGE_VAR_PIHOLE_KEY}}
-      HOMEPAGE_VAR_PIHOLE_KEY: ${HOMEPAGE_VAR_PIHOLE_KEY:?HOMEPAGE_VAR_PIHOLE_KEY is required (see .env.example for defaults)}
+      HOMEPAGE_VAR_PIHOLE_KEY: ${HOMEPAGE_VAR_PIHOLE_KEY:?See env.example for default.}
     volumes:
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/homepage/data:/app/config
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/homepage/data:/app/config
       - /var/run/docker.sock:/var/run/docker.sock
     # Accessed via Nginx Proxy Manager over the 'homelab' bridge network (homepage:3000).
     # Historical host port 8030 retained below as a comment for emergency debugging.

@@ -43,8 +43,8 @@ services:
       # Secondary PIA WireGuard regions (if using a US region, set PORT_FORWARDING: 0):
       # LOC: us_chicago
       # LOC: us_east
-      USER: ${VPN_USER:?VPN_USER is required (see .env.example for defaults)}
-      PASS: ${VPN_PASS:?VPN_PASS is required (see .env.example for defaults)}
+      USER: ${VPN_USER:?See env.example for default.}
+      PASS: ${VPN_PASS:?See env.example for default.}
       # Permit WebUI traffic on port 8081 from all 192.168.0.0/16 subnets
       # (covers LAN 192.168.0.0/24, WireGuard 192.168.1.128/25, and homelab 192.168.255.0/24)
       LOCAL_NETWORK: 192.168.0.0/16
@@ -60,9 +60,9 @@ services:
       PORT_SCRIPT: /set-qbt-port.sh
       VPNDNS: 1.1.1.1,1.0.0.1
     volumes:
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/qbittorrentvpn/data/pia:/pia
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/qbittorrentvpn/data/pia-shared:/pia-shared
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/qbittorrentvpn/data/set-qbt-port.sh:/set-qbt-port.sh:ro
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/pia:/pia
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/pia-shared:/pia-shared
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/set-qbt-port.sh:/set-qbt-port.sh:ro
     # WebUI (8081) is accessed over the 'homelab' bridge network by NPM, Radarr,
     # Sonarr, and Homepage. Inbound BitTorrent peer traffic enters directly
     # through the PIA WireGuard tunnel (wg0) on the dynamically assigned port.
@@ -82,14 +82,14 @@ services:
       vpn:
         condition: service_healthy
     environment:
-      PUID: ${PUID:?PUID is required (see .env.example for defaults)}
-      PGID: ${PGID:?PGID is required (see .env.example for defaults)}
-      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      PUID: ${PUID:?See env.example for default.}
+      PGID: ${PGID:?See env.example for default.}
+      TZ: ${TZ:?See env.example for default.}
       WEBUI_PORT: 8081
     volumes:
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/qbittorrentvpn/data/config:/config
-      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/qbittorrentvpn/data/incomplete:/incomplete
-      - ${MEDIA_DIR:?MEDIA_DIR is required (see .env.example for defaults)}:/media
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/config:/config
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/incomplete:/incomplete
+      - ${MEDIA_DIR:?See env.example for default.}:/media
     labels:
       - homepage.group=Downloads
       - homepage.name=QBittorrentVPN
@@ -99,7 +99,7 @@ services:
       - homepage.widget.type=qbittorrent
       - homepage.widget.url=http://qbittorrentvpn:8081
       - homepage.widget.username=admin
-      - homepage.widget.password=${QBITTORRENT_PASSWORD:?QBITTORRENT_PASSWORD is required (see .env.example for defaults)}
+      - homepage.widget.password=${QBITTORRENT_PASSWORD:?See env.example for default.}
 
 networks:
   homelab:
