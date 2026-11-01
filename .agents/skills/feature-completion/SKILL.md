@@ -35,6 +35,7 @@ Execute the entire test suite against the live environment:
   - All `semver.minor` and `semver.major` changes require a curated `CHANGELOG.md` entry.
   - Critical or major security remediations may also warrant a `semver.minor` release.
   - Routine security updates, bugfixes, and patches are typically `semver.patch` or CalVer-only on their own and do not generate a standalone semantic minor version or changelog entry.
+  - If the agent cannot confidently determine whether the changes qualify for major, minor, or patch, it must present its analysis, recommend a version tier, and explicitly ask the user for confirmation before proceeding.
 * **Roll-Up Overview**:
   - The `CHANGELOG.md` entry must provide a high-level overview of ALL changes across the codebase since the previous changelog entry.
   - The entry rolls up and synthesizes intermediate CalVer commits, hotfixes, refactors, and the completed feature into a unified milestone summary.
