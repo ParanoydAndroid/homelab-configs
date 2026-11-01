@@ -15,8 +15,8 @@
 > Installing the persistent boot services (`antigravity-remote-control.service` and `homelab-startup.service`) into `/etc/systemd/system/` requires standard root permissions (`sudo cp ... && sudo systemctl enable ...`). 
 > 
 > *Overview of system modifications*:
-> 1. Write `/etc/systemd/system/antigravity-remote-control.service` (runs `/home/brandon/.gemini/bin/agy remote-control serve` as user `brandon` with retry logic).
-> 2. Write `/etc/systemd/system/homelab-startup.service` (runs `/home/brandon/services/homelab.sh startup` after Docker and storage services are active).
+> 1. Write `/etc/systemd/system/antigravity-remote-control.service` (runs `${HOME}/.gemini/bin/agy remote-control serve` as user `${USER}` with retry logic).
+> 2. Write `/etc/systemd/system/homelab-startup.service` (runs `${HOME}/services/homelab.sh startup` after Docker and storage services are active).
 > 3. Disable the redundant user-level unit (`systemctl --user disable antigravity-cli-daemon`) to prevent duplicate instances.
 
 > [!WARNING]
@@ -60,7 +60,7 @@ flowchart TD
 ### Phase 1: Antigravity Remote Control Systemd Service
 
 #### [NEW] `/etc/systemd/system/antigravity-remote-control.service`
-Replaces the fragile user-session service with a robust system-level unit that retries if `/home/brandon` is still mounting:
+Replaces the fragile user-session service with a robust system-level unit that retries if `${HOME}` is still mounting:
 ```ini
 [Unit]
 Description=Antigravity Remote Control Daemon (Aumaka)
@@ -199,7 +199,7 @@ Set `DOCKER_DATA_DIR=/volume2/docker`.
 Update default fallback from `/volume1/docker` to `/volume2/docker`.
 
 #### [MODIFY] Stack Compose Files (10 files)
-Update `${DOCKER_DATA_DIR:-/volume1/docker}` fallback to `${DOCKER_DATA_DIR:-/volume2/docker}` across all stacks.
+Update `${DOCKER_DATA_DIR}` fallback to NVMe across all stacks.
 
 #### [MODIFY] `README.md`
 1. Update Table of Contents with new section: **7. Host OS Configuration, Services & Appliance Engineering**.
@@ -229,7 +229,7 @@ Update architectural specification and storage paths.
      sudo systemctl status antigravity-remote-control.service
      sudo systemctl status homelab-startup.service
      ```
-   * Dry-run `/home/brandon/services/homelab.sh startup` to ensure zero errors and clean output.
+   * Dry-run `${HOME}/services/homelab.sh startup` to ensure zero errors and clean output.
 
 ### Manual Verification
 1. **Antigravity Remote Control**: Confirm Aumaka remains "Online" in the Remote Control interface.

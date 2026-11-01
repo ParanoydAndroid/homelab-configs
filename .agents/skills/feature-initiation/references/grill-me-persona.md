@@ -22,7 +22,7 @@ When conducting the grill-me review against a feature draft, interrogate the pla
 
 ### 2. Declarative vs. Imperative State
 - Are configurations defined declaratively in `compose.yml` and tracked files (`.configs/`), or does the plan require manual web UI clicks or runtime `docker exec` commands?
-- Is the two-tier environment model preserved with `${VAR:?See env.example for default.}`?
+- Is the two-tier environment model preserved with `${VAR}`?
 - Are secrets kept strictly in `.env.example` templates rather than hardcoded?
 
 ### 3. Maintainability, Backups & Disaster Recovery

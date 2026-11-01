@@ -25,7 +25,7 @@ services:
     image: <image>:<tag>
     container_name: <service-name>
     hostname: <service-hostname>
-    user: "${PUID:?...}:${PGID:?...}"        # Only where appropriate (see Privilege Model)
+    user: "${PUID}:${PGID}"        # Only where appropriate (see Privilege Model)
     restart: unless-stopped
     privileged: false                        # Default false; omit or set true only if strictly required
     cap_add:
@@ -39,12 +39,12 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      - PUID=${PUID:?See env.example for default.}
-      - PGID=${PGID:?See env.example for default.}
-      - TZ=${TZ:?See env.example for default.}
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
     volumes:
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/<service>/data:/config
-      - ${MEDIA_DIR:?See env.example for default.}:/data:ro
+      - ${DOCKER_DATA_DIR}/<service>/data:/config
+      - ${MEDIA_DIR}:/data:ro
     ports:
       # Expose host ports only for broadcast/LAN protocols or emergency fallback
       # - "8080:8080"
@@ -67,7 +67,7 @@ services:
 All Docker Compose files must treat runtime environment variables as required using explicit parameter expansion assertions:
 
 ```yaml
-${VARIABLE:?See env.example for default.}
+${VARIABLE}
 ```
 
 ### Invariant Rules:
@@ -87,7 +87,7 @@ ${VARIABLE:?See env.example for default.}
 
 2. **Images requiring explicit Compose user specification**:
    - Examples: `jellyfin/jellyfin`.
-   - Set Compose `user: "${PUID:?See env.example for default.}:${PGID:?See env.example for default.}"`.
+   - Set Compose `user: "${PUID}:${PGID}"`.
 
 3. **Containers requiring root or internal system UIDs**:
    - `postgres`: Runs under internal `postgres` user (UID `70`). Do not override with host `1000:100`.

@@ -55,7 +55,7 @@ Because multiple routine patches, bug fixes, and CalVer commits may accumulate o
 - Automated health check assertions for subnet routing and NAT masquerade iptables rules.
 
 ### Changed
-- Standardized Docker Compose missing variable assertion message to `${VAR:?See env.example for default.}` across all 12 stack definitions.
+- Standardized Docker Compose missing variable assertions across all 12 stack definitions.
 - Migrated default VPN DNS resolver to Quad9 (`9.9.9.9,149.112.112.112`) for improved privacy and malware blocking.
 
 ### Fixed

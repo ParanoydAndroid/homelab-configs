@@ -110,6 +110,6 @@ All container application state and persistent volumes under `${DOCKER_DATA_DIR}
 * **Untracked Secret Archiving**:
   All untracked live `.env` files are archived into a timestamped tarball in `${DOCKER_DATA_DIR}/backup/homelab/latest_env_secrets.tar.gz`.
 * **Deduplicated & Compressed Snapshots (`./homelab.sh backup`)**:
-  Streams deduplicated, compressed snapshots of `${DOCKER_DATA_DIR}` to `${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}` using native Restic (`--insecure-no-password`) with automatic cache and log exclusions, enforcing 30-day retention (`--keep-daily 30 --prune`).
+  Streams deduplicated, compressed snapshots of `${DOCKER_DATA_DIR}` to `${BACKUP_RESTIC_REPO}` using native Restic (`--insecure-no-password`) with automatic cache and log exclusions, enforcing 30-day retention (`--keep-daily 30 --prune`).
 * **Granular & Full Restoration (`./homelab.sh restore`)**:
   Restores either the full Docker volume or a single targeted service directory from any snapshot, with safety checks to ensure running containers are stopped before active files are modified.

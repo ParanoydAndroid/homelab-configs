@@ -2,7 +2,7 @@
 
 This repository defines the Docker Compose service stacks, tracked application configurations, and automation scripts for the UGREEN NAS homelab environment (`nas.home` / `turing.home`).
 
-The repository is checked out at `${DOCKGE_STACKS_DIR}` (symlinked to `/home/${USER}/services`) so that all stacks are simultaneously version-controlled in git and manageable through [Dockge](https://dockge.kuma.pet/). Persistent state is mapped to NVMe storage (`/volume2/docker`) for high-IOPS performance, while media libraries reside on mechanical RAID 5 storage (`/volume1/media`).
+The repository is checked out at `${DOCKGE_STACKS_DIR}` (symlinked to `${HOME}/services`) so that all stacks are simultaneously version-controlled in git and manageable through [Dockge](https://dockge.kuma.pet/). Persistent state is mapped to NVMe storage (`/volume2/docker`) for high-IOPS performance, while media libraries reside on mechanical RAID 5 storage (`/volume1/media`).
 
 ---
 
@@ -34,10 +34,10 @@ Traffic ingress and egress follow three distinct, non-overlapping paths:
 
 ```bash
 # 1. Clone the repository into ${DOCKGE_STACKS_DIR} and symlink to ~/services
-sudo mkdir -p "${DOCKGE_DIR:-/opt/${USER}/dockge}"
-git clone <repo-url> "${DOCKGE_STACKS_DIR:-/opt/${USER}/dockge/stacks}"
-ln -s "${DOCKGE_STACKS_DIR:-/opt/${USER}/dockge/stacks}" "/home/${USER}/services"
-cd "/home/${USER}/services"
+sudo mkdir -p "${DOCKGE_DIR}"
+git clone <repo-url> "${DOCKGE_STACKS_DIR}"
+ln -s "${DOCKGE_STACKS_DIR}" "${HOME}/services"
+cd "${HOME}/services"
 
 # 2. Run initial convergence (creates networks, root .env, and stack templates)
 sudo ./homelab.sh setup

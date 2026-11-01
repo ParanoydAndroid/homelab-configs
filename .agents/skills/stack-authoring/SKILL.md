@@ -33,7 +33,7 @@ This skill guides the creation and modification of Dockge-compatible Docker Comp
    - `image`, `container_name`, `hostname`, `user`, `restart`, `privileged`, `cap_add`, `cap_drop`, `security_opt`, `sysctls`, `devices`, `group_add`, `mac_address`, `environment`, `volumes`, `ports`, `networks`, `logging`, `labels`.
 4. Enforce mandatory parameter expansion assertion syntax on every variable:
    ```yaml
-   ${VARIABLE:?See env.example for default.}
+   ${VARIABLE}
    ```
 5. Ensure backend containers connect to the external `homelab` network:
    ```yaml
