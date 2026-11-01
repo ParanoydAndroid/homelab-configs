@@ -44,8 +44,12 @@ services:
       FWD_IFACE: tailscale+
       LOCAL_NETWORK: 192.168.0.0/16
       VPNDNS: 1.1.1.1,1.0.0.1
-      POST_UP: (ip rule del priority 5200 2>/dev/null || true) && ip rule add fwmark 0x80000/0xff0000 table 51820 priority 5200 && iptables -I FORWARD 1 -i wg0 -o tailscale+ -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT && iptables -I FORWARD 2 -i tailscale+ -o wg0 -j ACCEPT && iptables -I INPUT 1 -i tailscale+ -j ACCEPT && iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-      POST_RECONNECT: (ip rule del priority 5200 2>/dev/null || true) && ip rule add fwmark 0x80000/0xff0000 table 51820 priority 5200 && iptables -I FORWARD 1 -i wg0 -o tailscale+ -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT && iptables -I FORWARD 2 -i tailscale+ -o wg0 -j ACCEPT && iptables -I INPUT 1 -i tailscale+ -j ACCEPT && iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+      # By default, Tailscale marks daemon packets with fwmark 0x80000 and routes them
+      # to table 'main' (eth0), where PIA's firewall drops non-LAN WAN traffic.
+      # Rule 5200 routes Tailscale's mark to PIA's WireGuard table (51820), allowing
+      # the Tailscale daemon to reach controlplane and DERP servers through PIA.
+      POST_UP: ip rule add fwmark 0x80000/0xff0000 table 51820 priority 5200 2>/dev/null || true
+      POST_RECONNECT: ip rule add fwmark 0x80000/0xff0000 table 51820 priority 5200 2>/dev/null || true
     volumes:
       - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/vpn-bridge/data/pia:/pia
     networks:
