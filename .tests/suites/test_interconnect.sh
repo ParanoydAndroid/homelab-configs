@@ -89,6 +89,39 @@ test_interconnect_tailscale_backend_state() {
   return 1
 }
 
+test_interconnect_vpn_bridge_pia_egress() {
+  local egress_info country org
+  egress_info="$(docker exec vpn-bridge-pia curl -fsS --max-time 15 https://ipinfo.io/json 2>/dev/null || true)"
+  if [[ -z "${egress_info}" ]]; then
+    printf "Failed to query public IP egress from vpn-bridge-pia"
+    return 1
+  fi
+  country="$(echo "${egress_info}" | grep -oE '"country":[[:space:]]*"[^"]+"' | cut -d'"' -f4 || true)"
+  org="$(echo "${egress_info}" | grep -oE '"org":[[:space:]]*"[^"]+"' | cut -d'"' -f4 || true)"
+  if [[ "${country}" == "US" ]]; then
+    printf "Egress routed through US VPN endpoint (%s, %s)" "${country}" "${org}"
+    return 0
+  fi
+  printf "Egress country mismatch (expected US, got: %s)" "${country}"
+  return 1
+}
+
+test_interconnect_vpn_bridge_tailscale_backend_state() {
+  local ts_status
+  ts_status="$(docker exec vpn-bridge-tailscale tailscale status --json 2>/dev/null || true)"
+  if [[ -n "${ts_status}" ]]; then
+    if echo "${ts_status}" | grep -qE '"BackendState":[[:space:]]*"Running"'; then
+      printf "VPN Bridge Tailscale exit node authenticated and running (BackendState: Running)"
+      return 0
+    elif echo "${ts_status}" | grep -qE '"BackendState":[[:space:]]*"NeedsLogin"'; then
+      printf "VPN Bridge Tailscale exit node awaiting pre-auth key registration (BackendState: NeedsLogin)"
+      return 77
+    fi
+  fi
+  printf "VPN Bridge Tailscale exit node container not running or daemon unreachable"
+  return 1
+}
+
 suite_interconnect() {
   init_suite "4. Inter-Container DNS, Sockets & Service Interconnections"
 
@@ -100,6 +133,8 @@ suite_interconnect() {
   run_test test_interconnect_tandoor_to_postgres "Check Tandoor -> PostgreSQL (postgresql:5432)"
   run_test test_interconnect_pia_to_qbittorrent_port_sync "Check WireGuard PIA port forward sync to qBittorrent"
   run_test test_interconnect_tailscale_backend_state "Check Tailscale Subnet Router status and authentication"
+  run_test test_interconnect_vpn_bridge_pia_egress "Verify VPN Bridge PIA WireGuard egress through US endpoint"
+  run_test test_interconnect_vpn_bridge_tailscale_backend_state "Check VPN Bridge Tailscale exit node status"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

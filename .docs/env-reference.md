@@ -2,9 +2,15 @@
 
 This document serves as the central dictionary and reference guide for every environment variable used across the homelab infrastructure.
 
-Configuration follows a two-tier model:
+Configuration follows a two-tier model with explicit runtime assertions:
 1. **Global Root Variables ([`.env.example`](file:///home/brandon/services/.env.example))**: Define host paths, network interfaces, runtime IDs, and timezone. Automatically propagated into child stack `.env` files by `./homelab.sh setup`.
 2. **Per-Stack Variables & Secrets ([`<stack>/.env.example`](file:///home/brandon/services/))**: Define application secrets, credentials, and API keys.
+
+### Single Source of Truth & Required Variable Enforcement
+- **Default Value Single Source of Truth**: All runtime variable defaults are defined strictly in `.env.example` templates.
+- **Compose Assertion Syntax**: Docker Compose files (`compose.yml`) treat runtime variables as required using `${VAR:?VAR is required (see .env.example for defaults)}`. This guarantees that missing variables are caught immediately at deploy time without duplicating default values across multiple Compose files.
+- **Fixed Invariants**: Variables representing immutable architectural decisions (such as `HOMEPAGE_ALLOWED_HOSTS`, `LOG_LEVEL`, `TS_EXTRA_ARGS`, and `CAPTCHA_SOLVER`) are inlined directly as literal values in `compose.yml` and omitted from `.env.example`.
+- **Automatic Secret Generation**: Cryptographic secrets like Django `SECRET_KEY` are automatically generated from `/dev/urandom` during `./homelab.sh setup` if left blank.
 
 ---
 
@@ -104,6 +110,24 @@ These variables are defined in each `<stack>/.env.example` template and populate
 * **`TS_EXTRA_ARGS`**  
   *Default*: `--snat-subnet-routes=true --accept-dns=false`  
   *Description*: Extra CLI flags enabling SNAT masquerading and preserving container-local DNS resolution.
+
+---
+
+### `vpn-bridge` Stack
+*See [VPN Bridge Service Entry](file:///home/brandon/services/.docs/service-catalog.md#vpn-bridge-tailscale-exit-node-via-pia-wireguard).*
+
+* **`VPN_USER`**  
+  *Default*: None (Required Secret)  
+  *Description*: Private Internet Access account username (`pXXXXXXX`).
+* **`VPN_PASS`**  
+  *Default*: None (Required Secret)  
+  *Description*: Private Internet Access account password.
+* **`TS_AUTHKEY`**  
+  *Default*: None (Required Secret)  
+  *Description*: One-time or reusable pre-authentication key generated in Tailscale Admin Console (**Settings -> Keys**) with Exit Node permissions.
+* **`PIA_REGION`**  
+  *Default*: `us_east,us_chicago,us_nyc`  
+  *Description*: Comma-separated list of PIA US server regions for exit node egress.
 
 ---
 

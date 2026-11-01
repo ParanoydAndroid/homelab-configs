@@ -67,24 +67,33 @@ test_backup_semver_bumping() {
   source "${REPO_DIR}/.scripts/common.sh"
   source "${REPO_DIR}/.scripts/backup.sh"
 
+  local latest cur_maj cur_min cur_patch
+  latest="$(run_git tag -l | grep -E '^v?[0-9]{1,3}\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -n 1)"
+  latest="${latest#v}"
+  IFS='.' read -r cur_maj cur_min cur_patch <<< "${latest}"
+  cur_patch="${cur_patch:-0}"
+
+  local exp_patch="${cur_maj}.${cur_min}.$((cur_patch + 1))"
+  local exp_minor="${cur_maj}.$((cur_min + 1)).0"
+  local exp_major="$((cur_maj + 1)).0.0"
+
   local patch minor major
   patch="$(bump_semver patch)"
   minor="$(bump_semver minor)"
   major="$(bump_semver major)"
 
-  # Highest existing SemVer in repo is 2.2.1
-  if [[ "${patch}" != "2.2.2" ]]; then
-    printf "Expected patch 2.2.2, got %s" "${patch}"
+  if [[ "${patch}" != "${exp_patch}" ]]; then
+    printf "Expected patch %s, got %s" "${exp_patch}" "${patch}"
     return 1
   fi
 
-  if [[ "${minor}" != "2.3.0" ]]; then
-    printf "Expected minor 2.3.0, got %s" "${minor}"
+  if [[ "${minor}" != "${exp_minor}" ]]; then
+    printf "Expected minor %s, got %s" "${exp_minor}" "${minor}"
     return 1
   fi
 
-  if [[ "${major}" != "3.0.0" ]]; then
-    printf "Expected major 3.0.0, got %s" "${major}"
+  if [[ "${major}" != "${exp_major}" ]]; then
+    printf "Expected major %s, got %s" "${exp_major}" "${major}"
     return 1
   fi
 
@@ -96,12 +105,19 @@ test_backup_tag_resolution() {
   source "${REPO_DIR}/.scripts/common.sh"
   source "${REPO_DIR}/.scripts/backup.sh"
 
+  local latest cur_maj cur_min cur_patch exp_patch
+  latest="$(run_git tag -l | grep -E '^v?[0-9]{1,3}\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -n 1)"
+  latest="${latest#v}"
+  IFS='.' read -r cur_maj cur_min cur_patch <<< "${latest}"
+  cur_patch="${cur_patch:-0}"
+  exp_patch="${cur_maj}.${cur_min}.$((cur_patch + 1))"
+
   BACKUP_TAG_REQUESTS=("SemVer-patch" "CalVer" "custom-tag-123")
   local tags_out
   tags_out="$(resolve_backup_tags)"
 
-  if ! grep -q "2.2.2" <<< "${tags_out}"; then
-    printf "Missing resolved SemVer patch in '%s'" "${tags_out}"
+  if ! grep -q "${exp_patch}" <<< "${tags_out}"; then
+    printf "Missing resolved SemVer patch '%s' in '%s'" "${exp_patch}" "${tags_out}"
     return 1
   fi
 

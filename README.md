@@ -6,20 +6,25 @@ The repository is checked out at `${DOCKGE_STACKS_DIR}` (symlinked to `/home/${U
 
 ---
 
-## 1. High-Level Ingress Topology
+## 1. High-Level Ingress and Egress Topology
 
-Traffic ingress is divided into two strict, non-overlapping pillars:
+Traffic ingress and egress follow three distinct, non-overlapping paths:
 
 ```text
 [ Internet Client ] ---> Cloudflare Edge ---> [ Cloudflare Tunnel ] ---+
                                                                        |
 [ Remote Phone/PC ] ---> Tailscale Mesh  ---> [ Tailscale Router ] ----+---> [ Nginx Proxy Manager ] ---> [ Backend Stacks ]
-                                                                       |     (192.168.0.4 / turing)      (192.168.255.0/24)
+                                              (192.168.0.5 / homelab)  |     (192.168.0.4 / turing)      (192.168.255.0/24)
+                                                                       |
+[ Remote Mobile/PC] ---> Tailscale Mesh  ---> [ VPN Bridge Exit Node ] ----> [ PIA WireGuard (wg0) ] ---> [ Public Internet ]
+                                              (vpn-bridge-tailscale)         (vpn-bridge-pia)
+                                                                       |
 [ Local LAN Client] ---------------------------------------------------+
 ```
 
 * **Public Web Ingress (`*.kamaka.tech`)**: Ingress routes through an outbound Cloudflare Zero Trust tunnel (`cloudflared`) to Nginx Proxy Manager without requiring port forwarding behind CGNAT residential internet.
 * **Private Admin Ingress (`*.turing.home`)**: Remote management routes through an encrypted Tailscale WireGuard mesh overlay via an internal subnet router (`192.168.0.5`), restricted by reverse proxy ACLs (`192.168.0.0/16`).
+* **Secure VPN Bridge Egress**: Remote mobile devices route internet traffic through a dedicated Tailscale exit node (`vpn-bridge`), which proxies outbound WAN traffic through an encrypted Private Internet Access (PIA) WireGuard tunnel in US server regions (`vpn-bridge-pia`), keeping ISP IP private without interfering with local subnet routing.
 
 ---
 
@@ -38,7 +43,7 @@ cd "/home/${USER}/services"
 sudo ./homelab.sh setup
 
 # 3. Populate required per-stack secrets in generated .env files
-#    (cloudflared, tailscale, qbittorrentvpn, jellyfin, sonarr-radarr, seerr, tandoor)
+#    (cloudflared, tailscale, vpn-bridge, qbittorrentvpn, jellyfin, sonarr-radarr, seerr, tandoor)
 
 # 4. Re-run setup to sync variables, deploy configs, and launch all stacks
 sudo ./homelab.sh setup

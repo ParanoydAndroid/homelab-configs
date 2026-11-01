@@ -89,7 +89,10 @@ The project encompasses:
 ├── tailscale/
 │   ├── .env.example
 │   └── compose.yml
-└── tandoor/
+├── tandoor/
+│   ├── .env.example
+│   └── compose.yml
+└── vpn-bridge/
     ├── .env.example
     └── compose.yml
 ```
@@ -110,6 +113,8 @@ The project encompasses:
 - `/volume2/docker/prowlarr/data` -> `/config` (`prowlarr`)
 - `/volume2/docker/seerr/data` -> `/app/config` (`seerr`)
 - `/volume2/docker/tailscale/data` -> `/var/lib/tailscale` (`tailscale`)
+- `/volume2/docker/vpn-bridge/data/pia` -> `/pia` (`vpn-bridge-pia`)
+- `/volume2/docker/vpn-bridge/data/tailscale` -> `/var/lib/tailscale` (`vpn-bridge-tailscale`)
 - `/volume2/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
 - `/volume2/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
 - `/volume2/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
@@ -130,4 +135,6 @@ The project encompasses:
 | `tailscale` | `tailscale/tailscale:latest` | Runs as `root` with `cap_add: [NET_ADMIN, NET_RAW]` and `/dev/net/tun` to manage kernel WireGuard and `iptables` | `0:0` |
 | `flaresolverr` | `ghcr.io/flaresolverr/flaresolverr:latest` | Stateless; uses internal non-root user; no persistent volume | N/A |
 | `dockge` | `louislam/dockge:1` | Runs as `root` for `/var/run/docker.sock` | `0:0` |
+| `vpn-bridge-pia` | `thrnz/docker-wireguard-pia:latest` | Runs with `cap_add: [NET_ADMIN]` to manage kernel `wg0`, `iptables` NAT forwarding (`FWD_IFACE: tailscale+`), and PIA kill switch | `1000:100` |
+| `vpn-bridge-tailscale` | `tailscale/tailscale:latest` | Runs as `root` with `cap_add: [NET_ADMIN, NET_RAW]`, `/dev/net/tun`, and `network_mode: "service:vpn"` | `1000:100` |
 

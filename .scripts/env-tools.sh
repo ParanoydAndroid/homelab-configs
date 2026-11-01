@@ -83,14 +83,24 @@ init_and_sync_env() {
 
     chown "${TARGET_USER}:${TARGET_GROUP}" "${target_env}" 2>/dev/null || true
 
-    # Step 5: Validate required per-stack secret keys
+    # Step 5: Validate required per-stack secret keys and auto-generate cryptographic tokens
     if [[ -f "${stack_example}" ]]; then
       while IFS='=' read -r req_key _ || [[ -n "${req_key}" ]]; do
         [[ -z "${req_key}" || "${req_key}" =~ ^[[:space:]]*# ]] && continue
         local cur_val
         cur_val="$(get_env_var "${target_env}" "${req_key}")"
         if [[ -z "${cur_val}" ]]; then
-          log_warn "Required variable '${req_key}' in ${stack}/.env is currently blank."
+          if [[ "${req_key}" == "SECRET_KEY" ]]; then
+            local gen_key
+            gen_key="$(LC_ALL=C tr -dc 'A-Za-z0-9!#%&*+,-./:;<=>?@^_~' < /dev/urandom | head -c 50 || true)"
+            upsert_env_var "${target_env}" "SECRET_KEY" "${gen_key}"
+            log_info "Auto-generated random cryptographic SECRET_KEY for ${stack}."
+          elif [[ "${req_key}" == "TS_AUTHKEY" ]]; then
+            # Optional pre-auth key; intentionally allowed to remain blank after initial registration
+            :
+          else
+            log_warn "Required variable '${req_key}' in ${stack}/.env is currently blank."
+          fi
         fi
       done < "${stack_example}"
     fi

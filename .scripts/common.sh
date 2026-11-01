@@ -23,6 +23,7 @@ STACKS=(
   "postgres"
   "nginx"
   "tailscale"
+  "vpn-bridge"
   "homepage"
   "jellyfin"
   "qbittorrentvpn"

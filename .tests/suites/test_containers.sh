@@ -88,6 +88,14 @@ test_docker_up_cloudflared() {
   _assert_container_running "cloudflared"
 }
 
+test_docker_up_vpn_bridge_pia() {
+  _assert_container_running "vpn-bridge-pia"
+}
+
+test_docker_up_vpn_bridge_tailscale() {
+  _assert_container_running "vpn-bridge-tailscale"
+}
+
 suite_containers() {
   init_suite "1. Container Runtime & Health Checks"
 
@@ -95,6 +103,8 @@ suite_containers() {
   run_test test_docker_up_postgresql "Verify PostgreSQL container is running"
   run_test test_docker_up_nginx "Verify Nginx Proxy Manager container is running"
   run_test test_docker_up_tailscale "Verify Tailscale Subnet Router is running"
+  run_test test_docker_up_vpn_bridge_pia "Verify VPN Bridge PIA WireGuard container is running and healthy"
+  run_test test_docker_up_vpn_bridge_tailscale "Verify VPN Bridge Tailscale exit node container is running"
   run_test test_docker_up_homepage "Verify Homepage Dashboard is running and healthy"
   run_test test_docker_up_jellyfin "Verify Jellyfin media server is running and healthy"
   run_test test_docker_up_wireguard_pia "Verify WireGuard PIA VPN container is running and healthy"

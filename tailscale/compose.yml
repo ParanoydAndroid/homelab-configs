@@ -37,14 +37,14 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
       - TS_ROUTES=192.168.0.0/24
-      - TS_EXTRA_ARGS=${TS_EXTRA_ARGS:---snat-subnet-routes=true --accept-dns=false}
+      - TS_EXTRA_ARGS=--snat-subnet-routes=true --accept-dns=false
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume2/docker}/tailscale/data:/var/lib/tailscale
+      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/tailscale/data:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
     networks:
       homelab:
       external_npm:
-        ipv4_address: ${TAILSCALE_IPV4_ADDRESS:-192.168.0.5}
+        ipv4_address: ${TAILSCALE_IPV4_ADDRESS:?TAILSCALE_IPV4_ADDRESS is required (see .env.example for defaults)}
 
 networks:
   homelab:

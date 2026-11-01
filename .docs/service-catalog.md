@@ -27,6 +27,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **PostgreSQL** | `postgres/` | `postgres` | Internal Bridge Only | `5432` | TCP | `postgresql:5432` (Internal) | None |
 | **WireGuard PIA VPN** | `qbittorrentvpn/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.turing.home` | None |
 | **qBittorrent** | `qbittorrentvpn/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
+| **VPN Bridge (PIA)** | `vpn-bridge/` | `vpn-bridge-pia` | Internal Bridge Only | N/A | WireGuard | Outbound PIA Tunnel (`wg0`) | Egress via US PIA Regions |
+| **VPN Bridge (Tailscale)** | `vpn-bridge/` | `vpn-bridge-tailscale` | Network Mode: `service:vpn` | N/A | WireGuard | Node `vpn-bridge` on Mesh | Tailscale Exit Node |
 
 ---
 
@@ -326,3 +328,23 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 * **Automated Dynamic Port Forwarding**: The PIA container dynamically requests an open port in supported regions (e.g. Canada) and runs `/set-qbt-port.sh` ([.configs/qbittorrentvpn/set-qbt-port.sh](file:///home/brandon/services/.configs/qbittorrentvpn/set-qbt-port.sh)) to automatically update qBittorrent's active listening port via WebUI API.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/config` for qBittorrent state, `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia` and `pia-shared` for port sync files, and `${MEDIA_DIR}:/media` for downloads.
 * **Dependencies & Interconnections**: Downloads managed by Radarr and Sonarr via REST API.
+
+---
+
+### VPN Bridge (Tailscale Exit Node via PIA WireGuard)
+
+| Attribute | Value |
+| :--- | :--- |
+| **Stack Directory** | `vpn-bridge/` |
+| **Container Names** | `vpn-bridge-pia` (VPN) & `vpn-bridge-tailscale` (Tailscale Exit Node) |
+| **Host / Network Binding** | Internal `homelab` bridge only (No exposed host ports) |
+| **Internal Container Port**| N/A (WireGuard Tunnel & Mesh Daemon) |
+| **LAN Address** | Node `vpn-bridge` on Tailscale Mesh |
+| **WAN Address** | Egress via US PIA WireGuard tunnel (`wg0`) |
+| **Persistent Data Path** | `${DOCKER_DATA_DIR}/vpn-bridge/data` |
+| **Associated Secrets** | `VPN_USER`, `VPN_PASS`, `TS_AUTHKEY` |
+
+* **Role & Capabilities**: Dedicated privacy bridge providing an encrypted Tailscale exit node routing all client WAN traffic through Private Internet Access in US regions (`PIA_REGION: us_east,us_chicago,us_nyc`). Completely decoupled from the primary Tailscale subnet router (`homelab` / `192.168.0.5`) and qBittorrent stack (`qbittorrentvpn`).
+* **Network & Access**: The Tailscale container operates inside the network namespace of the PIA container (`network_mode: "service:vpn"`). The PIA container provisions WireGuard interface `wg0`, sets kernel `ip_forward=1`, forward interface `FWD_IFACE: tailscale+`, and establishes NAT masquerading (`-o wg0 -j MASQUERADE`). Mobile/remote devices selecting `vpn-bridge` as their exit node route all public internet traffic through PIA without leaking the homelab ISP IP address or bypassing local LAN subnet access.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/vpn-bridge/data/pia:/pia` for WireGuard PIA runtime state and `${DOCKER_DATA_DIR}/vpn-bridge/data/tailscale:/var/lib/tailscale` for node state and machine identity keys. Uses `/dev/net/tun` for kernel tunnel routing and `tmpfs: [/tmp]` for Tailscale daemon sockets.
+* **Dependencies & Interconnections**: Requires `NET_ADMIN` capability on `vpn-bridge-pia` and `NET_ADMIN`, `NET_RAW` capabilities on `vpn-bridge-tailscale`. Operates independently on the `homelab` bridge network.

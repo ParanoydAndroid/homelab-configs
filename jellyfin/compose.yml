@@ -7,8 +7,7 @@
 #
 # Security Hardening (External Exposure):
 #   - Official 'jellyfin/jellyfin' image does NOT drop privileges via PUID/PGID
-#     env vars on its own; 'user: "${PUID:-1000}:${PGID:-100}"' forces the
-#     container process to run as non-root.
+#     container process to run as non-root via PUID/PGID.
 #   - Drops all Linux kernel capabilities ('cap_drop: [ALL]') and blocks
 #     privilege escalation ('no-new-privileges:true').
 #   - Mounts the shared media library read-only (':ro') so a compromised media
@@ -20,7 +19,7 @@ services:
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
     hostname: jellyfin
-    user: "${PUID:-1000}:${PGID:-100}"
+    user: "${PUID:?PUID is required (see .env.example for defaults)}:${PGID:?PGID is required (see .env.example for defaults)}"
     restart: unless-stopped
     cap_drop:
       - ALL
@@ -33,14 +32,14 @@ services:
     group_add:
       - "105"
     environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-100}
+      PUID: ${PUID:?PUID is required (see .env.example for defaults)}
+      PGID: ${PGID:?PGID is required (see .env.example for defaults)}
       UMASK: "022"
-      TZ: ${TZ:-America/New_York}
+      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
       JELLYFIN_PublishedServerUrl: http://jellyfin:8096
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume2/docker}/jellyfin/data/config:/config
-      - ${MEDIA_DIR:-/volume1/media}:/data/media:ro
+      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/jellyfin/data/config:/config
+      - ${MEDIA_DIR:?MEDIA_DIR is required (see .env.example for defaults)}:/data/media:ro
     ports:
       # HTTP/HTTPS traffic is reverse-proxied via NPM on the 'homelab' network.
       # Only UDP port 8022->7359 is bound on the host for LAN client auto-discovery.
@@ -58,7 +57,7 @@ services:
       - homepage.widget.type=jellyfin
       - homepage.widget.version=2
       - homepage.widget.url=http://jellyfin:8096
-      - homepage.widget.key=${JELLYFIN_API_KEY}
+      - homepage.widget.key=${JELLYFIN_API_KEY:?JELLYFIN_API_KEY is required (see .env.example for defaults)}
 
 networks:
   homelab:

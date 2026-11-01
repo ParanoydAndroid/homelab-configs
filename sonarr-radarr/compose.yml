@@ -20,13 +20,13 @@ services:
     hostname: radarr
     restart: unless-stopped
     environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-100}
-      TZ: ${TZ:-America/New_York}
-      RADARR__AUTH__APIKEY: ${RADARR_API_KEY}
+      PUID: ${PUID:?PUID is required (see .env.example for defaults)}
+      PGID: ${PGID:?PGID is required (see .env.example for defaults)}
+      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      RADARR__AUTH__APIKEY: ${RADARR_API_KEY:?RADARR_API_KEY is required (see .env.example for defaults)}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume2/docker}/radarr/data:/config
-      - ${MEDIA_DIR:-/volume1/media}:/media
+      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/radarr/data:/config
+      - ${MEDIA_DIR:?MEDIA_DIR is required (see .env.example for defaults)}:/media
     # ports:
     #   - 8040:7878
     networks:
@@ -39,7 +39,7 @@ services:
       - homepage.description=Movie Autodownloader
       - homepage.widget.type=radarr
       - homepage.widget.url=http://radarr:7878
-      - homepage.widget.key=${RADARR_API_KEY}
+      - homepage.widget.key=${RADARR_API_KEY:?RADARR_API_KEY is required (see .env.example for defaults)}
       - homepage.widget.enableQueue=true
 
   sonarr:
@@ -48,13 +48,13 @@ services:
     hostname: sonarr
     restart: unless-stopped
     environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-100}
-      TZ: ${TZ:-America/New_York}
-      SONARR__AUTH__APIKEY: ${SONARR_API_KEY}
+      PUID: ${PUID:?PUID is required (see .env.example for defaults)}
+      PGID: ${PGID:?PGID is required (see .env.example for defaults)}
+      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      SONARR__AUTH__APIKEY: ${SONARR_API_KEY:?SONARR_API_KEY is required (see .env.example for defaults)}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume2/docker}/sonarr/data:/config
-      - ${MEDIA_DIR:-/volume1/media}:/media
+      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/sonarr/data:/config
+      - ${MEDIA_DIR:?MEDIA_DIR is required (see .env.example for defaults)}:/media
     # ports:
     #   - 8041:8989
     networks:
@@ -67,7 +67,7 @@ services:
       - homepage.description=TV Autodownloader
       - homepage.widget.type=sonarr
       - homepage.widget.url=http://sonarr:8989
-      - homepage.widget.key=${SONARR_API_KEY}
+      - homepage.widget.key=${SONARR_API_KEY:?SONARR_API_KEY is required (see .env.example for defaults)}
       - homepage.widget.enableQueue=true
 
   prowlarr:
@@ -76,12 +76,12 @@ services:
     hostname: prowlarr
     restart: unless-stopped
     environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-100}
-      TZ: ${TZ:-America/New_York}
-      PROWLARR__AUTH__APIKEY: ${PROWLARR_API_KEY}
+      PUID: ${PUID:?PUID is required (see .env.example for defaults)}
+      PGID: ${PGID:?PGID is required (see .env.example for defaults)}
+      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
+      PROWLARR__AUTH__APIKEY: ${PROWLARR_API_KEY:?PROWLARR_API_KEY is required (see .env.example for defaults)}
     volumes:
-      - ${DOCKER_DATA_DIR:-/volume2/docker}/prowlarr/data:/config
+      - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/prowlarr/data:/config
     # ports:
     #   - 8042:9696
     networks:
@@ -94,7 +94,7 @@ services:
       - homepage.description=Indexer Management
       - homepage.widget.type=prowlarr
       - homepage.widget.url=http://prowlarr:9696
-      - homepage.widget.key=${PROWLARR_API_KEY}
+      - homepage.widget.key=${PROWLARR_API_KEY:?PROWLARR_API_KEY is required (see .env.example for defaults)}
 
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
@@ -102,10 +102,10 @@ services:
     hostname: flaresolverr
     restart: unless-stopped
     environment:
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-      LOG_HTML: ${LOG_HTML:-false}
-      CAPTCHA_SOLVER: ${CAPTCHA_SOLVER:-none}
-      TZ: ${TZ:-America/New_York}
+      LOG_LEVEL: info
+      LOG_HTML: "false"
+      CAPTCHA_SOLVER: none
+      TZ: ${TZ:?TZ is required (see .env.example for defaults)}
     # ports:
     #   - 8043:8191
     networks:
