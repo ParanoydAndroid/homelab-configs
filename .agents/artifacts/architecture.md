@@ -51,18 +51,15 @@ The project encompasses:
 │   ├── dockge/
 │   │   ├── .env.example
 │   │   └── compose.yml
-│   ├── homepage/
-│   │   └── *.yaml
 │   ├── nginx/
-│   │   ├── generate-local-cert.sh
-│   │   ├── npm_hosts.sql
-│   │   └── nginx/
-│   │       ├── dead_host/
-│   │       ├── default_host/
-│   │       ├── default_www/
-│   │       └── proxy_host/
-│   └── qbittorrentvpn/
-│       └── set-qbt-port.sh
+│   │   └── generate-local-cert.sh
+│   ├── qbittorrentvpn/
+│   │   └── set-qbt-port.sh
+│   └── systemd/
+│       ├── antigravity-remote-control.service
+│       ├── homelab-backup.service
+│       ├── homelab-backup.timer
+│       └── homelab-startup.service
 ├── .env.example
 ├── .gitignore
 ├── README.md

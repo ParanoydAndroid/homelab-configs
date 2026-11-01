@@ -121,7 +121,7 @@ Tracked unit definitions are maintained in `.configs/systemd/` and deployed to `
 
 ### 4.1 Antigravity Remote Control Daemon (`antigravity-remote-control.service`)
 * **Unit File**: `/etc/systemd/system/antigravity-remote-control.service`
-* **Tracked Template**: [.configs/systemd/antigravity-remote-control.service](file:///home/brandon/services/.configs/systemd/antigravity-remote-control.service)
+* **Tracked Template**: [.configs/systemd/antigravity-remote-control.service](../.configs/systemd/antigravity-remote-control.service)
 * **Purpose**: Keeps the Google Antigravity Remote Control daemon (`Aumaka`) persistently online across system reboots.
 * **Operational Behavior**:
   Runs `/home/brandon/.gemini/bin/agy remote-control serve` as user `brandon`. Includes an `ExecStartPre` polling loop that waits until the binary exists on disk before attempting startup, and sets `Restart=always` with `RestartSec=5s` so the daemon recovers instantly once user files are accessible.
@@ -135,7 +135,7 @@ sudo systemctl enable --now antigravity-remote-control.service
 
 ### 4.2 Homelab Startup Orchestrator (`homelab-startup.service`)
 * **Unit File**: `/etc/systemd/system/homelab-startup.service`
-* **Tracked Template**: [.configs/systemd/homelab-startup.service](file:///home/brandon/services/.configs/systemd/homelab-startup.service)
+* **Tracked Template**: [.configs/systemd/homelab-startup.service](../.configs/systemd/homelab-startup.service)
 * **Purpose**: Automatically initializes Docker networks, Dockge, and all application stacks in strict dependency order on host boot.
 * **Operational Behavior**:
   Executes `/home/brandon/services/homelab.sh startup` after `docker.service` and `storage_serv.service` reach readiness.
@@ -145,6 +145,22 @@ To install or reload:
 sudo cp ~/services/.configs/systemd/homelab-startup.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable homelab-startup.service
+```
+
+### 4.3 Automated Nightly Backup Units (`homelab-backup.service` & `homelab-backup.timer`)
+* **Unit Files**: `/etc/systemd/system/homelab-backup.service`, `/etc/systemd/system/homelab-backup.timer`
+* **Tracked Templates**:
+  - [.configs/systemd/homelab-backup.service](../.configs/systemd/homelab-backup.service)
+  - [.configs/systemd/homelab-backup.timer](../.configs/systemd/homelab-backup.timer)
+* **Purpose**: Orchestrates non-disruptive nightly Restic snapshots of persistent volume state to `/volume1/backups/homelab-docker` with 30-day retention pruning.
+* **Operational Behavior**:
+  The systemd timer fires at 03:00 daily, triggering `homelab-backup.service` which executes `/home/brandon/services/homelab.sh backup -t calver -m "chore(backup): scheduled volume snapshot"`.
+
+To install or reload:
+```bash
+sudo cp ~/services/.configs/systemd/homelab-backup.* /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now homelab-backup.timer
 ```
 
 ---

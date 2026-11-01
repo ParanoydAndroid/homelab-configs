@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.5.0] / [2026.11.1.2] - Modular Agent Skills Architecture & Documentation Hygiene (2026-11-01)
+
+### Added
+* Modular agent skills architecture under `.agents/skills/` (mirrored via `.skills/`) employing progressive disclosure and structured prompt algorithms:
+  - `feature-initiation`: Mainline sync, branch checkout, plan drafting, and adversarial "grill-me" design review cycle.
+  - `feature-completion`: Test suite verification, stop-on-failure, roll-up SemVer/CalVer changelog synthesis, merge, and dual tagging.
+  - `stack-authoring`: Compose authoring guidelines, canonical key ordering, variable assertion syntax (`${VAR:?See env.example for default.}`), non-root user model, and network attachment.
+  - `backup-recovery`: Restic volume snapshot management, online database staging, snapshot inspection, and full/granular disaster recovery.
+  - `network-diagnostics`: Diagnostic triage flowchart for reverse proxy virtual hosts, container DNS, WireGuard killswitches, and Tailscale routing.
+  - `test-authoring`: Systematic recipe for authoring automated smoke, interconnect, and negative security tests in `.tests/suites/`.
+* Supporting reference documentation for each skill under `.agents/skills/<name>/references/` (SemVer/CalVer tier guidelines, Compose specification, restore runbooks, routing topologies, and test suite catalogs).
+
+### Changed
+* Streamlined `.agents/rules/project-conventions.md` to focus strictly on invariant guardrails, persona/tone, and security boundaries, delegating procedural workflows to on-demand skills.
+* Removed all hardcoded `file:///` URIs across documentation, replacing them with standard Markdown relative links.
+* Audited and updated stale documentation references in `.docs/networking.md`, `.docs/env-reference.md`, and `.agents/artifacts/architecture.md` left over from the Restic backup migration.
+* Added Section 4.3 to `.docs/operations.md` tracking systemd nightly backup service and timer unit definitions.
+* Pruned leftover untracked directories (`.configs/nginx/nginx/`) to maintain repository hygiene.
+
+---
+
 ## [2.4.0] / [2026.11.1.1] - Dedicated Tailscale PIA VPN Bridge & Environment Variable Standardization (2026-11-01)
 
 ### Added

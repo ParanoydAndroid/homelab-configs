@@ -3,8 +3,8 @@
 This document serves as the central dictionary and reference guide for every environment variable used across the homelab infrastructure.
 
 Configuration follows a two-tier model with explicit runtime assertions:
-1. **Global Root Variables ([`.env.example`](file:///home/brandon/services/.env.example))**: Define host paths, network interfaces, runtime IDs, and timezone. Automatically propagated into child stack `.env` files by `./homelab.sh setup`.
-2. **Per-Stack Variables & Secrets ([`<stack>/.env.example`](file:///home/brandon/services/))**: Define application secrets, credentials, and API keys.
+1. **Global Root Variables ([`.env.example`](../.env.example))**: Define host paths, network interfaces, runtime IDs, and timezone. Automatically propagated into child stack `.env` files by `./homelab.sh setup`.
+2. **Per-Stack Variables & Secrets ([`<stack>/.env.example`](../))**: Define application secrets, credentials, and API keys.
 
 ### Single Source of Truth & Required Variable Enforcement
 - **Default Value Single Source of Truth**: All runtime variable defaults are defined strictly in `.env.example` templates.
@@ -22,7 +22,7 @@ These variables are defined in the repository root `.env` and synced automatical
 * **Default**: `/volume2/docker`
 * **Type**: Filesystem Path
 * **Description**: Root host directory on high-speed NVMe storage for persistent container data, application configurations, SQLite databases, and caches.
-* **Reference**: [Storage Tiering](file:///home/brandon/services/.docs/project-organization.md#3-storage-tiering-architecture)
+* **Reference**: [Storage Tiering](./project-organization.md#3-storage-tiering-architecture)
 
 ### `MEDIA_DIR`
 * **Default**: `/volume1/media`
@@ -33,7 +33,7 @@ These variables are defined in the repository root `.env` and synced automatical
 * **Default**: `/opt/${USER}/dockge`
 * **Type**: Filesystem Path
 * **Description**: Host directory where Dockge's own `compose.yml` and `.env` reside (one level above stacks).
-* **Reference**: [Dockge Service Entry](file:///home/brandon/services/.docs/service-catalog.md#dockge)
+* **Reference**: [Dockge Service Entry](./service-catalog.md#dockge)
 
 ### `DOCKGE_STACKS_DIR`
 * **Default**: `/opt/${USER}/dockge/stacks`
@@ -87,7 +87,7 @@ These variables are defined in the repository root `.env` and synced automatical
 These variables are defined in each `<stack>/.env.example` template and populated in untracked `<stack>/.env` files.
 
 ### `cloudflared` Stack
-*See [Cloudflare Tunnel Service Entry](file:///home/brandon/services/.docs/service-catalog.md#cloudflare-tunnel-cloudflared).*
+*See [Cloudflare Tunnel Service Entry](./service-catalog.md#cloudflare-tunnel-cloudflared).*
 
 * **`CLOUDFLARE_TUNNEL_TOKEN`**  
   *Default*: None (Required Secret)  
@@ -96,7 +96,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `tailscale` Stack
-*See [Tailscale Router Service Entry](file:///home/brandon/services/.docs/service-catalog.md#tailscale-router).*
+*See [Tailscale Router Service Entry](./service-catalog.md#tailscale-router).*
 
 * **`TS_AUTHKEY`**  
   *Default*: None (Required Secret)  
@@ -114,7 +114,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `vpn-bridge` Stack
-*See [VPN Bridge Service Entry](file:///home/brandon/services/.docs/service-catalog.md#vpn-bridge-tailscale-exit-node-via-pia-wireguard).*
+*See [VPN Bridge Service Entry](./service-catalog.md#vpn-bridge-tailscale-exit-node-via-pia-wireguard).*
 
 * **`VPN_USER`**  
   *Default*: None (Required Secret)  
@@ -132,7 +132,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `qbittorrentvpn` Stack
-*See [WireGuard PIA & qBittorrent Service Entry](file:///home/brandon/services/.docs/service-catalog.md#wireguard-pia-vpn--qbittorrent).*
+*See [WireGuard PIA & qBittorrent Service Entry](./service-catalog.md#wireguard-pia-vpn--qbittorrent).*
 
 * **`VPN_USER`**  
   *Default*: None (Required Secret)  
@@ -162,7 +162,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `jellyfin` Stack
-*See [Jellyfin Service Entry](file:///home/brandon/services/.docs/service-catalog.md#jellyfin).*
+*See [Jellyfin Service Entry](./service-catalog.md#jellyfin).*
 
 * **`JELLYFIN_API_KEY`**  
   *Default*: None (Tracked Secret)  
@@ -171,7 +171,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `sonarr-radarr` Stack
-*See [Radarr](file:///home/brandon/services/.docs/service-catalog.md#radarr), [Sonarr](file:///home/brandon/services/.docs/service-catalog.md#sonarr), and [Prowlarr](file:///home/brandon/services/.docs/service-catalog.md#prowlarr).*
+*See [Radarr](./service-catalog.md#radarr), [Sonarr](./service-catalog.md#sonarr), and [Prowlarr](./service-catalog.md#prowlarr).*
 
 * **`RADARR_API_KEY`**  
   *Default*: None (Deterministic Secret)  
@@ -186,7 +186,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `seerr` Stack
-*See [Seerr Service Entry](file:///home/brandon/services/.docs/service-catalog.md#seerr).*
+*See [Seerr Service Entry](./service-catalog.md#seerr).*
 
 * **`SEERR_API_KEY`**  
   *Default*: None (Deterministic Secret)  
@@ -195,7 +195,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `tandoor` Stack
-*See [Tandoor Recipes Service Entry](file:///home/brandon/services/.docs/service-catalog.md#tandoor-recipes).*
+*See [Tandoor Recipes Service Entry](./service-catalog.md#tandoor-recipes).*
 
 * **`SECRET_KEY`**  
   *Default*: None (Required Cryptographic Secret)  
@@ -213,7 +213,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `homepage` Stack
-*See [Homepage Service Entry](file:///home/brandon/services/.docs/service-catalog.md#homepage).*
+*See [Homepage Service Entry](./service-catalog.md#homepage).*
 
 * **`HOMEPAGE_VAR_PIHOLE_KEY`**  
   *Default*: None (Tracked Secret)  
@@ -222,7 +222,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `postgres` Stack
-*See [PostgreSQL Service Entry](file:///home/brandon/services/.docs/service-catalog.md#postgresql).*
+*See [PostgreSQL Service Entry](./service-catalog.md#postgresql).*
 
 * **`POSTGRES_DB`**  
   *Default*: `postgres`  
@@ -237,7 +237,7 @@ These variables are defined in each `<stack>/.env.example` template and populate
 ---
 
 ### `nginx` Stack
-*See [NPM Service Entry](file:///home/brandon/services/.docs/service-catalog.md#nginx-proxy-manager-npm).*
+*See [NPM Service Entry](./service-catalog.md#nginx-proxy-manager-npm).*
 
 * **`DISABLE_IPV6`**  
   *Default*: `"true"`  
@@ -264,4 +264,4 @@ Homepage widgets consume service secrets without committing plaintext credential
    ```
    Docker Compose reads each stack's `.env` and interpolates the API key into container metadata. Homepage reads the resolved key via `/var/run/docker.sock` and polls the service across the `homelab` bridge.
 2. **Static Environment Substitution (`HOMEPAGE_VAR_*` for External Appliances)**:
-   Non-containerized appliances (like Pi-hole on `192.168.0.2`) are declared in [.configs/homepage/services.yaml](file:///home/brandon/services/.configs/homepage/services.yaml). Homepage natively interpolates `{{HOMEPAGE_VAR_<NAME>}}` placeholders with matching environment variables declared in `homepage/compose.yml`.
+   Non-containerized appliances (like Pi-hole on `192.168.0.2`) are declared in `${DOCKER_DATA_DIR}/homepage/data/services.yaml`. Homepage natively interpolates `{{HOMEPAGE_VAR_<NAME>}}` placeholders with matching environment variables declared in `homepage/compose.yml`.

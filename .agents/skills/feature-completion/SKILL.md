@@ -30,11 +30,12 @@ Execute the entire test suite against the live environment:
   5. Report the exact test failure and logs to the user and wait for instructions.
 
 ### Step 2: Update Changelog (SemVer Minor/Major Releases)
+Review [SemVer and CalVer Guidelines](./references/semver-calver-guidelines.md) for version tier determination, roll-up synthesis, and format rules.
 * **Tagging & Changelog Scope**:
-  - Only features are automatically `semver.minor` or `semver.major`.
+  - Only features automatically receive `semver.minor` or `semver.major` bumps.
   - All `semver.minor` and `semver.major` changes require a curated `CHANGELOG.md` entry.
   - Critical or major security remediations may also warrant a `semver.minor` release.
-  - Routine security updates, bugfixes, and patches are typically `semver.patch` or CalVer-only on their own and do not generate a standalone semantic minor version or changelog entry.
+  - Routine security updates, bugfixes, and patches are typically `semver.patch` or CalVer-only and do not generate a standalone semantic minor version or changelog entry.
   - If the agent cannot confidently determine whether the changes qualify for major, minor, or patch, it must present its analysis, recommend a version tier, and explicitly ask the user for confirmation before proceeding.
 * **Roll-Up Overview**:
   - The `CHANGELOG.md` entry must provide a high-level overview of ALL changes across the codebase since the previous changelog entry.
@@ -62,7 +63,7 @@ Remove ephemeral planning and design documents while preserving persistent archi
 ```bash
 rm -f .agents/artifacts/plan_*.md
 ```
-* Note: Keep `.agents/artifacts/architecture.md` intact.
+* Note: Keep persistent architectural specifications (such as `.agents/artifacts/architecture.md`) intact.
 
 ### Step 4: Final Feature Branch Commit and Push
 Stage all modified files (including `compose.yml`, `CHANGELOG.md`, and rules):

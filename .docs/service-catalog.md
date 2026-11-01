@@ -325,7 +325,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Decoupled VPN network namespace and BitTorrent client. The `wireguard-pia` container maintains an encrypted WireGuard tunnel (`wg0`) to Private Internet Access with a strict `iptables` kill switch. The `qbittorrentvpn` container runs inside the VPN's network namespace (`network_mode: "service:vpn"`), preventing any packet from leaking to the LAN or WAN outside the tunnel.
 * **Network & Access**: WebUI accessible internally at `https://torrent.turing.home` and directly over the bridge at `http://qbittorrentvpn:8081`. Local access without VPN traversal is permitted via `LOCAL_NETWORK: 192.168.0.0/16`.
-* **Automated Dynamic Port Forwarding**: The PIA container dynamically requests an open port in supported regions (e.g. Canada) and runs `/set-qbt-port.sh` ([.configs/qbittorrentvpn/set-qbt-port.sh](file:///home/brandon/services/.configs/qbittorrentvpn/set-qbt-port.sh)) to automatically update qBittorrent's active listening port via WebUI API.
+* **Automated Dynamic Port Forwarding**: The PIA container dynamically requests an open port in supported regions (e.g. Canada) and runs `/set-qbt-port.sh` ([.configs/qbittorrentvpn/set-qbt-port.sh](../.configs/qbittorrentvpn/set-qbt-port.sh)) to automatically update qBittorrent's active listening port via WebUI API.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/config` for qBittorrent state, `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia` and `pia-shared` for port sync files, and `${MEDIA_DIR}:/media` for downloads.
 * **Dependencies & Interconnections**: Downloads managed by Radarr and Sonarr via REST API.
 

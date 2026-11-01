@@ -62,7 +62,7 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 2. **Dot-Prefixed Infrastructure Directories**:
    Dockge automatically scans every non-hidden directory in its stacks folder as a manageable Compose project. Non-stack assets (documentation, helper scripts, configuration templates, agent artifacts, and test suites) **must** reside in dot-prefixed directories (`.docs/`, `.scripts/`, `.configs/`, `.tests/`, `.agents/`). Dockge ignores hidden directories completely, preventing ghost or broken stacks from appearing in the UI.
 3. **External Dockge Deployment**:
-   Dockge cannot cleanly manage or restart its own container if its Compose file resides inside the stacks directory it watches. Dockge's own definition is tracked at [.configs/dockge/compose.yml](file:///home/brandon/services/.configs/dockge/compose.yml) and deployed to `${DOCKGE_DIR}/compose.yml` (`/opt/${USER}/dockge/compose.yml`, one level above `stacks/`).
+   Dockge cannot cleanly manage or restart its own container if its Compose file resides inside the stacks directory it watches. Dockge's own definition is tracked at [.configs/dockge/compose.yml](../.configs/dockge/compose.yml) and deployed to `${DOCKGE_DIR}/compose.yml` (`/opt/${USER}/dockge/compose.yml`, one level above `stacks/`).
 
 ---
 

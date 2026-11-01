@@ -23,7 +23,7 @@ This file serves as the primary entrypoint and instruction set for agents instan
 When newly instantiated against this repository, orient yourself using the following sources of truth in order:
 
 1. **`README.md`**: The authoritative reference for the homelab network topology, subnets, static IP and DNS assignments, firewall rules, reverse proxy (Nginx Proxy Manager) behavior, and service port mappings.
-2. **`.agents/artifacts/`**: The versioned directory for project architecture specifications, design documents, and audits (see `.agents/artifacts/architecture.md`). Read existing artifacts before proposing or executing work.
+2. **`.agents/artifacts/`**: The versioned directory for project architecture specifications, design documents, and audits (see [`.agents/artifacts/architecture.md`](../artifacts/architecture.md)). Read existing artifacts before proposing or executing work.
 3. **Stack Directories (`<stack-name>/compose.yml`)**: Each non-hidden directory at the repository root represents a Dockge-managed Docker Compose stack containing a `compose.yml` and an optional `.env` file.
 
 ## 3. Architectural Principles
@@ -57,7 +57,7 @@ When newly instantiated against this repository, orient yourself using the follo
   - Internal container-to-container database credentials isolated to the `homelab` bridge network (such as `postgres:password`) may remain inline in `compose.yml`.
 - **Host Volume Standardization and Bidirectional Configuration Sync**:
   - Standardize persistent service data and configuration paths by container/service name under `${DOCKER_DATA_DIR:-/volume1/docker}/<service>/data/...` and shared media under `${MEDIA_DIR:-/volume1/media}` (avoiding redundant `/data/data` nesting or cross-service nesting).
-  - Protect persistent container volumes (`${DOCKER_DATA_DIR:-/volume2/docker}`) via Restic snapshots to primary RAID storage (`${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}`) using `homelab.sh backup` with online database staging (zero container downtime) and 30-day retention pruning. Use `homelab.sh restore` for full-volume or granular service disaster recovery.
+  - Protect persistent container volumes (`${DOCKER_DATA_DIR:-/volume2/docker}`) via Restic snapshots to primary RAID storage (`${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}`) using `homelab.sh backup` with online database staging (zero container downtime) and 30-day retention pruning. Use `homelab.sh restore` for full-volume or granular service disaster recovery (see [`backup-recovery`](../skills/backup-recovery/SKILL.md)).
   - Maintain `1000:100` ownership on non-root service data directories, explicitly excluding containers with fixed internal UIDs (`postgres` UID `70`) or root privileges (`nginx`, `homepage`, `dockge`).
 
 ## 4. Code Style and Documentation Standards
@@ -67,7 +67,7 @@ When newly instantiated against this repository, orient yourself using the follo
   - Omit the deprecated top-level `version` property and top-level `name` property (Docker Compose Specification v2+ best practice).
   - Maintain explicit `container_name` definitions on all services and standardize `hostname` usage so service identity on the `homelab` network and inside containers is consistent.
   - Standardize non-root execution via `${PUID:?See env.example for default.}` and `${PGID:?See env.example for default.}`. Use Compose `user: "${PUID:?...}:${PGID:?...}"` only for images like `jellyfin/jellyfin` that do not read `PUID`/`PGID` environment variables; do NOT set Compose `user:` on images (`lscr.io/linuxserver/*`, `vabene1111/recipes`) whose entrypoints require root startup before dropping privileges via `PUID`/`PGID`.
-  - Order service keys consistently (`image`, `container_name`, `hostname`, `user`, `restart`, `privileged`, `cap_add`, `cap_drop`, `security_opt`, `sysctls`, `devices`, `group_add`, `mac_address`, `environment`, `volumes`, `ports`, `networks`, `logging`, `labels`) with 2-space indentation and uniform `environment` syntax.
+  - Order service keys consistently (`image`, `container_name`, `hostname`, `user`, `restart`, `privileged`, `cap_add`, `cap_drop`, `security_opt`, `sysctls`, `devices`, `group_add`, `mac_address`, `environment`, `volumes`, `ports`, `networks`, `logging`, `labels`) with 2-space indentation and uniform `environment` syntax (see [`stack-authoring`](../skills/stack-authoring/SKILL.md)).
 - **Shell Scripting Conventions**:
   - Use `#!/usr/bin/env bash` with `set -euo pipefail`.
   - Quote variable expansions, avoid invalid scoping keywords outside functions, and check preconditions before mutating host state.
@@ -89,15 +89,14 @@ When newly instantiated against this repository, orient yourself using the follo
       - **Tier Ambiguity**: If the agent cannot confidently determine whether changes qualify for major, minor, or patch, it must present its analysis, recommend a version tier, and explicitly ask the user for confirmation before updating the changelog or tagging.
     - **Roll-Up Overview**: Each `CHANGELOG.md` entry must provide a high-level overview of ALL changes made across the codebase since the previous changelog entry. This means a SemVer release rolls up and synthesizes changes across multiple intermediate CalVer commits and routine patches merged to `main`.
     - Format each release entry with a semantic version header paired with its CalVer tag (e.g. `## [2.4.0] / [2026.11.1.1] - Headline Name (YYYY-MM-DD)`), a short descriptive headline, and categorized bulleted lists (`Added`, `Changed`, `Fixed`, `Security`).
-    - Aggregate changes into curated, meaningful bullet points; omit negligible micro-commits, syntax tweaks, or documentation typos.
-
+    - Aggregate changes into curated, meaningful bullet points; omit negligible micro-commits, syntax tweaks, or documentation typos (see [`feature-completion`](../skills/feature-completion/SKILL.md)).
 
 ## 5. Testing and Quality Assurance Standards
 
 - **Smoke and Regression Test Suite (`homelab.sh test`)**:
   - The repository maintains an automated, fast smoke test suite in `homelab.sh test` verifying container runtimes/health, direct admin ports, client-impersonated virtual host routing over reverse proxies (with SSL and HTTP status codes), and internal container interconnections (DNS, database sockets, API health, VPN port sync).
 - **Mandatory Tests with Feature Changes**:
-  - Always add corresponding automated test checks to `homelab.sh test` whenever introducing a new stack, service, reverse proxy host, endpoint, or internal communication path. Feature changes are incomplete without accompanying test coverage.
+  - Always add corresponding automated test checks to `homelab.sh test` whenever introducing a new stack, service, reverse proxy host, endpoint, or internal communication path. Feature changes are incomplete without accompanying test coverage (see [`test-authoring`](../skills/test-authoring/SKILL.md)).
 - **Integrity of Existing Tests**:
   - Respect existing tests. Never arbitrarily loosen assertions, remove checks, or rewrite test logic simply to make a failing test pass. If a test fails, investigate and fix the underlying configuration, networking, or service defect. Any intentional modification to an existing test assertion must be explicitly justified by an intentional architectural or requirement change.
 - **Regression and Bug Fix Testing**:
@@ -105,31 +104,13 @@ When newly instantiated against this repository, orient yourself using the follo
 - **RAID Transition Test Avoidance**:
   - While a storage array transition or rebuild (such as the active RAID 5 rebuild/reshape on the host) is underway, avoid running tests, full test suites, or heavy container probes unless strictly necessary. High disk I/O latency causes container executions to stall or hit timeouts.
 
-## 6. Feature Completion and Release Lifecycle
+## 6. On-Demand Skills and Operational Playbooks
 
-When completing a feature branch, agents must strictly follow this sequential completion workflow:
+Procedural workflows, multi-step runbooks, and diagnostic algorithms are modularized as on-demand skills under `.agents/skills/<name>/SKILL.md` (and accessible via `.skills/<name>/SKILL.md`). In accordance with progressive disclosure, consult and execute the appropriate skill when performing operational tasks:
 
-1. **Full Test Suite Verification**:
-   - Run the full test suite on the feature branch: `./homelab.sh test all`.
-   - **Strict Stop-on-Failure**: If any test fails, STOP immediately. Do NOT proceed to clean artifacts, update changelogs, commit, merge, or tag. Report the specific test failure and error log to the user and wait for explicit instruction.
-2. **Changelog Governance & Roll-Up Release Notes**:
-   - **Version Bump Scope**: Only features automatically receive a semantic minor (`semver-minor`) or major (`semver-major`) version bump. All `semver-minor` and `semver-major` releases mandate a corresponding `CHANGELOG.md` entry. Critical or major security remediations may also qualify for `semver-minor`. Most routine security updates, bugfixes, and patches are `semver-patch` or CalVer-only and do not generate semantic minor versions on their own. If the version tier is ambiguous, recommend a tier and ask the user for confirmation before proceeding.
-   - **Roll-Up Synthesis**: The changelog entry must deliver a comprehensive, high-level overview of ALL modifications introduced since the previous changelog release, rolling up intermediate CalVer commits, hotfixes, and documentation updates along with the completed feature.
-   - Add the release entry to `CHANGELOG.md` formatted with the next SemVer version paired with its chronological CalVer tag (e.g., `## [2.4.0] / [2026.11.1.1] - Dedicated Tailscale PIA VPN Bridge (YYYY-MM-DD)`), summarizing changes under categorized bullet points (`Added`, `Changed`, `Fixed`, `Security`).
-3. **Planning Artifact Cleanup**:
-   - Delete temporary feature planning artifacts from `.agents/artifacts/` (e.g., `plan_*.md`).
-   - Strictly preserve persistent architectural specifications (such as `.agents/artifacts/architecture.md`).
-4. **Final Feature Commit & Remote Push**:
-   - Stage all remaining modified files and create a clean commit on the feature branch:
-     `git commit -m "feat(<scope>): ..."`
-   - Push the feature branch to the remote repository (`git push origin <feature-branch>`).
-5. **Mainline Merge & Dual Version Tagging**:
-   - Checkout `main`, pull latest remote changes, and merge the feature branch:
-     `git checkout main && git pull origin main && git merge <feature-branch>`
-   - Tag the release with both the semantic version (minor bump) and the chronological CalVer tag:
-     `git tag -a v<SemVer> -m "Release v<SemVer> / <CalVer>"`
-     `git tag -a <CalVer> -m "Release <CalVer>"`
-   - Push the merged `main` branch and new release tags to remote origin:
-     `git push origin main --tags`
-   - Cleanly remove the local feature branch if no longer needed.
-
+- **Feature Initiation & Design Review**: Follow the mainline sync, branch checkout (`feature/<name>`), architectural plan drafting, opinionated "grill-me" critique cycle, and plan commit procedure in [`feature-initiation`](../skills/feature-initiation/SKILL.md).
+- **Feature Completion & Release Lifecycle**: Follow the sequential test verification, stop-on-failure, roll-up release note drafting, merge, and dual-tagging procedure in [`feature-completion`](../skills/feature-completion/SKILL.md).
+- **Stack Creation & Maintenance**: Follow directory conventions, canonical key order, variable assertions (`${VAR:?See env.example for default.}`), and privilege rules in [`stack-authoring`](../skills/stack-authoring/SKILL.md).
+- **Volume Backups & Disaster Recovery**: Follow zero-downtime database staging, snapshot management, and granular or full-volume disaster recovery workflows in [`backup-recovery`](../skills/backup-recovery/SKILL.md).
+- **Networking & Routing Diagnostics**: Follow the diagnostic flowchart for reverse proxy virtual hosts, container DNS resolution, WireGuard/PIA killswitches, and Tailscale routing in [`network-diagnostics`](../skills/network-diagnostics/SKILL.md).
+- **Automated Test Authoring**: Follow suite categorization, client impersonation patterns, and regression test conventions in [`test-authoring`](../skills/test-authoring/SKILL.md).
