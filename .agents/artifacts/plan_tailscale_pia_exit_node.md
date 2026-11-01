@@ -4,7 +4,10 @@
 
 This engineering initiative delivers two focused improvements to the homelab:
 1. **Dedicated Exit Node Stack (`vpn-bridge`)**: Deploys an independent Docker Compose stack pairing a Private Internet Access (PIA) WireGuard client with a Tailscale node (`vpn-bridge`) advertising `--advertise-exit-node`. This enables client devices on the Tailnet to route public internet traffic securely through a domestic US PIA endpoint without leaking the homelab ISP IP, while preserving local LAN routing to homelab services (`192.168.0.0/24` and `*.turing.home`) via the existing `tailscale` subnet router.
-2. **Environment Variable Handling Overhaul**: Transitions the homelab from brittle inline fallbacks (`${VAR:-default}`) scattered across Compose files to a centralized Single Source of Truth in `.env.example` templates, paired with strict required-variable assertions in all `compose.yml` files (`${VAR:?VAR is required (see .env.example for defaults)}`).
+2. **Environment Variable Handling Overhaul**: Transitions the homelab from brittle inline fallbacks (`${VAR:-default}`) to a clean separation of concerns:
+   - **Fixed Stack Invariants**: Directly inlined in `compose.yml` (e.g. `HOMEPAGE_ALLOWED_HOSTS`, `LOG_LEVEL`, `TS_EXTRA_ARGS`).
+   - **Runtime Host & Secret Variables**: Declared exclusively in `.env.example` templates and required in `compose.yml` using `${VAR:?VAR is required (see .env.example for defaults)}`.
+   - **Zero-Touch Secret Auto-Generation**: Automatic generation of arbitrary cryptographic keys (e.g. Tandoor Django `SECRET_KEY`) directly inside `.scripts/env-tools.sh` during environment synchronization.
 
 ---
 
@@ -46,7 +49,7 @@ By placing both the `vpn` (PIA WireGuard) and `tailscale` (Exit Node) services i
    - Completely isolated from `qbittorrentvpn`. qBittorrent remains configured for Canadian incoming port forwarding without interference.
    - Completely isolated from `tailscale/compose.yml` (the LAN subnet router on `192.168.0.5`).
 2. **US-Based Region Selection**:
-   - Configured to low-latency US endpoints (`PIA_REGION=us_east,us_chicago,us_nyc`).
+   - Configured to low-latency US endpoints (`PIA_REGION=us_east,us_chicago,us_nyc` in `vpn-bridge/.env.example`).
    - Ensures domestic IP geolocation for mobile web browsing, streaming services, and online banking.
    - `PORT_FORWARDING: 0` (unnecessary for outbound web traffic).
 3. **Native Transit Forwarding**:
@@ -54,77 +57,82 @@ By placing both the `vpn` (PIA WireGuard) and `tailscale` (Exit Node) services i
    - Automatically establishes `iptables -t nat -A POSTROUTING -o wg0 -j MASQUERADE` and bidirectional `FORWARD` acceptance between `tailscale0` and `wg0`.
 4. **Tailscale Node Identity**:
    - Node hostname on Tailnet: `vpn-bridge`.
-   - Flags: `--advertise-exit-node --snat-subnet-routes=true --accept-dns=false`.
+   - Inlined flag argument: `TS_EXTRA_ARGS: --advertise-exit-node --snat-subnet-routes=true --accept-dns=false`.
 
 ---
 
-## 3. Strict Minimization & Pruning Audit
+## 3. Environment Variable Division: Inlined vs. Exposed
 
-Every planned change, variable, script, and step was audited for strict necessity to prevent redundant definitions or unnecessary state mutations:
+### 3.1 Fixed Stack Invariants (Directly Inlined in `compose.yml`)
+The following configuration parameters represent permanent architectural decisions of their respective stacks and will be **directly inlined** as literal strings in `compose.yml`:
 
-| Component | Audit Verdict | Justification |
-| :--- | :--- | :--- |
-| **`.scripts/backup.sh`** | **ZERO changes** | `${DOCKER_DATA_DIR}` (`/volume2/docker`) is already backed up recursively. `vpn-bridge` data is included automatically without script edits. Staging and retention logic need no changes. |
-| **`.scripts/env-tools.sh`** | **ZERO changes** | Regex `grep -qE "(\\\$|\\\$\{)${key}[:}]?"` already matches `${KEY:?...}` required syntax. Global sync to stack `.env` files works out-of-the-box. |
-| **Global `PIA_REGION`** | **Pruned from root `.env`** | `PIA_REGION` is specific to `vpn-bridge`. Adding it to root `.env.example` would pollute 11 unrelated stacks. It is scoped exclusively to `vpn-bridge/.env.example`. |
-| **`homelab.sh`** | **Single array addition** | Add `"vpn-bridge"` to `STACKS=( ... )` so Dockge and homelab orchestration manage its lifecycle. No logic changes. |
-| **Shell Scripts** | **Excluded from `:?` formatting** | Per user requirement, required-variable syntax applies strictly to `compose.yml`. Scripts continue using standard parameter expansion (`${VAR}`). |
-| **Optional Secrets (`TS_AUTHKEY`)** | **Preserved as `${TS_AUTHKEY:-}`** | Once Tailscale authenticates, login tokens persist on disk (`/var/lib/tailscale`) and the auth key is consumed. Forcing `:?` on `TS_AUTHKEY` would cause Compose failures on subsequent container restarts. |
+* `HOMEPAGE_ALLOWED_HOSTS: homepage.turing.home,www.turing.home,turing.home,192.168.0.4` (tied to homelab domain & reverse proxy)
+* `LOG_LEVEL: info` (in `seerr` and `sonarr-radarr` FlareSolverr)
+* `LOG_HTML: "false"` (in `sonarr-radarr` FlareSolverr)
+* `CAPTCHA_SOLVER: none` (in `sonarr-radarr` FlareSolverr)
+* `TS_EXTRA_ARGS: --snat-subnet-routes=true --accept-dns=false` (in `tailscale/compose.yml`)
+* `TS_EXTRA_ARGS: --advertise-exit-node --snat-subnet-routes=true --accept-dns=false` (in `vpn-bridge/compose.yml`)
+* `WEBUI_PORT: 8081` (internal bridge port for qBittorrent)
+* `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=password` (bridge-isolated internal database credentials)
 
----
+### 3.2 Runtime Environment & External Secrets (Exposed in `.env.example`)
+Only parameters that depend on the physical host, storage topology, network interface, or external accounts are exposed:
 
-## 4. Environment Variable Handling Overhaul: Centralized Defaults & Required Assertions
+1. **Root `.env.example` (Global Host Parameters)**:
+   * `DOCKER_DATA_DIR=/volume2/docker`
+   * `MEDIA_DIR=/volume1/media`
+   * `DOCKGE_DIR=/opt/${USER}/dockge`
+   * `DOCKGE_STACKS_DIR=/opt/${USER}/dockge/stacks`
+   * `PUID=1000`
+   * `PGID=100`
+   * `TZ=America/New_York`
+   * `EXTERNAL_NPM_SUBNET=192.168.0.0/24`
+   * `EXTERNAL_NPM_GATEWAY=192.168.0.1`
+   * `EXTERNAL_NPM_PARENT=eth0`
+   * `NPM_IPV4_ADDRESS=192.168.0.4`
+   * `TAILSCALE_IPV4_ADDRESS=192.168.0.5`
+   * `BACKUP_RESTIC_REPO=/volume1/backups/homelab-docker`
+   * `BACKUP_RETENTION_DAYS=30`
 
-### 4.1 Target Declarative Model: Single Source of Truth (`.env.example`)
-All default values are declared once in `.env.example` templates:
+2. **Per-Stack `<stack>/.env.example` (External Credentials & Regional Selection)**:
+   * `vpn-bridge`: `PIA_REGION=us_east,us_chicago,us_nyc`, `VPN_USER=`, `VPN_PASS=`, `TS_AUTHKEY=`
+   * `qbittorrentvpn`: `VPN_USER=`, `VPN_PASS=`, `QBITTORRENT_PASSWORD=`
+   * `tailscale`: `TS_AUTHKEY=`
+   * `cloudflared`: `CLOUDFLARE_TUNNEL_TOKEN=`
+   * `homepage`: `HOMEPAGE_VAR_PIHOLE_KEY=`
+   * `jellyfin`: `JELLYFIN_API_KEY=`
+   * `seerr`: `SEERR_API_KEY=`
+   * `sonarr-radarr`: `RADARR_API_KEY=`, `SONARR_API_KEY=`, `PROWLARR_API_KEY=`
+   * `tandoor`: `SECRET_KEY=`
 
-1. **Root `.env.example` (Global Parameters)**:
-   ```bash
-   DOCKER_DATA_DIR=/volume2/docker
-   MEDIA_DIR=/volume1/media
-   DOCKGE_DIR=/opt/${USER}/dockge
-   DOCKGE_STACKS_DIR=/opt/${USER}/dockge/stacks
-   PUID=1000
-   PGID=100
-   TZ=America/New_York
-   EXTERNAL_NPM_SUBNET=192.168.0.0/24
-   EXTERNAL_NPM_GATEWAY=192.168.0.1
-   EXTERNAL_NPM_PARENT=eth0
-   NPM_IPV4_ADDRESS=192.168.0.4
-   TAILSCALE_IPV4_ADDRESS=192.168.0.5
-   BACKUP_RESTIC_REPO=/volume1/backups/homelab-docker
-   BACKUP_RETENTION_DAYS=30
-   ```
-
-2. **Per-Stack `.env.example` (Stack-Specific Defaults)**:
-   Make explicit the defaults previously buried inside Compose files:
-   * `homepage/.env.example`: add `HOMEPAGE_ALLOWED_HOSTS=homepage.turing.home,www.turing.home,turing.home,192.168.0.4`
-   * `seerr/.env.example`: add `LOG_LEVEL=info`
-   * `sonarr-radarr/.env.example`: add `LOG_LEVEL=info`, `LOG_HTML=false`, `CAPTCHA_SOLVER=none`
-   * `tailscale/.env.example`: add `TS_EXTRA_ARGS=--snat-subnet-routes=true --accept-dns=false`
-   * `vpn-bridge/.env.example`: declare `PIA_REGION=us_east,us_chicago,us_nyc`, `VPN_USER=`, `VPN_PASS=`, `TS_AUTHKEY=`
-
-3. **Compose Required-Variable Syntax (`:?`) with User Guidance**:
-   In all `compose.yml` files, replace `${VAR:-default}` with Docker Compose's standard required-variable syntax:
-   ```yaml
-   ${VAR:?VAR is required (see .env.example for defaults)}
-   ```
-   * If a required variable is missing or blank in `.env`, Docker Compose refuses to launch and halts immediately with a clear parse-time error pointing directly to `.env.example`.
-   * Stacks remain fully runnable standalone because `./homelab.sh setup` syncs all root and stack defaults into `<stack>/.env`.
+### 3.3 Zero-Touch Secret Auto-Generation (`SECRET_KEY`)
+In `.scripts/env-tools.sh`, within `init_and_sync_env()`, an existing validation hook checks for blank keys. For arbitrary cryptographic tokens like `SECRET_KEY`:
+* If `SECRET_KEY` is blank in `tandoor/.env`, the script automatically generates a secure 50-character random cryptographic string (`LC_ALL=C tr -dc 'A-Za-z0-9!#%&*+,-./:;<=>?@^_~' < /dev/urandom | head -c 50`) and injects it via `upsert_env_var`.
+* No manual user input is required; the key is established automatically upon initial environment sync.
 
 ---
 
-## 5. Step-by-Step Implementation Plan
+## 4. Step-by-Step Implementation Plan
 
-### Step 1: Environment Template Standardization
-* Update `homepage/.env.example`, `seerr/.env.example`, `sonarr-radarr/.env.example`, and `tailscale/.env.example` to declare their respective defaults.
-* Audit and refactor all existing `compose.yml` files (`dockge`, `homepage`, `jellyfin`, `nginx`, `postgres`, `qbittorrentvpn`, `recipes`, `seerr`, `sonarr-radarr`, `tailscale`, `cloudflared`, `tandoor`):
-  * Replace inline fallbacks (`${VAR:-default}`) with `${VAR:?VAR is required (see .env.example for defaults)}`.
-  * Keep intentionally optional variables (`TS_AUTHKEY`) as `${TS_AUTHKEY:-}`.
-* Run `./homelab.sh setup` to synchronize defaults into all stack `.env` files.
-* Verify every stack parses cleanly with `docker compose config`.
+### Step 1: Environment Sync Hook Update & Secret Auto-Generation
+* Edit [`.scripts/env-tools.sh`](file:///opt/brandon/dockge/stacks/.scripts/env-tools.sh):
+  * In `init_and_sync_env()`: when validating stack keys, if `req_key == "SECRET_KEY"` and the current value is blank, auto-generate a random 50-char secret and save it to `<stack>/.env`.
+* Confirm that no new scripts are created and all existing functions remain intact.
 
-### Step 2: Create `vpn-bridge` Stack
+### Step 2: Compose Inlining & Required Syntax Transition
+* **Inline Fixed Settings**:
+  * In `homepage/compose.yml`: inline `HOMEPAGE_ALLOWED_HOSTS`.
+  * In `seerr/compose.yml`: inline `LOG_LEVEL: info`.
+  * In `sonarr-radarr/compose.yml`: inline `LOG_LEVEL: info`, `LOG_HTML: "false"`, `CAPTCHA_SOLVER: none`.
+  * In `tailscale/compose.yml`: inline `TS_EXTRA_ARGS: --snat-subnet-routes=true --accept-dns=false`.
+* **Standardize Required Variables**:
+  * In all `compose.yml` files, replace `${VAR:-default}` with:
+    `${VAR:?VAR is required (see .env.example for defaults)}`
+  * Preserve optional auth keys as `${TS_AUTHKEY:-}`.
+* Run `./homelab.sh setup` to verify environment synchronization and secret auto-generation.
+* Verify all stacks parse cleanly using `docker compose config`.
+
+### Step 3: Create `vpn-bridge` Stack
 * Create directory `vpn-bridge/`.
 * Create `vpn-bridge/.env.example`:
   ```bash
@@ -167,33 +175,34 @@ All default values are declared once in `.env.example` templates:
       * `/dev/net/tun:/dev/net/tun`
       * `tmpfs: [/tmp]`
 
-### Step 3: Homelab Automation & Test Integration
+### Step 4: Homelab Automation & Test Integration
 * In `homelab.sh`: Add `"vpn-bridge"` to `STACKS` array (ordered after `tailscale` and before application stacks).
 * In `.tests/suites/test_containers.sh`: Add `test_docker_up_vpn_bridge_pia` and `test_docker_up_vpn_bridge_tailscale`.
 * In `.tests/suites/test_interconnect.sh`: Add `test_interconnect_vpn_bridge_routing` (verifying egress IP is PIA) and `test_interconnect_vpn_bridge_tailscale_state` (verifying `BackendState: Running`).
 
-### Step 4: Documentation & Convention Governance
-* Update [`.agents/rules/project-conventions.md`](file:///opt/brandon/dockge/stacks/.agents/rules/project-conventions.md) codifying:
-  * Single Source of Truth for defaults in `.env.example`.
-  * Required `${VAR:?VAR is required (see .env.example for defaults)}` syntax for mandatory Compose variables.
-  * Prohibition of `${VAR:?}` syntax in shell scripts.
+### Step 5: Documentation & Convention Governance
+* Update [`.agents/rules/project-conventions.md`](file:///opt/brandon/dockge/stacks/.agents/rules/project-conventions.md):
+  * Codify the boundary between inlined stack invariants and exposed runtime environment variables.
+  * Codify the `${VAR:?VAR is required (see .env.example for defaults)}` standard.
 * Update [`README.md`](file:///opt/brandon/dockge/stacks/README.md) and [`.docs/env-reference.md`](file:///opt/brandon/dockge/stacks/.docs/env-reference.md).
 * Update [`.agents/artifacts/architecture.md`](file:///opt/brandon/dockge/stacks/.agents/artifacts/architecture.md).
 
 ---
 
-## 6. Verification & Validation Protocol
+## 5. Verification & Validation Protocol
 
 1. **Required Variable Enforcement Check**:
-   * Temporarily unset a variable in a scratch Compose test to verify `docker compose config` halts immediately with:
+   * Temporarily unset a variable in a test Compose file to verify `docker compose config` halts immediately with:
      `required variable ... is missing a value: ... (see .env.example for defaults)`
-2. **Container Runtime & Health**:
+2. **Secret Auto-Generation Check**:
+   * Verify `SECRET_KEY` is automatically generated if missing in `tandoor/.env` upon running `./homelab.sh setup`.
+3. **Container Runtime & Health**:
    * Inspect container logs to confirm PIA WireGuard negotiates `wg0` handshake with US endpoint.
    * Confirm Tailscale successfully logs in and registers as `vpn-bridge` on Tailnet.
-3. **Egress Leak Prevention**:
+4. **Egress Leak Prevention**:
    * Execute `docker exec vpn-bridge-pia curl -s https://am.i.mullvad.net/json` (or `ipinfo.io`) to verify outbound IP belongs to Private Internet Access.
-4. **Automated Smoke Test**:
-   * Run `./homelab.sh test` to verify all 51+ tests pass with zero regressions.
-5. **Tailscale Admin Console Approval & Client Verification**:
+5. **Automated Smoke Test**:
+   * Run `./homelab.sh test` to verify all tests pass with zero regressions.
+6. **Tailscale Admin Console Approval & Client Verification**:
    * In Tailscale Admin Console: Approve the advertised exit node route (`0.0.0.0/0`) on `vpn-bridge`.
-   * On mobile client: Enable Tailscale, toggle "Use Exit Node" → `vpn-bridge`, and confirm public IP is PIA US while `https://jellyfin.turing.home` remains accessible via LAN subnet routing.
+   * On client device: Enable Tailscale, toggle "Use Exit Node" → `vpn-bridge`, and confirm public IP is PIA US while `https://jellyfin.turing.home` remains accessible via LAN subnet routing.
