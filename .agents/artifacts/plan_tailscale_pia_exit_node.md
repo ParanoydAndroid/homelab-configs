@@ -180,8 +180,7 @@ Create `vpn-bridge/compose.yml` adhering strictly to project conventions:
 * Update [`homelab.sh`](file:///opt/brandon/dockge/stacks/homelab.sh):
   * Register `"vpn-bridge"` in `STACKS` array in the standard dependency order (after `tailscale` and before application stacks).
   * Ensure `env-tools.sh` sync logic propagates variables into `vpn-bridge/.env`.
-* Update [`.scripts/backup.sh`](file:///opt/brandon/dockge/stacks/.scripts/backup.sh):
-  * Add `/volume2/docker/vpn-bridge` data directory to volume backup paths and retention policies.
+  * Note: Volume backups in `homelab.sh backup` already target `${DOCKER_DATA_DIR}` (`/volume2/docker`) recursively, so `vpn-bridge` persistent data is backed up automatically without script changes. Stack secrets in `vpn-bridge/.env` are automatically included in the secret archive via the `STACKS` array.
 
 ### Step 4: Test Suite Coverage
 
