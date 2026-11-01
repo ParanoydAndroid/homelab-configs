@@ -15,8 +15,8 @@
 #                   and start all stacks
 #   startup         Non-interactive boot hook to start networks, Dockge, and
 #                   stacks in dependency order (used by systemd)
-#   backup          Snapshot persistent volumes to Restic repository and archive
-#                   live .env secret files
+#   backup          Snapshot persistent volumes to Restic repository, commit
+#                   git changes, apply SemVer/CalVer/custom tags, and archive .env
 #   snapshots       List historical Restic backup snapshots
 #   restore         Restore volume state from Restic snapshot
 #   test [suite]    Run modular smoke and regression tests (suites: containers,
@@ -25,7 +25,7 @@
 # Usage:
 #   sudo ./homelab.sh setup
 #   ./homelab.sh startup
-#   sudo ./homelab.sh backup
+#   sudo ./homelab.sh backup [-t <type|name>] [-m <message>]
 #   ./homelab.sh snapshots
 #   sudo ./homelab.sh restore [snapshot_id] [service_name] [-f]
 #   ./homelab.sh test [suite] [test_name]
@@ -166,10 +166,15 @@ Usage: $(basename "$0") <subcommand> [options]
 Subcommands:
   setup                    Initialize .env files, apply NAS OS fixes, create networks, and start all stacks
   startup                  Non-interactive boot hook to start networks, Dockge, and stacks in dependency order
-  backup                   Snapshot persistent volumes to Restic repository and archive live .env files
+  backup                   Snapshot persistent volumes to Restic repository, stage DB dumps, and archive .env
   snapshots                List historical Restic backup snapshots
   restore [snap] [svc]     Restore persistent volume state from Restic snapshot (optional specific service)
   test [suite]             Run modular smoke and regression tests (suites: containers, direct, routing, interconnect, security)
+
+Options for backup:
+  -t, --tag [type|name]    Repeatable tag request: SemVer-major, SemVer-minor, SemVer-patch,
+                           CalVer (default if omitted), or any custom tag string
+  -m, --message <msg>      Custom git commit message for repository changes
 
 Options for restore:
   -f, --force              Bypass active container checks and overwrite prompts
@@ -195,8 +200,28 @@ main() {
     return $?
   fi
 
+  BACKUP_TAG_REQUESTS=()
+  BACKUP_COMMIT_MSG=""
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
+      -t|--tag)
+        if [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
+          BACKUP_TAG_REQUESTS+=("$2")
+          shift
+        else
+          BACKUP_TAG_REQUESTS+=("calver")
+        fi
+        ;;
+      -m|--message)
+        if [[ $# -lt 2 ]]; then
+          log_error "Option '$1' requires a commit message argument."
+          usage
+          exit 1
+        fi
+        BACKUP_COMMIT_MSG="$2"
+        shift
+        ;;
       -h|--help)
         usage
         exit 0

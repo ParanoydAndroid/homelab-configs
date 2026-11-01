@@ -63,12 +63,72 @@ test_backup_systemd_units() {
   return 0
 }
 
+test_backup_semver_bumping() {
+  source "${REPO_DIR}/.scripts/common.sh"
+  source "${REPO_DIR}/.scripts/backup.sh"
+
+  local patch minor major
+  patch="$(bump_semver patch)"
+  minor="$(bump_semver minor)"
+  major="$(bump_semver major)"
+
+  # Highest existing SemVer in repo is 2.2.1
+  if [[ "${patch}" != "2.2.2" ]]; then
+    printf "Expected patch 2.2.2, got %s" "${patch}"
+    return 1
+  fi
+
+  if [[ "${minor}" != "2.3.0" ]]; then
+    printf "Expected minor 2.3.0, got %s" "${minor}"
+    return 1
+  fi
+
+  if [[ "${major}" != "3.0.0" ]]; then
+    printf "Expected major 3.0.0, got %s" "${major}"
+    return 1
+  fi
+
+  printf "patch=%s, minor=%s, major=%s" "${patch}" "${minor}" "${major}"
+  return 0
+}
+
+test_backup_tag_resolution() {
+  source "${REPO_DIR}/.scripts/common.sh"
+  source "${REPO_DIR}/.scripts/backup.sh"
+
+  BACKUP_TAG_REQUESTS=("SemVer-patch" "CalVer" "custom-tag-123")
+  local tags_out
+  tags_out="$(resolve_backup_tags)"
+
+  if ! grep -q "2.2.2" <<< "${tags_out}"; then
+    printf "Missing resolved SemVer patch in '%s'" "${tags_out}"
+    return 1
+  fi
+
+  if ! grep -q "custom-tag-123" <<< "${tags_out}"; then
+    printf "Missing custom tag in '%s'" "${tags_out}"
+    return 1
+  fi
+
+  local current_calver
+  current_calver="$(date +%Y.%-m.%-d)"
+  if ! grep -q "${current_calver}" <<< "${tags_out}"; then
+    printf "Missing CalVer prefix '%s' in '%s'" "${current_calver}" "${tags_out}"
+    return 1
+  fi
+
+  printf "Resolved: %s" "${tags_out}"
+  return 0
+}
+
 suite_backup() {
   init_suite "6. Restic Backup & Disaster Recovery Automation"
 
   run_test test_backup_restic_binary "Verify host restic binary installation and version"
   run_test test_backup_env_config "Verify backup repository and retention environment settings"
   run_test test_backup_systemd_units "Verify systemd backup service and timer unit declarations"
+  run_test test_backup_semver_bumping "Verify SemVer auto-bumping logic (major, minor, patch)"
+  run_test test_backup_tag_resolution "Verify multi-tag resolution (SemVer, CalVer, custom string)"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

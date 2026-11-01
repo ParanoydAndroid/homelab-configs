@@ -74,7 +74,7 @@ When newly instantiated against this repository, orient yourself using the follo
   - Do not use icons, emojis, or advanced/non-standard Markdown extensions in documentation, artifacts, or instructions. Use plain Markdown (headings, lists, standard tables, and fenced code blocks).
   - Store all agent-generated artifacts in `.agents/artifacts/` and commit them to git as part of the project workflow.
   - **Changelog Governance**:
-    - Update `CHANGELOG.md` exclusively upon major, semantically tagged releases (e.g. via `./homelab.sh backup --tag <semver>`).
+    - Update `CHANGELOG.md` exclusively upon major, semantically tagged releases (e.g. via `./homelab.sh backup -t semver-minor` or `-t semver-major`).
     - Format each major release entry with a semantic version header paired with its CalVer tag (e.g. `## [2.2.0] / [2026.10.29] - Headline Name (YYYY-MM-DD)`), a short descriptive headline, and categorized bulleted lists (`Added`, `Changed`, `Fixed`, `Security`).
     - Aggregate changes between releases into curated, meaningful bullet points; omit negligible micro-commits, syntax tweaks, or documentation typos.
 

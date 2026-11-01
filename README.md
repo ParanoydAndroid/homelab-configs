@@ -62,7 +62,7 @@ sudo ./homelab.sh setup
 | :--- | :--- |
 | `sudo ./homelab.sh setup` | End-to-end host convergence: applies OS fixes, syncs `.env` files, provisions networks, deploys Dockge orchestrator compose, and starts all stacks. |
 | `./homelab.sh startup` | Non-interactive boot hook designed for systemd execution on host startup with database readiness checks. |
-| `sudo ./homelab.sh backup` | Stages zero-downtime database dumps, snapshots `/volume2/docker` via Restic to `/volume1`, enforces 30-day retention, and archives `.env` secrets. |
+| `sudo ./homelab.sh backup [-t <type|name>] [-m <msg>]` | Stages zero-downtime DB dumps, snapshots volumes with Restic, commits git changes, applies repeatable SemVer/CalVer/custom tags, pushes to remote, and archives `.env` secrets. |
 | `./homelab.sh snapshots` | Lists historical Restic backup snapshots with timestamps, snapshot IDs, and repository sizes. |
 | `sudo ./homelab.sh restore [snap] [svc]` | Restores full volume state or an individual service from a Restic snapshot with pre-restore safety checks. |
 | `./homelab.sh test [suite]` | Modular smoke and regression test suite verifying containers, direct admin ports, routing, interconnects, security, and backup automation. |

@@ -38,6 +38,190 @@ RESTIC_EXCLUDES=(
   --exclude="*/data/torrents/*"
 )
 
+# Global variables for repeatable backup tagging and git commit operations
+BACKUP_TAG_REQUESTS=()
+BACKUP_COMMIT_MSG=""
+
+# ------------------------------------------------------------------------------
+# Function: run_git
+# Description:
+#   Executes git commands within REPO_DIR, automatically delegating to TARGET_USER
+#   if running under sudo so user identity, GPG keys, and SSH credentials for
+#   remote push operations remain intact.
+# ------------------------------------------------------------------------------
+run_git() {
+  if [[ "${EUID}" -eq 0 && -n "${TARGET_USER:-}" && "${TARGET_USER}" != "root" ]]; then
+    sudo -u "${TARGET_USER}" git -C "${REPO_DIR}" "$@"
+  else
+    git -C "${REPO_DIR}" "$@"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# Function: resolve_chronological_tag
+# Description:
+#   Generates a chronological PEP 440 / CalVer git tag string (YYYY.M.D[.N]).
+# Outputs:
+#   Prints resolved unique tag string on stdout.
+# ------------------------------------------------------------------------------
+resolve_chronological_tag() {
+  local base_tag candidate seq=1
+  base_tag="$(date +%Y.%-m.%-d)"
+  candidate="${base_tag}"
+
+  while run_git rev-parse -q --verify "refs/tags/${candidate}" >/dev/null 2>&1; do
+    candidate="${base_tag}.${seq}"
+    ((seq++))
+  done
+
+  printf "%s" "${candidate}"
+}
+
+# ------------------------------------------------------------------------------
+# Function: bump_semver
+# Description:
+#   Calculates next semantic version (major, minor, or patch) based on the
+#   highest existing SemVer tag in the git repository. Deliberately excludes
+#   4-digit CalVer years (2024+) so CalVer tags are never misidentified as SemVer.
+# Arguments:
+#   $1 (bump_type) - One of: major, minor, patch.
+# Outputs:
+#   Prints incremented X.Y.Z string on stdout.
+# ------------------------------------------------------------------------------
+bump_semver() {
+  local bump_type="$1"
+  local latest major minor patch
+
+  latest="$(run_git tag -l | grep -E '^v?[0-9]{1,3}\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -n 1)"
+  latest="${latest#v}"
+
+  if [[ -z "${latest}" ]]; then
+    major=0; minor=1; patch=0
+  else
+    IFS='.' read -r major minor patch <<< "${latest}"
+    patch="${patch:-0}"
+  fi
+
+  case "${bump_type}" in
+    major)
+      ((major++))
+      minor=0
+      patch=0
+      ;;
+    minor)
+      ((minor++))
+      patch=0
+      ;;
+    patch)
+      ((patch++))
+      ;;
+    *)
+      log_error "Unknown semver bump type: ${bump_type}"
+      return 1
+      ;;
+  esac
+
+  printf "%d.%d.%d" "${major}" "${minor}" "${patch}"
+}
+
+# ------------------------------------------------------------------------------
+# Function: resolve_backup_tags
+# Description:
+#   Processes all requested tag arguments (SemVer-major/minor/patch, CalVer, or
+#   custom strings) and outputs a space-delimited list of unique resolved tags.
+# Globals Read:
+#   BACKUP_TAG_REQUESTS
+# ------------------------------------------------------------------------------
+resolve_backup_tags() {
+  local tag_req req_lower tag_resolved resolved=()
+
+  for tag_req in "${BACKUP_TAG_REQUESTS[@]}"; do
+    req_lower="$(echo "${tag_req}" | tr '[:upper:]' '[:lower:]')"
+    case "${req_lower}" in
+      semver-major|semver_major|major)
+        tag_resolved="$(bump_semver major)"
+        ;;
+      semver-minor|semver_minor|minor)
+        tag_resolved="$(bump_semver minor)"
+        ;;
+      semver-patch|semver_patch|patch)
+        tag_resolved="$(bump_semver patch)"
+        ;;
+      calver)
+        tag_resolved="$(resolve_chronological_tag)"
+        ;;
+      *)
+        tag_resolved="${tag_req}"
+        ;;
+    esac
+    resolved+=("${tag_resolved}")
+  done
+
+  # Deduplicate while preserving order
+  local unique=() t u already
+  for t in "${resolved[@]}"; do
+    already=0
+    for u in "${unique[@]}"; do
+      [[ "${u}" == "${t}" ]] && already=1 && break
+    done
+    [[ "${already}" -eq 0 ]] && unique+=("${t}")
+  done
+
+  printf "%s\n" "${unique[*]:-}"
+}
+
+# ------------------------------------------------------------------------------
+# Function: commit_and_tag_git
+# Description:
+#   Commits working tree changes if present, creates annotated git tags, and
+#   pushes commits and tags to remote origin if configured.
+# Arguments:
+#   $@ - Array of resolved tags to apply.
+# Globals Read:
+#   REPO_DIR, BACKUP_COMMIT_MSG
+# ------------------------------------------------------------------------------
+commit_and_tag_git() {
+  local tags=("$@")
+  local current_branch has_commits=0 has_tags=0
+
+  # Step 1: Commit repository changes if working tree is dirty
+  if [[ -n "$(run_git status --porcelain)" ]]; then
+    local commit_msg="${BACKUP_COMMIT_MSG:-"Backup homelab configuration ($(date '+%Y-%m-%d %H:%M:%S'))"}"
+    log_info "Committing configuration changes to git: ${commit_msg}"
+    run_git add -A
+    run_git commit -m "${commit_msg}"
+    has_commits=1
+  else
+    log_info "Git working tree is clean; no configuration changes to commit."
+  fi
+
+  # Step 2: Apply resolved git tags
+  local tag
+  for tag in "${tags[@]}"; do
+    [[ -n "${tag}" ]] || continue
+    if run_git rev-parse -q --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+      log_warn "Git tag '${tag}' already exists; skipping tag creation."
+    else
+      run_git tag -a "${tag}" -m "Homelab release ${tag}"
+      log_info "Created git tag: ${tag}"
+      has_tags=1
+    fi
+  done
+
+  # Step 3: Push commits and tags to origin if remote exists
+  if run_git remote get-url origin >/dev/null 2>&1; then
+    current_branch="$(run_git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"
+    if [[ "${has_commits}" -eq 1 || "${has_tags}" -eq 1 ]]; then
+      log_info "Pushing git commits and tags to origin (${current_branch})..."
+      if run_git push origin "${current_branch}" 2>/dev/null && run_git push origin --tags 2>/dev/null; then
+        log_info "Successfully pushed git commits and tags to origin."
+      else
+        log_warn "git push failed or network/SSH credentials unavailable; local commits and tags preserved."
+      fi
+    fi
+  fi
+}
+
 # ------------------------------------------------------------------------------
 # Function: check_root_privileges
 # Description:
@@ -198,16 +382,18 @@ archive_env_secrets() {
 # ------------------------------------------------------------------------------
 # Function: backup_homelab
 # Description:
-#   Orchestrates end-to-end homelab volume backup:
+#   Orchestrates end-to-end homelab backup:
 #     1. Enforces root privileges and checks restic availability.
-#     2. Unlocks stale repository locks and initializes repository if missing.
-#     3. Archives untracked .env secrets.
-#     4. Stages zero-downtime database dumps.
-#     5. Executes incremental deduplicated restic backup with cache exclusions.
-#     6. Applies retention policy (--keep-daily 30) and prunes repository.
-#     7. Cleans temporary database staging files.
+#     2. Resolves requested SemVer/CalVer/custom tags, commits git changes, and pushes.
+#     3. Unlocks stale repository locks and initializes restic repo if missing.
+#     4. Archives untracked .env secrets.
+#     5. Stages zero-downtime database dumps.
+#     6. Executes incremental deduplicated restic backup with cache exclusions
+#        and correlated git/release tags.
+#     7. Applies retention policy (--keep-daily 30) and prunes repository.
+#     8. Cleans temporary database staging files.
 # Globals Read:
-#   BACKUP_RESTIC_REPO, BACKUP_RETENTION_DAYS, DOCKER_DATA_DIR
+#   BACKUP_RESTIC_REPO, BACKUP_RETENTION_DAYS, DOCKER_DATA_DIR, BACKUP_TAG_REQUESTS
 # ------------------------------------------------------------------------------
 backup_homelab() {
   check_root_privileges
@@ -217,6 +403,17 @@ backup_homelab() {
   local repo="${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}"
   local retention="${BACKUP_RETENTION_DAYS:-30}"
 
+  # Step 1: Resolve requested tags and commit/tag git repository
+  local resolved_tags_str
+  resolved_tags_str="$(resolve_backup_tags)"
+  local resolved_tags=()
+  if [[ -n "${resolved_tags_str}" ]]; then
+    read -r -a resolved_tags <<< "${resolved_tags_str}"
+  fi
+
+  commit_and_tag_git "${resolved_tags[@]}"
+
+  # Step 2: Prepare storage repository and staging
   unlock_restic_repo
   init_restic_repo
   archive_env_secrets
@@ -227,10 +424,17 @@ backup_homelab() {
   # Ensure staging directory is cleaned up even on unexpected termination
   trap clean_database_staging EXIT
 
+  # Step 3: Forward resolved tags into Restic snapshot
+  local restic_tags=(--tag homelab)
+  local t
+  for t in "${resolved_tags[@]}"; do
+    [[ -n "${t}" ]] && restic_tags+=(--tag "${t}")
+  done
+
   log_info "Starting Restic backup of ${DOCKER_DATA_DIR} to ${repo}..."
   restic -r "${repo}" --insecure-no-password backup \
     "${RESTIC_EXCLUDES[@]}" \
-    --tag homelab \
+    "${restic_tags[@]}" \
     "${DOCKER_DATA_DIR}"
 
   log_info "Applying ${retention}-day retention policy and pruning repository..."
