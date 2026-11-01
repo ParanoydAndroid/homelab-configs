@@ -69,7 +69,7 @@ The following configuration parameters represent permanent architectural decisio
 * `HOMEPAGE_ALLOWED_HOSTS: homepage.turing.home,www.turing.home,turing.home,192.168.0.4` (tied to homelab domain & reverse proxy)
 * `LOG_LEVEL: info` (in `seerr` and `sonarr-radarr` FlareSolverr)
 * `LOG_HTML: "false"` (in `sonarr-radarr` FlareSolverr)
-* `CAPTCHA_SOLVER: none` (in `sonarr-radarr` FlareSolverr)
+* `CAPTCHA_SOLVER: none` (FlareSolverr internal challenge solver module; verified as functional state in running container)
 * `TS_EXTRA_ARGS: --snat-subnet-routes=true --accept-dns=false` (in `tailscale/compose.yml`)
 * `TS_EXTRA_ARGS: --advertise-exit-node --snat-subnet-routes=true --accept-dns=false` (in `vpn-bridge/compose.yml`)
 * `WEBUI_PORT: 8081` (internal bridge port for qBittorrent)
