@@ -79,9 +79,14 @@ test_interconnect_pia_to_qbittorrent_port_sync() {
 }
 
 test_interconnect_tailscale_backend_state() {
-  # Temporarily non-blocking / skipped during host RAID rebuild to avoid docker exec I/O hang
-  printf "temporarily skipped during host RAID rebuild due to docker exec I/O contention"
-  return 77
+  local ts_status
+  ts_status="$(docker exec tailscale tailscale status --json 2>/dev/null || true)"
+  if [[ -n "${ts_status}" ]] && echo "${ts_status}" | grep -qE '"BackendState":[[:space:]]*"Running"'; then
+    printf "Tailscale subnet router authenticated and running (BackendState: Running)"
+    return 0
+  fi
+  printf "Tailscale subnet router not running or unauthenticated"
+  return 1
 }
 
 suite_interconnect() {
