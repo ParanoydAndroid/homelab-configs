@@ -67,7 +67,7 @@ services:
       TS_HOSTNAME: vpn-bridge
       TS_STATE_DIR: /var/lib/tailscale
       TS_USERSPACE: "false"
-      TS_EXTRA_ARGS: --advertise-exit-node --snat-subnet-routes=true --accept-dns=false
+      TS_EXTRA_ARGS: --advertise-exit-node --snat-subnet-routes=true --accept-dns=false --netfilter-mode=off
     volumes:
       - ${DOCKER_DATA_DIR:?DOCKER_DATA_DIR is required (see .env.example for defaults)}/vpn-bridge/data/tailscale:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
