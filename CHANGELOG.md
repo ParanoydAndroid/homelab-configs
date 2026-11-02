@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.7.0] / [2026.11.2.1] - Project Administration Skills Suite, Dynamic Stack Discovery & Adaptive Testing (2026-11-02)
+
+### Added
+* Comprehensive suite of homelab administration and onboarding agent skills under `.agents/skills/` (and `.skills/`):
+  - `start-homelab`: Interactive onboarding wizard for new repository instantiations guiding service needs assessment (keep, defer, prune), hardware/platform constraint handling (UGOS, Synology DSM, Generic Linux, QuickSync `/dev/dri`, RAM sizing for tmpfs), provider adaptation (PIA, ProtonVPN, Mullvad, AirVPN, Cloudflare Tunnel, Tailscale), adaptation plan generation (`plan_<name>.md`), secret provisioning, and verified deployment. Includes 3 reference guides: `service-matrix.md`, `hardware-platforms.md`, and `provider-adapters.md`.
+  - `stack-lifecycle`: Standardized operational runbook for adding or decommissioning services across all 6 homelab architectural touchpoints (Compose specification, environment templates, reverse proxy virtual hosts, dashboard widgets, backup policies, and automated smoke test assertions).
+  - `tls-certificates`: Local TLS certificate management, internal root CA generation, wildcard `*.home` certificate provisioning, NPM and UGOS import, and client OS trust distribution across macOS, Windows, Linux, iOS, Android, and Firefox.
+  - `disaster-recovery-drill`: Operational runbook for zero-downtime disaster recovery drills; restores Restic snapshots into an isolated sandbox staging directory (`/tmp/dr-drill`), verifies PostgreSQL logical cluster dumps and SQLite databases via `PRAGMA integrity_check`, without interrupting production services.
+  - `homelab-audit`: Systematic drift detection and compliance auditing runbook across container runtimes/health, service and image tag skew, environment variable drift, untracked containers, volume permissions (`1000:100`), UGOS ACLs (`system.ugacl_self`), Btrfs No-CoW flags (`+C`), reverse proxy virtual hosts, backup timers, and host system services/daemons (systemd unit diffs, Docker daemon configs, dirty memory sysctls, Go Kyber defect re-injection checks, and convenience symlinks).
+* Dynamic stack discovery engine (`discover_stacks`, `is_stack_enabled`) in `.scripts/common.sh`, scanning root directories for `compose.yml` and ignoring `.disabled` markers.
+* Adaptive test skipping (`exit 77` / `[SKIP]`) across all `.tests/suites/*.sh` test suites when stacks are disabled or omitted, maintaining 100% clean test runs regardless of enabled service configuration.
+* Dynamic probe container fallback in routing and security test suites, ensuring reverse proxy client impersonation tests execute reliably even when specific media indexers are deferred.
+* Initial project direction guidance in `.agents/rules/project-conventions.md` directing newly instantiated agents on fresh clones to invoke `start-homelab`.
+* Tracked backlog item `[BACKLOG-002]` in `BACKLOG.md` for deferred volume-tiering skill.
+
+### Changed
+* Refactored `homelab.sh` setup, startup, backup, and test orchestration to consume dynamic stack discovery from `.scripts/common.sh` in place of brittle static stack arrays.
+* Updated `README.md` Section 5 with the full project administration and operational skills catalog.
+* Updated `.docs/project-organization.md` repository tree documenting `.agents/` and `.skills/` organizational conventions.
+
+### Fixed
+* Enhanced PostgreSQL readiness probe in `homelab.sh` to check both `postgresql` and `postgres` container names.
+
+---
+
 ## [2.6.0] / [2026.11.2] - Post-Setup Optimization Runbook, Storage Performance Hardening & qBittorrent Resilience (2026-11-02)
 
 ### Added

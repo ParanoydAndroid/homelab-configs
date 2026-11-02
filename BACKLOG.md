@@ -25,3 +25,23 @@ Mounting a `tmpfs` on `/tmp` keeps the UNIX domain socket entirely in host memor
 2. Tailscale container starts cleanly without socket startup delays.
 3. `docker exec tailscale tailscale status --json` reports `BackendState: "Running"`.
 4. `./homelab.sh test interconnect` passes with `test_interconnect_tailscale_backend_state` active.
+
+---
+
+### [BACKLOG-002] Volume-Tiering Skill: Single-Volume to Dual-Tier Storage Migration Runbook
+* **Priority**: Low
+* **Category**: Agent Skills / Storage Architecture
+* **Component**: `.agents/skills/volume-tiering/SKILL.md`
+* **Trigger**: On demand when users upgrade from single-pool storage to fast NVMe SSD (`DOCKER_DATA_DIR`) + bulk HDD array (`MEDIA_DIR`).
+
+#### Description
+Author a procedural operational runbook skill (`volume-tiering`) providing step-by-step guidance, validation commands, and automated data migration for separating container application data from bulk media storage.
+
+#### Motivation & Context
+Many initial homelab installations start with a single filesystem pool (e.g., `/volume1/docker` and `/volume1/media` on the same drive array). As users scale, migrating persistent container metadata, databases (PostgreSQL, SQLite), and caches to high-IOPS NVMe SSD storage while retaining multi-terabyte media libraries on bulk HDD RAID pools significantly boosts performance and reduces head thrashing. This skill will provide declarative guidance for updating root `.env` / stack `.env` variables, performing live or offline `rsync` transfers with ownership (`1000:100`) preservation, updating Restic snapshot configurations, and verifying database socket integrity post-migration.
+
+#### Verification Criteria
+1. Author `.agents/skills/volume-tiering/SKILL.md` adhering to skill format standards.
+2. Include pre-flight storage capacity checks (`df -h`).
+3. Detail safe `rsync -avhHAX --numeric-ids` staging commands with container stop/start sequences.
+4. Include database post-migration integrity verification.
