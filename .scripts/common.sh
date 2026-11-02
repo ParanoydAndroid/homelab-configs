@@ -18,20 +18,105 @@ else
 fi
 TARGET_GROUP="$(id -gn "${TARGET_USER}" 2>/dev/null || echo "admin")"
 
-# Ordered list of Docker Compose stack directories
-STACKS=(
-  "postgres"
-  "nginx"
-  "tailscale"
-  "vpn-bridge"
-  "homepage"
-  "jellyfin"
-  "qbittorrentvpn"
-  "sonarr-radarr"
-  "seerr"
-  "tandoor"
-  "cloudflared"
-)
+# ------------------------------------------------------------------------------
+# Function: discover_stacks
+# Description:
+#   Dynamically discovers all active Dockge-compatible stack directories at the
+#   repository root. A valid stack is a non-hidden directory containing a
+#   'compose.yml' file without a '.disabled' marker.
+#
+#   Ordering:
+#     Applies deterministic bootstrapping precedence: foundational network and
+#     database services ('postgres', 'nginx', 'tailscale', 'vpn-bridge') are
+#     ordered first, followed alphabetically by remaining application stacks.
+#
+# Arguments:
+#   None.
+# Outputs:
+#   Populates the global 'STACKS' array.
+# Returns:
+#   0 if one or more stacks are discovered; 1 if no valid stacks are found.
+# ------------------------------------------------------------------------------
+discover_stacks() {
+  local found_stacks=()
+  local dir stack_name
+
+  # Search for all compose.yml files exactly one directory deep under REPO_DIR
+  for dir in "${REPO_DIR}"/*/compose.yml; do
+    [[ -f "${dir}" ]] || continue
+    stack_name="$(basename "$(dirname "${dir}")")"
+
+    # Ignore hidden directories or explicitly disabled stacks
+    if [[ "${stack_name}" =~ ^\. ]] || [[ -f "${REPO_DIR}/${stack_name}/.disabled" ]]; then
+      continue
+    fi
+    found_stacks+=("${stack_name}")
+  done
+
+  # Foundational priority order
+  local priority_order=("postgres" "nginx" "tailscale" "vpn-bridge")
+  local ordered_stacks=()
+  local remaining_stacks=()
+
+  # Add priority stacks first if they exist
+  for p in "${priority_order[@]}"; do
+    for s in "${found_stacks[@]}"; do
+      if [[ "${s}" == "${p}" ]]; then
+        ordered_stacks+=("${s}")
+        break
+      fi
+    done
+  done
+
+  # Collect non-priority stacks
+  for s in "${found_stacks[@]}"; do
+    local is_priority=0
+    for p in "${priority_order[@]}"; do
+      if [[ "${s}" == "${p}" ]]; then
+        is_priority=1
+        break
+      fi
+    done
+    if [[ "${is_priority}" -eq 0 ]]; then
+      remaining_stacks+=("${s}")
+    fi
+  done
+
+  # Sort remaining stacks alphabetically
+  if [[ ${#remaining_stacks[@]} -gt 0 ]]; then
+    local sorted_remaining=()
+    while IFS= read -r line; do
+      [[ -n "${line}" ]] && sorted_remaining+=("${line}")
+    done < <(printf "%s\n" "${remaining_stacks[@]}" | sort)
+    ordered_stacks+=("${sorted_remaining[@]}")
+  fi
+
+  STACKS=("${ordered_stacks[@]}")
+  [[ ${#STACKS[@]} -gt 0 ]]
+}
+
+# ------------------------------------------------------------------------------
+# Function: is_stack_enabled
+# Description:
+#   Checks whether a given stack is active and discovered in the current repository.
+# Arguments:
+#   $1 (stack_name) - Directory name of the stack (e.g. "postgres", "tandoor").
+# Returns:
+#   0 if enabled/present; 1 if omitted, disabled, or not found.
+# ------------------------------------------------------------------------------
+is_stack_enabled() {
+  local target="$1"
+  for s in "${STACKS[@]}"; do
+    if [[ "${s}" == "${target}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Dynamically discovered list of Docker Compose stack directories
+STACKS=()
+discover_stacks || true
 
 # Global runtime flags
 OVERWRITE_MODE="${OVERWRITE_MODE:-prompt}"

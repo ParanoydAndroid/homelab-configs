@@ -7,6 +7,12 @@
 # ==============================================================================
 set -euo pipefail
 
+# Resolve repository root directory and source shared environment & stack discovery
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if [[ -f "${REPO_DIR}/.scripts/common.sh" ]]; then
+  source "${REPO_DIR}/.scripts/common.sh"
+fi
+
 # ------------------------------------------------------------------------------
 # Test Counter Globals
 # ------------------------------------------------------------------------------

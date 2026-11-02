@@ -7,6 +7,10 @@
 set -euo pipefail
 
 test_interconnect_jellyfin_to_seerr() {
+  if ! is_stack_enabled "jellyfin" || ! is_stack_enabled "seerr"; then
+    printf "Stack 'jellyfin' or 'seerr' omitted or disabled"
+    return 77
+  fi
   if docker exec jellyfin curl -fsS --max-time 15 "http://seerr:5055/api/v1/status" >/dev/null 2>&1; then
     printf "http://seerr:5055/api/v1/status accessible"
     return 0
@@ -16,6 +20,10 @@ test_interconnect_jellyfin_to_seerr() {
 }
 
 test_interconnect_radarr_to_qbittorrent() {
+  if ! is_stack_enabled "sonarr-radarr" || ! is_stack_enabled "qbittorrentvpn"; then
+    printf "Stack 'sonarr-radarr' or 'qbittorrentvpn' omitted or disabled"
+    return 77
+  fi
   local ver
   ver="$(docker exec radarr curl -fsS --max-time 15 "http://qbittorrentvpn:8081/api/v2/app/version" 2>/dev/null || true)"
   if [[ -n "${ver}" ]]; then
@@ -27,6 +35,10 @@ test_interconnect_radarr_to_qbittorrent() {
 }
 
 test_interconnect_radarr_to_prowlarr() {
+  if ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'sonarr-radarr' omitted or disabled"
+    return 77
+  fi
   if docker exec radarr curl -fsS --max-time 15 "http://prowlarr:9696/ping" >/dev/null 2>&1; then
     printf "http://prowlarr:9696/ping accessible"
     return 0
@@ -36,6 +48,10 @@ test_interconnect_radarr_to_prowlarr() {
 }
 
 test_interconnect_sonarr_to_qbittorrent() {
+  if ! is_stack_enabled "sonarr-radarr" || ! is_stack_enabled "qbittorrentvpn"; then
+    printf "Stack 'sonarr-radarr' or 'qbittorrentvpn' omitted or disabled"
+    return 77
+  fi
   local ver
   ver="$(docker exec sonarr curl -fsS --max-time 15 "http://qbittorrentvpn:8081/api/v2/app/version" 2>/dev/null || true)"
   if [[ -n "${ver}" ]]; then
@@ -47,6 +63,10 @@ test_interconnect_sonarr_to_qbittorrent() {
 }
 
 test_interconnect_prowlarr_to_flaresolverr() {
+  if ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'sonarr-radarr' omitted or disabled"
+    return 77
+  fi
   if docker exec prowlarr curl -fsS --max-time 15 "http://flaresolverr:8191/health" >/dev/null 2>&1; then
     printf "http://flaresolverr:8191/health accessible"
     return 0
@@ -56,6 +76,10 @@ test_interconnect_prowlarr_to_flaresolverr() {
 }
 
 test_interconnect_tandoor_to_postgres() {
+  if ! is_stack_enabled "tandoor" || ! is_stack_enabled "postgres"; then
+    printf "Stack 'tandoor' or 'postgres' omitted or disabled"
+    return 77
+  fi
   if docker exec tandoor python3 -c "import socket; s = socket.create_connection(('postgresql', 5432), 15); s.close()" >/dev/null 2>&1; then
     printf "TCP socket to postgresql:5432 open"
     return 0
@@ -65,6 +89,10 @@ test_interconnect_tandoor_to_postgres() {
 }
 
 test_interconnect_pia_to_qbittorrent_port_sync() {
+  if ! is_stack_enabled "qbittorrentvpn"; then
+    printf "Stack 'qbittorrentvpn' omitted or disabled"
+    return 77
+  fi
   local pia_port qbt_port
   pia_port="$(docker exec wireguard-pia cat /pia-shared/port.dat 2>/dev/null || true)"
   qbt_port="$(docker exec wireguard-pia curl -fsS --max-time 15 "http://127.0.0.1:8081/api/v2/app/preferences" 2>/dev/null | grep -oE '"listen_port":[0-9]+' | cut -d: -f2 || true)"
@@ -79,6 +107,10 @@ test_interconnect_pia_to_qbittorrent_port_sync() {
 }
 
 test_interconnect_tailscale_backend_state() {
+  if ! is_stack_enabled "tailscale"; then
+    printf "Stack 'tailscale' omitted or disabled"
+    return 77
+  fi
   local ts_status
   ts_status="$(docker exec tailscale tailscale status --json 2>/dev/null || true)"
   if [[ -n "${ts_status}" ]] && echo "${ts_status}" | grep -qE '"BackendState":[[:space:]]*"Running"'; then
@@ -90,6 +122,10 @@ test_interconnect_tailscale_backend_state() {
 }
 
 test_interconnect_vpn_bridge_pia_egress() {
+  if ! is_stack_enabled "vpn-bridge"; then
+    printf "Stack 'vpn-bridge' omitted or disabled"
+    return 77
+  fi
   local egress_info country org
   egress_info="$(docker exec vpn-bridge-pia curl -fsS --max-time 15 https://ipinfo.io/json 2>/dev/null || true)"
   if [[ -z "${egress_info}" ]]; then
@@ -113,6 +149,10 @@ test_interconnect_vpn_bridge_pia_egress() {
 #   and authenticated on the Tailscale tailnet.
 # ------------------------------------------------------------------------------
 test_interconnect_vpn_bridge_tailscale_backend_state() {
+  if ! is_stack_enabled "vpn-bridge"; then
+    printf "Stack 'vpn-bridge' omitted or disabled"
+    return 77
+  fi
   local ts_status
   ts_status="$(docker exec vpn-bridge-tailscale tailscale status --json 2>/dev/null || true)"
   if [[ -n "${ts_status}" ]]; then
@@ -147,6 +187,10 @@ test_interconnect_vpn_bridge_tailscale_backend_state() {
 #   0 on full write/delete success across all volumes; 1 if any directory fails.
 # ------------------------------------------------------------------------------
 test_interconnect_qbittorrent_volume_write_permissions() {
+  if ! is_stack_enabled "qbittorrentvpn"; then
+    printf "Stack 'qbittorrentvpn' omitted or disabled"
+    return 77
+  fi
   local target_user="abc"
   local dirs=(/config /incomplete /media)
   local failed_dirs=()
@@ -185,6 +229,10 @@ test_interconnect_qbittorrent_volume_write_permissions() {
 #   0 if zero torrents are errored; 1 if API fails or any errored torrents found.
 # ------------------------------------------------------------------------------
 test_interconnect_qbittorrent_torrent_error_status() {
+  if ! is_stack_enabled "qbittorrentvpn"; then
+    printf "Stack 'qbittorrentvpn' omitted or disabled"
+    return 77
+  fi
   local errored_json errored_trimmed
   errored_json="$(docker exec wireguard-pia curl -fsS --max-time 15 "http://127.0.0.1:8081/api/v2/torrents/info?filter=errored" 2>/dev/null || true)"
 

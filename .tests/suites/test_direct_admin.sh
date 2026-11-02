@@ -21,8 +21,27 @@ test_direct_dockge_host_port() {
 }
 
 test_direct_npm_admin_api() {
+  if ! is_stack_enabled "nginx"; then
+    printf "Stack 'nginx' omitted or disabled"
+    return 77
+  fi
+
+  local probe_c=""
+  local c
+  for c in radarr sonarr homepage jellyfin seerr nginx; do
+    if docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null | grep -q "running"; then
+      probe_c="${c}"
+      break
+    fi
+  done
+
+  if [[ -z "${probe_c}" ]]; then
+    printf "No active probe container found on 'homelab' bridge network"
+    return 77
+  fi
+
   local code
-  code="$(docker exec radarr curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "http://nginx:81/api/" 2>/dev/null || true)"
+  code="$(docker exec "${probe_c}" curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "http://nginx:81/api/" 2>/dev/null || true)"
   [[ -z "${code}" ]] && code="000"
 
   if [[ "${code}" == "200" ]]; then

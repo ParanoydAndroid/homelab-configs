@@ -54,10 +54,17 @@ flowchart TD
        - **Keep (Immediate)**: Activated in the initial deployment.
        - **Defer**: Commented out / stopped for later activation.
        - **Remove**: Stack directory purged, NPM proxy host deleted, Homepage widget removed.
-  3. **Phase 3: Hardware & Topology Discovery**:
-     - Inspects host block devices and filesystems (`lsblk`, `df -h`, Btrfs subvolumes).
-     - Determines single-volume (`/volume1`) vs dual-tier (`/volume2` SSD + `/volume1` HDD).
-     - Identifies host user (`PUID`/`PGID`), local subnet (`192.168.0.0/24`), and domain suffix (`.home` / `.kamaka.tech`).
+  3. **Phase 3: Hardware, Platform & Provider Discovery**:
+     - **Hardware & Storage Topology**: Inspects host block devices, RAM capacity, and filesystems (`lsblk`, `df -h`, free memory). Determines single-volume (`/volume1`) vs dual-tier (`/volume2` SSD + `/volume1` HDD), sizing in-memory `tmpfs` caches accordingly.
+     - **Platform & Host OS Adaptation**: Detects host appliance OS and applies environment-specific workarounds:
+       - *UGREEN NAS (UGOS)*: Remediation for `GODEBUG=tlskyber=0` in `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`; stripping proprietary `system.ugacl_self` extended attributes and enforcing `chmod 775` on download buffers.
+       - *Synology DSM*: TUN device permissions (`/dev/net/tun`), Synology package port conflicts (e.g. 5000/5001).
+       - *Generic Linux (Debian/Ubuntu/Arch)*: Standard systemd, host firewall/iptables rules, and render node GID resolution (`/dev/dri/renderD128`).
+     - **Hardware Acceleration Capabilities**: Probes Intel QuickSync (`/dev/dri`), NVIDIA NVDEC, or fallback CPU transcoding, adjusting `devices:` and `group_add:` in Jellyfin.
+     - **Paid Provider & External Service Adaptations**:
+       - *VPN Providers*: Adapts `qbittorrentvpn` and `vpn-bridge` for PIA (NextGen port forwarding script), ProtonVPN, Mullvad, AirVPN, or generic WireGuard configs.
+       - *Remote Ingress / Tunnel Providers*: Adapts Cloudflare Zero Trust Tunnels (`cloudflared`) vs DuckDNS / Tailscale Funnel / direct port-forwarding with NPM Let's Encrypt.
+     - **Identity & Network Parameters**: Resolves host user (`PUID`/`PGID`), local subnet (`192.168.0.0/24`), gateway, parent interface for macvlan, and domain suffix (`.home` / custom FQDN).
   4. **Phase 4: Adaptation Plan Drafting**:
      - Invokes planning conventions to generate `.agents/artifacts/plan_homelab_instance.md`.
      - Outlines the target `.env` configurations, pruned directories, and expected endpoints.

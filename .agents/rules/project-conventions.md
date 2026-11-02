@@ -27,6 +27,9 @@ When newly instantiated against this repository, orient yourself using the follo
 3. **`.agents/artifacts/`**: The versioned directory for project architecture specifications, design documents, and audits (see [`.agents/artifacts/architecture.md`](../artifacts/architecture.md)). Read existing artifacts before proposing or executing work.
 4. **Stack Directories (`<stack-name>/compose.yml`)**: Each non-hidden directory at the repository root represents a Dockge-managed Docker Compose stack containing a `compose.yml` and an optional `.env` file.
 
+**Initial Project Direction & Fresh Repository Onboarding**:
+When interacting with a user on a freshly cloned repository, or when establishing initial project direction and adapting the stack to user-specific hardware/provider needs, always invoke and follow the `start-homelab` skill ([`.skills/start-homelab/SKILL.md`](../skills/start-homelab/SKILL.md)). This skill guides interactive needs assessment, service selection, hardware/platform constraint handling, adaptation planning, and initial verified deployment.
+
 ## 3. Architectural Principles
 
 - **Dockge Compatibility**:
@@ -109,6 +112,7 @@ When newly instantiated against this repository, orient yourself using the follo
 
 Procedural workflows, multi-step runbooks, and diagnostic algorithms are modularized as on-demand skills under `.agents/skills/<name>/SKILL.md` (and accessible via `.skills/<name>/SKILL.md`). In accordance with progressive disclosure, consult and execute the appropriate skill when performing operational tasks:
 
+- **Homelab Onboarding & Direction Setting**: Execute the interactive orientation, service selection matrix, hardware/provider adaptation, and initial scaffolding runbook in [`start-homelab`](../skills/start-homelab/SKILL.md).
 - **Feature Initiation & Design Review**: Follow the mainline sync, branch checkout (`feature/<name>`), architectural plan drafting, opinionated "grill-me" critique cycle, and plan commit procedure in [`feature-initiation`](../skills/feature-initiation/SKILL.md).
 - **Feature Completion & Release Lifecycle**: Follow the sequential test verification, stop-on-failure, roll-up release note drafting, merge, and dual-tagging procedure in [`feature-completion`](../skills/feature-completion/SKILL.md).
 - **Stack Creation & Maintenance**: Follow directory conventions, canonical key order, variable assertions (`${VAR}`), and privilege rules in [`stack-authoring`](../skills/stack-authoring/SKILL.md).

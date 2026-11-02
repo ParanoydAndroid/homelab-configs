@@ -6,10 +6,32 @@
 # ==============================================================================
 set -euo pipefail
 
+# Helper to find any active container on the homelab network to issue curl requests
+_get_security_probe_container() {
+  local c
+  for c in radarr sonarr homepage jellyfin seerr nginx; do
+    if docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null | grep -q "running"; then
+      printf "%s" "${c}"
+      return 0
+    fi
+  done
+  return 1
+}
+
 test_security_jellyfin_metrics_blocked() {
+  if ! is_stack_enabled "jellyfin" || ! is_stack_enabled "nginx"; then
+    printf "Stack 'jellyfin' or 'nginx' omitted or disabled"
+    return 77
+  fi
+  local probe_c
+  probe_c="$(_get_security_probe_container || true)"
+  if [[ -z "${probe_c}" ]]; then
+    printf "No active probe container found on 'homelab' bridge network"
+    return 77
+  fi
   local npm_ip code
   npm_ip="$(get_npm_bridge_ip)"
-  code="$(docker exec radarr curl -ksS -o /dev/null -w '%{http_code}' \
+  code="$(docker exec "${probe_c}" curl -ksS -o /dev/null -w '%{http_code}' \
     --max-time 20 \
     -A "Mozilla/5.0 (X11; Linux x86_64) HomelabSmokeTest/1.0" \
     --resolve "jellyfin.kamaka.tech:443:${npm_ip}" \
@@ -24,9 +46,19 @@ test_security_jellyfin_metrics_blocked() {
 }
 
 test_security_jellyfin_swagger_blocked() {
+  if ! is_stack_enabled "jellyfin" || ! is_stack_enabled "nginx"; then
+    printf "Stack 'jellyfin' or 'nginx' omitted or disabled"
+    return 77
+  fi
+  local probe_c
+  probe_c="$(_get_security_probe_container || true)"
+  if [[ -z "${probe_c}" ]]; then
+    printf "No active probe container found on 'homelab' bridge network"
+    return 77
+  fi
   local npm_ip code
   npm_ip="$(get_npm_bridge_ip)"
-  code="$(docker exec radarr curl -ksS -o /dev/null -w '%{http_code}' \
+  code="$(docker exec "${probe_c}" curl -ksS -o /dev/null -w '%{http_code}' \
     --max-time 20 \
     -A "Mozilla/5.0 (X11; Linux x86_64) HomelabSmokeTest/1.0" \
     --resolve "jellyfin.kamaka.tech:443:${npm_ip}" \
@@ -41,9 +73,19 @@ test_security_jellyfin_swagger_blocked() {
 }
 
 test_security_jellyfin_api_docs_blocked() {
+  if ! is_stack_enabled "jellyfin" || ! is_stack_enabled "nginx"; then
+    printf "Stack 'jellyfin' or 'nginx' omitted or disabled"
+    return 77
+  fi
+  local probe_c
+  probe_c="$(_get_security_probe_container || true)"
+  if [[ -z "${probe_c}" ]]; then
+    printf "No active probe container found on 'homelab' bridge network"
+    return 77
+  fi
   local npm_ip code
   npm_ip="$(get_npm_bridge_ip)"
-  code="$(docker exec radarr curl -ksS -o /dev/null -w '%{http_code}' \
+  code="$(docker exec "${probe_c}" curl -ksS -o /dev/null -w '%{http_code}' \
     --max-time 20 \
     -A "Mozilla/5.0 (X11; Linux x86_64) HomelabSmokeTest/1.0" \
     --resolve "jellyfin.kamaka.tech:443:${npm_ip}" \
@@ -58,6 +100,10 @@ test_security_jellyfin_api_docs_blocked() {
 }
 
 test_security_postgres_port_isolated_from_host() {
+  if ! is_stack_enabled "postgres"; then
+    printf "Stack 'postgres' omitted or disabled"
+    return 77
+  fi
   # Port 5432 must NOT be bound to host 0.0.0.0 or 127.0.0.1
   if curl -sS --connect-timeout 2 "http://127.0.0.1:5432" >/dev/null 2>&1; then
     printf "Host port 5432 is unexpectedly accessible from host!"
@@ -68,9 +114,19 @@ test_security_postgres_port_isolated_from_host() {
 }
 
 test_security_npm_api_unauthenticated_rejected() {
+  if ! is_stack_enabled "nginx"; then
+    printf "Stack 'nginx' omitted or disabled"
+    return 77
+  fi
+  local probe_c
+  probe_c="$(_get_security_probe_container || true)"
+  if [[ -z "${probe_c}" ]]; then
+    printf "No active probe container found on 'homelab' bridge network"
+    return 77
+  fi
   # Accessing protected NPM user management endpoint without Bearer token must return HTTP 401 or 403
   local code
-  code="$(docker exec radarr curl -sS -o /dev/null -w '%{http_code}' \
+  code="$(docker exec "${probe_c}" curl -sS -o /dev/null -w '%{http_code}' \
     --max-time 20 \
     "http://nginx:81/api/users" 2>/dev/null || true)"
 
@@ -84,6 +140,10 @@ test_security_npm_api_unauthenticated_rejected() {
 }
 
 test_security_radarr_api_unauthenticated_rejected() {
+  if ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'sonarr-radarr' omitted or disabled"
+    return 77
+  fi
   # Requesting Radarr movie REST API without an API key must return HTTP 401 Unauthorized
   local code
   code="$(docker exec radarr curl -sS -o /dev/null -w '%{http_code}' \
@@ -100,6 +160,10 @@ test_security_radarr_api_unauthenticated_rejected() {
 }
 
 test_security_sonarr_api_unauthenticated_rejected() {
+  if ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'sonarr-radarr' omitted or disabled"
+    return 77
+  fi
   # Requesting Sonarr series REST API without an API key must return HTTP 401 Unauthorized
   local code
   code="$(docker exec sonarr curl -sS -o /dev/null -w '%{http_code}' \
