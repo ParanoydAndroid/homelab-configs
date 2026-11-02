@@ -82,6 +82,13 @@ setup_homelab() {
     chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_data_dir}/set-qbt-port.sh" 2>/dev/null || true
   fi
 
+  # Ensure qBittorrent scratch incomplete directory exists with write permissions
+  local qbt_incomplete_dir="${qbt_data_dir}/incomplete"
+  if [[ -d "${qbt_incomplete_dir}" ]]; then
+    chmod 775 "${qbt_incomplete_dir}" 2>/dev/null || true
+    chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_incomplete_dir}" 2>/dev/null || true
+  fi
+
   log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."
   docker compose -f "${DOCKGE_DIR}/compose.yml" --env-file "${DOCKGE_DIR}/.env" up -d
 
