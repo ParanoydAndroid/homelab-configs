@@ -60,7 +60,7 @@ services:
       PORT_PERSIST: 1
       # Callback script invoked as '/set-qbt-port.sh <port>' to sync the assigned port into qBittorrent
       PORT_SCRIPT: /set-qbt-port.sh
-      VPNDNS: 1.1.1.1,1.0.0.1
+      VPNDNS: 9.9.9.9,149.112.112.112
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/pia:/pia
       - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/pia-shared:/pia-shared
