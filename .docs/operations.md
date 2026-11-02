@@ -186,3 +186,9 @@ sudo systemctl unset-environment GODEBUG
 systemctl --user unset-environment GODEBUG || true
 sudo systemctl daemon-reexec
 ```
+
+---
+
+## 6. Host & Storage Performance Tuning
+
+For post-setup best practices on storage tiering, Btrfs Copy-on-Write (`chattr +C`) database optimization, BitTorrent incomplete download buffering, Linux virtual memory dirty ratio tuning, and ephemeral in-memory transcoding caches, see the dedicated [Performance Optimization Guide](./performance-optimization.md).

@@ -80,6 +80,8 @@ Applications like Jellyfin, Nginx Proxy Manager, and Homepage perform continuous
 
 Placing `${DOCKER_DATA_DIR}` on native PCIe NVMe eliminates seek latency entirely, reducing dashboard and streaming UI load times from 15+ seconds to under 1.5 seconds while keeping large video files safely on the fault-tolerant RAID 5 mechanical array.
 
+*For additional tuning recommendations (including single-volume fallback, Btrfs No-CoW flags, Linux virtual memory dirty ratio smoothing, and in-memory transcoding caches), see the [Performance Optimization Guide](./performance-optimization.md).*
+
 ---
 
 ## 4. Two-Tier Configuration & Dotenv Architecture

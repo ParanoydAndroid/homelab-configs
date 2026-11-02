@@ -108,3 +108,8 @@ ${VARIABLE}
 
 2. **LAN Macvlan (`external_npm`)**:
    - Reserved exclusively for Nginx Proxy Manager (`192.168.0.4`) to bridge HTTP/HTTPS traffic to the internal bridge.
+
+---
+
+## Performance & Volume Tuning References
+For post-setup performance best practices (such as storage tiering, Btrfs No-CoW flags, in-memory transcoding caches, and download buffering), see [.docs/performance-optimization.md](../../../../.docs/performance-optimization.md).
