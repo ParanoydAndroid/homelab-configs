@@ -2,31 +2,76 @@
 name: homelab-audit
 description: >-
   Systematic drift detection and compliance auditing runbook for homelab infrastructure.
-  Audits container runtimes, untracked containers, volume permissions (UID/GID and ACLs),
-  Btrfs No-CoW flags, reverse proxy virtual host alignment, external security blocks,
-  and scheduled backup timer health.
+  Audits container runtimes, service & image drift, untracked containers, environment
+  variable skew, volume permissions (UID/GID and ACLs), Btrfs No-CoW flags, reverse
+  proxy virtual host alignment, external security blocks, and scheduled backup timer health.
 ---
 
 # Homelab Drift Detection & Infrastructure Audit Runbook
 
-This skill provides a systematic diagnostic procedure to detect drift between tracked declarative configurations (`compose.yml`, `.env`, rules) and the live host runtime state.
+This skill provides a systematic diagnostic procedure to detect drift between tracked declarative configurations (`compose.yml`, `.env`, documentation, rules) and the live host runtime state.
 
 ---
 
 ## Audit Checklist & Procedures
 
-### Audit Area 1: Container Runtime & Tracking Alignment
-1. **Assert Tracked Container Health**:
-   Run the automated container suite:
+### Audit Area 1: Service & Configuration Drift Detection
+
+1. **Container Tracking Alignment**:
+   Compare live running containers against declarative `compose.yml` service definitions:
    ```bash
-   ./homelab.sh test containers
+   # Extract declared container names across all discovered stacks
+   grep -rhE "^[[:space:]]*container_name:" */compose.yml | awk '{print $2}' | sort -u
+   # Query running container names
+   docker ps --format '{{.Names}}' | sort -u
    ```
-2. **Detect Untracked / Orphaned Containers**:
-   Compare running container names against declared services in `compose.yml` files:
+   - **Untracked Containers**: Running containers not defined in any `compose.yml` stack.
+   - **Missing/Stopped Services**: Declared containers that are missing from `docker ps`.
+
+2. **Container Image & Tag Digest Drift**:
+   Verify whether running containers have drifted from updated local images or declared tags:
    ```bash
-   docker ps --format '{{.Names}}' | sort
+   for c in $(docker ps --format '{{.Names}}'); do
+     running_id="$(docker inspect -f '{{.Image}}' "${c}")"
+     image_tag="$(docker inspect -f '{{.Config.Image}}' "${c}")"
+     latest_id="$(docker image inspect -f '{{.Id}}' "${image_tag}" 2>/dev/null || echo "unknown")"
+     if [[ "${latest_id}" != "unknown" && "${running_id}" != "${latest_id}" ]]; then
+       echo "IMAGE DRIFT: Container '${c}' is running outdated image digest (recreate required)"
+     fi
+   done
    ```
-   Investigate any running containers not managed by a stack in `${REPO_DIR}/*/compose.yml`.
+
+3. **Environment Variable & Secret Skew**:
+   - Check that all variables in `<stack>/.env.example` exist in `<stack>/.env`.
+   - Verify that root global variables (`DOCKER_DATA_DIR`, `MEDIA_DIR`, `PUID`, `PGID`, `TZ`) are synchronized identically across all `<stack>/.env` files:
+     ```bash
+     for env_file in */.env; do
+       echo "--- ${env_file} ---"
+       grep -E "^(DOCKER_DATA_DIR|MEDIA_DIR|PUID|PGID|TZ)=" "${env_file}" || true
+     done
+     ```
+   - Identify any blank required secrets (`KEY=`) or unexpanded variable templates.
+
+4. **Volume Mount & Read-Only Flag Drift**:
+   - Verify that container volume destinations match declarations in `compose.yml`.
+   - Audit read-only enforcement on consuming services:
+     ```bash
+     # Verify Jellyfin media volume is strictly read-only
+     docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data/media"}}{{.ReadOnly}}{{end}}{{end}}' jellyfin
+     ```
+     Output must be `true`.
+
+5. **Host Port Exposure Drift**:
+   - Verify that no unintended host ports are bound:
+     ```bash
+     docker ps --format 'table {{.Names}}\t{{.Ports}}'
+     ```
+   - In accordance with the homelab port exposure model, only `dockge` (`8010:5001`) and `jellyfin` (`8022:7359/udp`) may bind host ports. All other services must route exclusively over the `homelab` bridge network.
+
+6. **Documentation & Service Catalog Drift**:
+   - Cross-reference `.docs/service-catalog.md` against discovered stacks in `STACKS`:
+     - Are any stacks present in the filesystem that are missing from `.docs/service-catalog.md`?
+     - Do volume mount paths in `.docs/service-catalog.md` match live `compose.yml` mounts?
 
 ---
 
@@ -100,7 +145,16 @@ This skill provides a systematic diagnostic procedure to detect drift between tr
 
 ## Audit Output Report
 
-Compile findings into a prioritized punchlist:
-- **Clean**: All checks passed.
-- **Warning**: Non-fatal drift (e.g. Btrfs `+C` missing on a directory, or snapshot > 24 hours old).
-- **Critical**: Service outage, failed security hardening block, or permission denial blocking writes.
+Compile findings into a prioritized punchlist categorized by operational severity:
+- **Clean**: All declarative declarations match live runtime state with zero drift.
+- **Service Drift Warning**:
+  - Image digest skew (container running older digest than local image tag).
+  - Environment variable skew across stack `.env` files.
+  - Snapshot currency > 24 hours or missing Btrfs `+C` flag on active database directory.
+  - Missing service catalog documentation for newly deployed stack.
+- **Critical / Security Hazard**:
+  - Untracked or orphaned containers running on host.
+  - Unauthorized host port mappings exposing backend services to LAN/WAN.
+  - Service container outage or failed container health probe.
+  - Broken reverse proxy routing or failed security hardening block (`403 Forbidden`).
+  - Storage permission denial or UGOS proprietary ACL flags (`system.ugacl_self`) blocking container writes.
