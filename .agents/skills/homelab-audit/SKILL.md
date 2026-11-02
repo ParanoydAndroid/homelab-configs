@@ -4,7 +4,8 @@ description: >-
   Systematic drift detection and compliance auditing runbook for homelab infrastructure.
   Audits container runtimes, service & image drift, untracked containers, environment
   variable skew, volume permissions (UID/GID and ACLs), Btrfs No-CoW flags, reverse
-  proxy virtual host alignment, external security blocks, and scheduled backup timer health.
+  proxy virtual host alignment, external security blocks, scheduled backup timer health,
+  and host system service drift (systemd units, sysctl parameters, Docker daemon configs).
 ---
 
 # Homelab Drift Detection & Infrastructure Audit Runbook
@@ -143,18 +144,92 @@ This skill provides a systematic diagnostic procedure to detect drift between tr
 
 ---
 
+### Audit Area 6: Host System Services & Daemon Drift Detection
+
+1. **Systemd Unit File & Template Drift**:
+   Compare installed systemd unit files in `/etc/systemd/system/` against repository source templates in `.configs/systemd/`:
+   ```bash
+   for unit in homelab-startup.service homelab-backup.service homelab-backup.timer; do
+     if [[ -f "/etc/systemd/system/${unit}" ]]; then
+       diff -u "${REPO_DIR}/.configs/systemd/${unit}" "/etc/systemd/system/${unit}" || echo "DRIFT DETECTED: /etc/systemd/system/${unit} differs from repository template"
+     else
+       echo "MISSING UNIT: /etc/systemd/system/${unit} is not installed"
+     fi
+   done
+   ```
+   - Verify that `WorkingDirectory` and `ExecStart` inside `homelab-startup.service` point to the current repository directory.
+
+2. **System Service Enablement & Timer Scheduling**:
+   - Check service and timer enablement:
+     ```bash
+     systemctl is-enabled homelab-startup.service
+     systemctl is-enabled homelab-backup.timer
+     ```
+   - Check timer active state and next scheduled trigger:
+     ```bash
+     systemctl list-timers homelab-backup.timer
+     ```
+     Flag if the timer is inactive, stopped, or missing from the active timer list.
+
+3. **Docker Daemon Configuration Drift (`/etc/docker/daemon.json`)**:
+   - Validate live daemon configuration against recommended storage and logging parameters:
+     ```bash
+     cat /etc/docker/daemon.json
+     ```
+   - Assert:
+     - `"data-root"` matches high-IOPS storage (e.g. `"/volume2/@docker"`).
+     - `"log-driver": "json-file"` is declared.
+     - `"log-opts": {"max-size": "10m", "max-file": "3"}` is enforced.
+   - Detect if host OS firmware updates reverted or wiped `daemon.json`.
+
+4. **Kernel Parameters & Sysctl Drift (`/etc/sysctl.d/` vs Live `/proc/sys/`)**:
+   - Verify that dirty memory thresholds match recommended anti-thrashing values:
+     ```bash
+     bg_ratio="$(cat /proc/sys/vm/dirty_background_ratio)"
+     dirty_ratio="$(cat /proc/sys/vm/dirty_ratio)"
+     echo "Live dirty_background_ratio: ${bg_ratio} (expected: 5)"
+     echo "Live dirty_ratio: ${dirty_ratio} (expected: 10)"
+     ```
+   - Verify IPv4 transit forwarding is enabled for Tailscale routing:
+     ```bash
+     cat /proc/sys/net/ipv4/ip_forward
+     ```
+     Output must be `1`.
+
+5. **Appliance OS Firmware Workarounds**:
+   - On UGREEN NAS appliances, verify that firmware updates have not reinjected the Kyber TLS defect:
+     ```bash
+     grep -qE '^[[:space:]]*export GODEBUG=tlskyber=0' /etc/profile.d/go.sh && echo "DRIFT: Kyber defect reinjected into /etc/profile.d/go.sh"
+     grep -qE '^[[:space:]]*DefaultEnvironment="GODEBUG=tlskyber=0"' /etc/systemd/system.conf && echo "DRIFT: Kyber defect reinjected into /etc/systemd/system.conf"
+     ```
+
+6. **Host Convenience Symlink Integrity**:
+   - Verify that `/home/${USER}/services` exists and points to the repository root:
+     ```bash
+     target="$(readlink -f "${HOME}/services" 2>/dev/null || echo "missing")"
+     echo "services symlink target: ${target} (expected: ${REPO_DIR})"
+     ```
+   - Verify that Dockge orchestrator compose file `${DOCKGE_DIR}/compose.yml` matches `.configs/dockge/compose.yml`.
+
+---
+
 ## Audit Output Report
 
 Compile findings into a prioritized punchlist categorized by operational severity:
-- **Clean**: All declarative declarations match live runtime state with zero drift.
-- **Service Drift Warning**:
+- **Clean**: All declarative declarations match live runtime state with zero drift across both containers and host system services.
+- **Service & System Drift Warning**:
   - Image digest skew (container running older digest than local image tag).
   - Environment variable skew across stack `.env` files.
   - Snapshot currency > 24 hours or missing Btrfs `+C` flag on active database directory.
   - Missing service catalog documentation for newly deployed stack.
+  - Systemd unit file differences between `.configs/systemd/` and `/etc/systemd/system/`.
+  - Reverted Linux kernel sysctl parameters (`vm.dirty_background_ratio` != 5 or `vm.dirty_ratio` != 10).
+  - Broken convenience symlinks (`~/services`).
 - **Critical / Security Hazard**:
   - Untracked or orphaned containers running on host.
   - Unauthorized host port mappings exposing backend services to LAN/WAN.
   - Service container outage or failed container health probe.
   - Broken reverse proxy routing or failed security hardening block (`403 Forbidden`).
   - Storage permission denial or UGOS proprietary ACL flags (`system.ugacl_self`) blocking container writes.
+  - Disabled or inactive daily backup timer (`homelab-backup.timer`).
+  - Reinjected appliance OS defects (`GODEBUG=tlskyber=0`).
