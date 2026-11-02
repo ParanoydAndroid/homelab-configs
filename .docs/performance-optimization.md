@@ -151,3 +151,25 @@ Traditional container backup methods either stop containers (causing service dow
 
 ### Optimization
 Use logical dump utilities (`pg_dumpall` for PostgreSQL, SQLite `.backup` / WAL checkpoints for application databases) to stage hot, consistent database backups to `${DOCKER_DATA_DIR}/.backups` before snapshotting. This is automated by `./homelab.sh backup`, ensuring zero container downtime and zero transactional locking.
+
+---
+
+## 9. Cloudflare Edge Cache Bypass for Video Streaming
+
+When reverse-proxying media servers like Jellyfin through Cloudflare Zero Trust tunnels (`jellyfin.kamaka.tech`), Cloudflare's default CDN caching rules can attempt to buffer video segments at edge nodes. This introduces video playback stalls, increases time-to-first-frame buffering latency, and risks violating CDN terms of service regarding large media chunk caching.
+
+### Optimization
+Configure an explicit Cache Rule in the Cloudflare Dashboard to bypass edge caching for media server streams:
+
+1. In the Cloudflare Dashboard, select your domain (`kamaka.tech`) and navigate to **Caching -> Cache Rules -> Create Rule**.
+2. **Rule Name**: `Bypass Jellyfin Video Cache`.
+3. **If incoming requests match...**:
+   * **Field**: `Hostname`
+   * **Operator**: `equals`
+   * **Value**: `jellyfin.kamaka.tech`
+4. **Then...**:
+   * **Cache eligibility**: Select **Bypass cache**.
+5. Save and deploy the rule.
+
+This instructs the Cloudflare edge to stream media chunks directly from the tunnel origin without intermediary caching delays.
+*(For overall ingress architecture details, see [Dual-Ingress Networking & Security](./networking.md#pillar-1-public-web-ingress-kamakatech).)*

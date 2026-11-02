@@ -23,6 +23,13 @@ Ingress traffic is strictly segmented into two non-overlapping pillars. Public i
   * `jellyfin.kamaka.tech` routes to `jellyfin:8096`.
   * `recipes.kamaka.tech` routes to `tandoor:8050`.
   * Unmapped subdomains terminate at NPM's default host returning `404 Not Found`.
+* **Cloudflare CDN Cache Bypass (Streaming Optimization)**:
+  Media streaming through Cloudflare Tunnel should bypass edge caching to prevent stream buffering, latency, and compliance issues with large video chunk caching:
+  1. Cloudflare Dashboard -> `kamaka.tech` -> **Caching -> Cache Rules -> Create Rule**.
+  2. Rule Name: `Bypass Jellyfin Video Cache`.
+  3. Match: `Hostname equals jellyfin.kamaka.tech`.
+  4. Action: **Bypass cache**.
+  *(For full details, see [Performance Optimization & Anti-Thrashing](./performance-optimization.md#9-cloudflare-edge-cache-bypass-for-video-streaming).)*
 
 ### Pillar 2: Private Admin Ingress (`*.turing.home`)
 * **Tailscale Subnet Router (`tailscale`)**: Dual-homed on `external_npm` (`192.168.0.5`) and `homelab` bridge (`192.168.255.0/24`). Advertises `192.168.0.0/24` with SNAT masquerading (`--snat-subnet-routes=true`).
@@ -105,12 +112,8 @@ Eliminates browser security warnings across all internal services and the host N
 ### External Jellyfin Hardening
 * **Container Hardening**: Runs as non-root (`user: "1000:100"`), drops all capabilities (`cap_drop: [ALL]`), sets `security_opt: [no-new-privileges:true]`, and mounts media read-only (`:ro`).
 * **Reverse Proxy Endpoint Blocking**: The NPM proxy host configuration for `jellyfin.kamaka.tech` (`${DOCKER_DATA_DIR}/nginx/data/nginx/proxy_host/3.conf`) blocks sensitive endpoints via the Advanced configuration block, returning `HTTP 403 Forbidden` on `/swagger`, `/api-docs`, and `/metrics`.
-* **Cloudflare Video Cache Bypass**:
-  1. Cloudflare Dashboard -> `kamaka.tech` -> **Caching -> Cache Rules -> Create Rule**.
-  2. Rule Name: `Bypass Jellyfin Video Cache`.
-  3. Match: `Hostname equals jellyfin.kamaka.tech`.
-  4. Action: **Bypass cache**.
 * **Server UI Settings**:
   * **Known Proxies**: Add `192.168.255.0/24` (or `nginx`) under **Dashboard -> Networking**.
   * **Disable Remote Admin**: In user profile, uncheck **Allow remote connections to this server**.
   * **Lockout**: Set **Invalid login attempts before lockout** to `3` or `5`.
+* **Streaming Performance Reference**: For Cloudflare edge cache bypass rules to optimize video streaming throughput, see [Pillar 1: Public Web Ingress](#pillar-1-public-web-ingress-kamakatech) and [Performance Optimization: Edge Cache Bypass](./performance-optimization.md#9-cloudflare-edge-cache-bypass-for-video-streaming).
