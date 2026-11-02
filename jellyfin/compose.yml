@@ -40,6 +40,8 @@ services:
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/jellyfin/data/config:/config
       - ${MEDIA_DIR:?See env.example for default.}:/data/media:ro
+    tmpfs:
+      - /transcode:size=4G,mode=1777
     ports:
       # HTTP/HTTPS traffic is reverse-proxied via NPM on the 'homelab' network.
       # Only UDP port 8022->7359 is bound on the host for LAN client auto-discovery.
