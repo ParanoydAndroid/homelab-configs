@@ -191,4 +191,4 @@ sudo systemctl daemon-reexec
 
 ## 6. Host & Storage Performance Tuning
 
-For post-setup best practices on storage tiering, Btrfs Copy-on-Write (`chattr +C`) database optimization, BitTorrent incomplete download buffering, Linux virtual memory dirty ratio tuning, and ephemeral in-memory transcoding caches, see the dedicated [Performance Optimization Guide](./performance-optimization.md).
+For post-setup best practices and interactive configurations across performance optimization, anti-thrashing, client ergonomics, and maintainability, see the dedicated [Post-Setup Optimization, Ergonomics & Maintenance Guide](./performance-optimization.md).

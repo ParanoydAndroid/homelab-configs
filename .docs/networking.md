@@ -29,7 +29,7 @@ Ingress traffic is strictly segmented into two non-overlapping pillars. Public i
   2. Rule Name: `Bypass Jellyfin Video Cache`.
   3. Match: `Hostname equals jellyfin.kamaka.tech`.
   4. Action: **Bypass cache**.
-  *(For full details, see [Performance Optimization & Anti-Thrashing](./performance-optimization.md#9-cloudflare-edge-cache-bypass-for-video-streaming).)*
+  *(For full details, see [Post-Setup Optimization & Tuning Guide](./performance-optimization.md#6-cloudflare-edge-cache-bypass-for-video-streaming).)*
 
 ### Pillar 2: Private Admin Ingress (`*.turing.home`)
 * **Tailscale Subnet Router (`tailscale`)**: Dual-homed on `external_npm` (`192.168.0.5`) and `homelab` bridge (`192.168.255.0/24`). Advertises `192.168.0.0/24` with SNAT masquerading (`--snat-subnet-routes=true`).
@@ -116,4 +116,4 @@ Eliminates browser security warnings across all internal services and the host N
   * **Known Proxies**: Add `192.168.255.0/24` (or `nginx`) under **Dashboard -> Networking**.
   * **Disable Remote Admin**: In user profile, uncheck **Allow remote connections to this server**.
   * **Lockout**: Set **Invalid login attempts before lockout** to `3` or `5`.
-* **Streaming Performance Reference**: For Cloudflare edge cache bypass rules to optimize video streaming throughput, see [Pillar 1: Public Web Ingress](#pillar-1-public-web-ingress-kamakatech) and [Performance Optimization: Edge Cache Bypass](./performance-optimization.md#9-cloudflare-edge-cache-bypass-for-video-streaming).
+* **Streaming Performance Reference**: For Cloudflare edge cache bypass rules to optimize video streaming throughput, see [Pillar 1: Public Web Ingress](#pillar-1-public-web-ingress-kamakatech) and [Post-Setup Tuning: Edge Cache Bypass](./performance-optimization.md#6-cloudflare-edge-cache-bypass-for-video-streaming).
