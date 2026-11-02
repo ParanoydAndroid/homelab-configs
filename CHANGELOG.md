@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.6.0] / [2026.11.2] - Post-Setup Optimization Runbook, Storage Performance Hardening & qBittorrent Resilience (2026-11-02)
+
+### Added
+* Comprehensive *Post-Setup Optimization, Ergonomics & Maintenance Guide* (`.docs/performance-optimization.md`) documenting 16 post-setup tuning areas across storage tiering, Btrfs No-CoW (`+C`), Linux virtual memory dirty page smoothing, in-memory transcoding caches, Cloudflare edge bypass, and Tailscale split-DNS.
+* Automated anti-thrashing preferences injected directly into qBittorrent via `set-qbt-port.sh` (512MB RAM write cache, piece extent affinity, suggest mode, and WireGuard `wg0` interface binding).
+* Automated non-root volume write permission and torrent error health regression tests (`test_interconnect_qbittorrent_volume_write_permissions`, `test_interconnect_qbittorrent_torrent_error_status`) in `.tests/suites/test_interconnect.sh`.
+* 4GB in-memory transcoding scratch space (`tmpfs`) mounted on `/transcode` in `jellyfin/compose.yml` and configured in `encoding.xml`, eliminating physical disk wear during live video transcoding.
+* Automated convenience symlink provisioning (`${TARGET_HOME}/services -> ${REPO_DIR}`) codified into `homelab.sh setup`.
+
+### Changed
+* Aligned qBittorrent WireGuard VPN upstream resolver (`VPNDNS`) to Quad9 (`9.9.9.9`, `149.112.112.112`) for malware blocking, DNSSEC validation, and Swiss GDPR privacy compliance, matching `vpn-bridge`.
+* Standardized systemd unit paths in `.configs/systemd/homelab-startup.service` to `/opt/brandon/dockge/stacks`.
+* Expanded `.docs/env-reference.md` with Section 3 documenting inlined architectural invariants and audited global variables.
+* Reconciled service catalog entries in `.docs/service-catalog.md` and volume paths across all 11 stacks.
+* Relocated Cloudflare CDN cache bypass guidance from security hardening to the performance optimization guide and cloud ingress documentation.
+
+### Fixed
+* Remediated qBittorrent download failures and torrent freeze (`state: error`) caused by UGOS proprietary extended attribute (`system.ugacl_self`) and POSIX mode `0000` masking on `/incomplete`.
+* Enforced `chmod 775` permissions on the qBittorrent incomplete download buffer idempotently inside `homelab.sh setup`.
+
+---
+
 ## [2.5.0] / [2026.11.1.2] - Modular Agent Skills Architecture & Documentation Hygiene (2026-11-01)
 
 ### Added
