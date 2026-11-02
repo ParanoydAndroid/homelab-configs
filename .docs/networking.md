@@ -42,6 +42,12 @@ Ingress traffic is strictly segmented into two non-overlapping pillars. Public i
   Requests originating from the Tailscale mesh arrive bearing source IP `192.168.0.5` and are allowed. WAN requests targeting `.turing.home` are dropped with `HTTP 403 Forbidden`.
 * **UGOS Portal Macvlan Bypass (`nas.turing.home`)**: Linux kernel macvlan isolation prevents macvlan child `192.168.0.5` from communicating directly with host `192.168.0.3`. Access is solved cleanly by routing `https://nas.turing.home` through NPM, which forwards across the `homelab` bridge directly to `https://192.168.255.1:9443`.
 
+### Pillar 3: Secure VPN Bridge Egress (`vpn-bridge`)
+* **Decoupled Privacy Exit Node**: Remote mobile and desktop devices route public internet traffic through the private Tailscale WireGuard mesh node `vpn-bridge`.
+* **Network Namespace Sharing**: The Tailscale container (`vpn-bridge-tailscale`) runs inside the network namespace of the PIA container (`vpn-bridge-pia` via `network_mode: "service:vpn"`).
+* **WireGuard NAT Egress**: The PIA container establishes an encrypted WireGuard tunnel (`wg0`) to US server regions (`PIA_REGION: us_east,us_chicago,us_nyc`), enables IP forwarding, sets forward interface `FWD_IFACE: tailscale+`, and applies NAT masquerading (`-o wg0 -j MASQUERADE`).
+* **Traffic Isolation**: Protects mobile clients on untrusted public Wi-Fi networks without exposing the homelab residential ISP IP or interfering with local LAN subnet routing.
+
 ---
 
 ## 2. Subnets and Docker Networks

@@ -281,7 +281,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **LAN Address** | `https://recipes.turing.home` |
 | **WAN Address** | `https://recipes.kamaka.tech` |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/tandoor/data` |
-| **Associated Secrets** | `SECRET_KEY`, `POSTGRES_PASSWORD` |
+| **Associated Secrets** | `SECRET_KEY` |
 
 * **Role & Capabilities**: Comprehensive recipe management system, meal planner, and grocery list organizer. Supports web scraping, ingredient scaling, and multi-user recipe sharing.
 * **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://recipes.turing.home` (internal) and `https://recipes.kamaka.tech` (external). Nginx serves user-uploaded media files directly from `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/media:ro`.
@@ -301,7 +301,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **LAN Address** | `postgresql:5432` (Internal) |
 | **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/postgres/data` |
-| **Associated Secrets** | `POSTGRES_PASSWORD` |
+| **Associated Secrets** | None (Internal database credentials inline in `compose.yml`) |
 
 * **Role & Capabilities**: Relational database server backing backend applications (currently Tandoor Recipes).
 * **Network & Access**: Completely isolated to the internal `homelab` Docker bridge network (`192.168.255.0/24`). Port `5432` is not bound to host interfaces or LAN.

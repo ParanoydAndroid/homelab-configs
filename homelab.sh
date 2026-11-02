@@ -54,6 +54,17 @@ setup_homelab() {
   init_and_sync_env
   ensure_networks
 
+  # Ensure ~/services convenience symlink exists for non-root target user
+  if [[ -n "${TARGET_USER:-}" && "${TARGET_USER}" != "root" ]]; then
+    local target_home
+    target_home="$(eval echo "~${TARGET_USER}")"
+    if [[ -d "${target_home}" && ! -e "${target_home}/services" ]]; then
+      log_info "Creating convenience symlink ${target_home}/services -> ${REPO_DIR}..."
+      ln -sfn "${REPO_DIR}" "${target_home}/services"
+      chown -h "${TARGET_USER}:${TARGET_GROUP}" "${target_home}/services" 2>/dev/null || true
+    fi
+  fi
+
   log_info "Ensuring Dockge orchestrator compose is present (${DOCKGE_DIR}/compose.yml)..."
   mkdir -p "${DOCKGE_DIR}"
   if [[ -f "${REPO_DIR}/.configs/dockge/compose.yml" ]]; then

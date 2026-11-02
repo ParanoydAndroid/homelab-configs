@@ -79,7 +79,8 @@ sudo ./homelab.sh setup
 Detailed architectural specifications, configuration runbooks, and references are organized into dedicated documents under `.docs/`:
 
 * **[Project Organization & Architecture](.docs/project-organization.md)**: Filesystem layout, Dockge compatibility constraints, storage tiering rationale (PCIe NVMe vs mechanical RAID 5), and the Restic-based volume backup and disaster recovery model.
-* **[Service Catalog and Port Reference](.docs/service-catalog.md)**: Uniform catalog entries for all 15 services and the host OS portal, active port bindings, internal/external addresses, volume mappings, and container interconnections.
+* **[Service Catalog and Port Reference](.docs/service-catalog.md)**: Uniform catalog entries for all 17 containerized services and the host OS portal, active port bindings, internal/external addresses, volume mappings, and container interconnections.
+* **[Post-Setup Optimization, Ergonomics & Maintenance Guide](.docs/performance-optimization.md)**: Recommended post-setup runbook covering storage anti-thrashing (No-CoW, Linux VM dirty writeback smoothing), local wildcard TLS certificates, Tailscale split-DNS, atomic media hardlinks, and disaster recovery verification.
 * **[Environment Variable Reference & Cheat Sheet](.docs/env-reference.md)**: Central dictionary of every global and per-stack environment variable, defaults, secrets, and Homepage dashboard discovery mechanisms.
 * **[Dual-Ingress Networking & Security](.docs/networking.md)**: Subnet topology (`192.168.0.0/24` LAN, `192.168.255.0/24` bridge), macvlan routing, static IP table, split DNS, TLS certificates, and edge security hardening.
 * **[Operations and Appliance Engineering](.docs/operations.md)**: Operational runbooks, backup and secret restoration procedures, systemd background units, asynchronous mount handling, and OS workarounds.

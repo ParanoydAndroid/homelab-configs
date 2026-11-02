@@ -10,8 +10,8 @@ RemainAfterExit=yes
 User=brandon
 Group=admin
 Environment=HOME=/home/brandon
-WorkingDirectory=/home/brandon/services
-ExecStart=/home/brandon/services/homelab.sh startup
+WorkingDirectory=/opt/brandon/dockge/stacks
+ExecStart=/opt/brandon/dockge/stacks/homelab.sh startup
 TimeoutStartSec=300s
 
 [Install]

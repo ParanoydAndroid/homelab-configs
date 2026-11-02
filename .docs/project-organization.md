@@ -22,7 +22,8 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 │   ├── seerr/
 │   ├── sonarr-radarr/
 │   ├── tailscale/
-│   └── tandoor/
+│   ├── tandoor/
+│   └── vpn-bridge/
 ├── .configs/                      # Bootstrapping assets and systemd service templates
 │   ├── dockge/                    # Dockge's own compose.yml and .env.example
 │   ├── nginx/                     # Local fallback certificate generator script
@@ -40,10 +41,13 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 ├── .docs/                         # Deep architectural and operational documentation
 │   ├── project-organization.md    # This document
 │   ├── service-catalog.md         # Uniform service entries, ports, and storage volumes
+│   ├── performance-optimization.md# Post-setup optimization, ergonomics & maintenance guide
 │   ├── env-reference.md           # Complete environment variable dictionary & cheat sheet
 │   ├── networking.md              # Dual-ingress architecture, routing, and TLS certificates
 │   └── operations.md              # CLI runbooks, systemd services, and storage operations
 ├── .agents/                       # Agent personas, instructions, rules, and architecture specs
+├── .skills -> .agents/skills      # Convenience symlink for agent workflow skills
+├── AGENTS.md -> .agents/rules/project-conventions.md # Canonical agent instructions symlink
 ├── homelab.sh                     # Primary CLI orchestration entrypoint
 ├── CHANGELOG.md                   # Semantic & CalVer release history
 ├── BACKLOG.md                     # Project technical debt and improvement backlog

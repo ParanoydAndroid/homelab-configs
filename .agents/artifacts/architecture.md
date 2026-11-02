@@ -62,8 +62,15 @@ The project encompasses:
 │       └── homelab-startup.service
 ├── .env.example
 ├── .gitignore
+├── .skills -> .agents/skills
+├── AGENTS.md -> .agents/rules/project-conventions.md
+├── CHANGELOG.md
+├── BACKLOG.md
 ├── README.md
 ├── homelab.sh
+├── cloudflared/
+│   ├── .env.example
+│   └── compose.yml
 ├── homepage/
 │   ├── .env.example
 │   └── compose.yml
@@ -118,7 +125,7 @@ The project encompasses:
 - `/volume2/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
 - `/volume1/media` -> `/media` (`radarr`, `sonarr`, `qbittorrentvpn`) and `/data/media:ro` (`jellyfin`)
 - `/var/run/docker.sock` -> `/var/run/docker.sock` (`dockge`, `homepage`)
-- `/opt/brandon/dockge/stacks` -> `${DOCKGE_STACKS_DIR}` (`dockge`)
+- `/opt/${USER}/dockge/stacks` -> `${DOCKGE_STACKS_DIR}` (`dockge`)
 - `/dev/net/tun` -> `/dev/net/tun` (`tailscale`, `vpn-bridge-tailscale`)
 - `/dev/dri/renderD128` -> `/dev/dri/renderD128` (`jellyfin`)
 
@@ -128,6 +135,7 @@ The project encompasses:
 | :--- | :--- | :--- | :--- |
 | `jellyfin` | `jellyfin/jellyfin:latest` | Compose `user: "${PUID}:${PGID}"` + `group_add: ["105"]` (official image ignores `PUID`/`PGID` env vars) | `1000:100` |
 | `radarr`, `sonarr`, `prowlarr` | `lscr.io/linuxserver/*:latest` | Env `PUID: ${PUID}`, `PGID: ${PGID}` (s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
+| `seerr` | `ghcr.io/seerr-team/seerr:latest` | Runs rootless as non-privileged UID `1000` (`node`) with `init: true`, `cap_drop: [ALL]`, and `no-new-privileges:true` | `1000:100` |
 | `wireguard-pia` | `thrnz/docker-wireguard-pia:latest` | Runs with `cap_add: [NET_ADMIN]` to manage kernel `wg0`, `iptables` kill switch, and PIA port forwarding (`PORT_SCRIPT: /set-qbt-port.sh`) | `1000:100` |
 | `qbittorrentvpn` | `lscr.io/linuxserver/qbittorrent:latest` | Env `PUID: ${PUID}`, `PGID: ${PGID}` with `network_mode: "service:vpn"` (s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
 | `tandoor` | `vabene1111/recipes` | Env `PUID: ${PUID}`, `PGID: ${PGID}` (`boot.sh` starts as root then drops to `PUID:PGID`) | `1000:100` |
@@ -135,6 +143,7 @@ The project encompasses:
 | `homepage` | `ghcr.io/gethomepage/homepage:latest` | Env `PUID: 0`, `PGID: 0` (requires root for `/var/run/docker.sock`) | `0:0` |
 | `nginx` | `jc21/nginx-proxy-manager:latest` | Runs as `root` internally; do not set `user:` | `0:0` |
 | `tailscale` | `tailscale/tailscale:latest` | Runs as `root` with `cap_add: [NET_ADMIN, NET_RAW]` and `/dev/net/tun` to manage kernel WireGuard and `iptables` | `0:0` |
+| `cloudflared` | `cloudflare/cloudflared:latest` | Stateless; runs rootless non-root internally; outbound egress tunnel authenticated via `CLOUDFLARE_TUNNEL_TOKEN` | N/A |
 | `flaresolverr` | `ghcr.io/flaresolverr/flaresolverr:latest` | Stateless; uses internal non-root user; no persistent volume | N/A |
 | `dockge` | `louislam/dockge:1` | Runs as `root` for `/var/run/docker.sock` | `0:0` |
 | `vpn-bridge-pia` | `thrnz/docker-wireguard-pia:latest` | Runs with `cap_add: [NET_ADMIN]` to manage kernel `wg0`, `iptables` NAT forwarding (`FWD_IFACE: tailscale+`), and PIA kill switch | `1000:100` |

@@ -110,7 +110,7 @@ sudo apt update && sudo apt install -y sqlite3 rsync zstd curl jq
 **User Lingering**:
 Allows background user processes and systemd managers to persist when no interactive SSH session is active:
 ```bash
-sudo loginctl enable-linger brandon
+sudo loginctl enable-linger "${USER}"
 ```
 
 ---
@@ -154,7 +154,7 @@ sudo systemctl enable homelab-startup.service
   - [.configs/systemd/homelab-backup.timer](../.configs/systemd/homelab-backup.timer)
 * **Purpose**: Orchestrates non-disruptive nightly Restic snapshots of persistent volume state to `/volume1/backups/homelab-docker` with 30-day retention pruning.
 * **Operational Behavior**:
-  The systemd timer fires at 03:00 daily, triggering `homelab-backup.service` which executes `${HOME}/services/homelab.sh backup -t calver -m "chore(backup): scheduled volume snapshot"`.
+  The systemd timer fires at 03:00 daily, triggering `homelab-backup.service` which executes `homelab.sh backup` (or with automated flags such as `-t calver -m "chore(backup): scheduled volume snapshot"`).
 
 To install or reload:
 ```bash
