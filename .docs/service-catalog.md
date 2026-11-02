@@ -24,7 +24,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **FlareSolverr** | `sonarr-radarr/` | `flaresolverr` | Internal Bridge Only | `8191` | HTTP | `https://flaresolverr.turing.home` | None |
 | **Seerr** | `seerr/` | `seerr` | Internal Bridge Only | `5055` | HTTP | `https://seerr.turing.home` | None |
 | **Tandoor Recipes** | `tandoor/` | `tandoor` | Internal Bridge Only | `8050` | HTTP | `https://recipes.turing.home` | `https://recipes.kamaka.tech` |
-| **PostgreSQL** | `postgres/` | `postgres` | Internal Bridge Only | `5432` | TCP | `postgresql:5432` (Internal) | None |
+| **PostgreSQL** | `postgres/` | `postgresql` | Internal Bridge Only | `5432` | TCP | `postgresql:5432` (Internal) | None |
 | **WireGuard PIA VPN** | `qbittorrentvpn/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.turing.home` | None |
 | **qBittorrent** | `qbittorrentvpn/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
 | **VPN Bridge (PIA)** | `vpn-bridge/` | `vpn-bridge-pia` | Internal Bridge Only | N/A | WireGuard | Outbound PIA Tunnel (`wg0`) | Egress via US PIA Regions |
@@ -65,7 +65,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Web-based orchestrator and visual management interface for Docker Compose stacks. Allows editing compose definitions, monitoring container health, viewing live logs, and controlling stack lifecycles.
 * **Network & Access**: Proxied internally at `https://dockge.turing.home`. In the event of a reverse proxy failure, direct host port `8010` provides an emergency administrative bypass.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/dockge/data` for Dockge database and application state, `/var/run/docker.sock` to interface with the Docker daemon, and `${DOCKGE_STACKS_DIR}` to manage stack subdirectories.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/dockge/data:/app/data` for Dockge database and application state, `/var/run/docker.sock:/var/run/docker.sock` to interface with the Docker daemon, and `${DOCKGE_STACKS_DIR}:${DOCKGE_STACKS_DIR}` to read and manage Compose stack directories.
 * **Dependencies & Interconnections**: Manages all other stacks in `${DOCKGE_STACKS_DIR}`. Deployed outside the stacks directory so it does not self-manage.
 
 ---
@@ -85,7 +85,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Central reverse proxy and TLS termination gateway. Handles virtual host routing, SSL certificate management (Let's Encrypt DNS challenges and local wildcard certs), security headers, and access control lists.
 * **Network & Access**: Dual-homed on `external_npm` macvlan (`192.168.0.4`) and `homelab` bridge (`192.168.255.4`). Admin UI is available at `https://proxy.turing.home` or `http://192.168.0.4:81`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/nginx/data` for SQLite database (`db.sqlite`), generated Nginx configurations (`data/nginx`), custom and Let's Encrypt SSL certificates (`data/custom_ssl`, `data/letsencrypt`), and `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/media:ro` for static media serving.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/nginx/data:/data` for SQLite database (`db.sqlite`), generated Nginx configurations (`nginx/`), and custom SSL certificates (`custom_ssl/`); `${DOCKER_DATA_DIR}/nginx/data/letsencrypt:/etc/letsencrypt` for Let's Encrypt certificates and ACME challenges; and `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/media:ro` read-only for direct static media serving.
 * **Dependencies & Interconnections**: Routes HTTP/HTTPS traffic to all containerized backend web services over the `homelab` bridge network.
 
 ---
@@ -140,12 +140,12 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Internal Container Port**| `8096` (HTTP), `8920` (HTTPS), `7359` (UDP Discovery) |
 | **LAN Address** | `https://jellyfin.turing.home` |
 | **WAN Address** | `https://jellyfin.kamaka.tech` |
-| **Persistent Data Path** | `${DOCKER_DATA_DIR}/jellyfin/data` |
+| **Persistent Data Path** | `${DOCKER_DATA_DIR}/jellyfin/data/config` |
 | **Associated Secrets** | `JELLYFIN_API_KEY` |
 
 * **Role & Capabilities**: Central media server for movies, television shows, and music. Features hardware-accelerated transcoding (`/dev/dri`), multi-user management, stream monitoring, and client synchronization.
 * **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://jellyfin.turing.home` (internal) and `https://jellyfin.kamaka.tech` (external). Binds host port `8022:7359/udp` for local client autodiscovery.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/jellyfin/data/config` for SQLite databases and metadata, `${DOCKER_DATA_DIR}/jellyfin/data/cache` for temporary transcoding chunks, and `${MEDIA_DIR}:/media:ro` read-only for bulk media libraries.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/jellyfin/data/config:/config` for server configuration, SQLite databases, and metadata; and `${MEDIA_DIR}:/data/media:ro` read-only for bulk media libraries. Exposes Intel iGPU render node `/dev/dri/renderD128:/dev/dri/renderD128` (group 105) for Quick Sync hardware transcoding.
 * **Dependencies & Interconnections**: Passes streaming metrics to Homepage via `JELLYFIN_API_KEY`. Connects to Seerr for media requests.
 
 ---
@@ -165,7 +165,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Central service dashboard providing quick navigation links, active container metrics, BitTorrent download progress, Jellyfin stream counters, and Pi-hole DNS query statistics.
 * **Network & Access**: Accessible internally at `https://homepage.turing.home`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/homepage/data` for YAML configuration files (`services.yaml`, `settings.yaml`, `widgets.yaml`, `custom.css`), and `/var/run/docker.sock:ro` for automated Docker service discovery.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/homepage/data:/app/config` for YAML configuration files (`services.yaml`, `settings.yaml`, `widgets.yaml`, `custom.css`), and `/var/run/docker.sock:/var/run/docker.sock` for automated Docker service discovery.
 * **Dependencies & Interconnections**: Interfaces with Docker daemon labels and polls APIs across the `homelab` bridge (`jellyfin:8096`, `qbittorrentvpn:8081`, `radarr:7878`, `sonarr:8989`) and LAN (`192.168.0.2:80`).
 
 ---
@@ -185,7 +185,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Automated movie collection manager, release indexer, and download coordinator. Searches for movie releases via Prowlarr, sends downloads to qBittorrent, and organizes files into media libraries.
 * **Network & Access**: Accessible internally at `https://radarr.turing.home`. REST API is authenticated via `RADARR_API_KEY`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/radarr/data` for application configuration and database, and `${MEDIA_DIR}:/media` for file organization and hardlinking.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/radarr/data:/config` for application configuration and SQLite database, and `${MEDIA_DIR}:/media` for file organization and hardlinking.
 * **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`), qBittorrent (`http://qbittorrentvpn:8081`), and Seerr.
 
 ---
@@ -205,7 +205,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Automated television series collection manager, episode monitor, and release grabber. Interfaces with Prowlarr to monitor indexers and delegates downloads to qBittorrent.
 * **Network & Access**: Accessible internally at `https://sonarr.turing.home`. REST API is authenticated via `SONARR_API_KEY`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/sonarr/data` for application database and settings, and `${MEDIA_DIR}:/media` for automated media renaming and hardlinking.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/sonarr/data:/config` for application database and settings, and `${MEDIA_DIR}:/media` for automated media renaming and hardlinking.
 * **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`), qBittorrent (`http://qbittorrentvpn:8081`), and Seerr.
 
 ---
@@ -225,7 +225,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Centralized indexer proxy and aggregator for BitTorrent trackers and Usenet indexers. Automatically synchronizes indexer configurations and health across Radarr and Sonarr.
 * **Network & Access**: Accessible internally at `https://prowlarr.turing.home`. API authenticated via `PROWLARR_API_KEY`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/prowlarr/data` for application settings and indexer configurations.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/prowlarr/data:/config` for application settings and indexer configurations.
 * **Dependencies & Interconnections**: Routes Cloudflare-protected indexer requests through FlareSolverr (`http://flaresolverr:8191`). Syncs directly to Radarr (`radarr:7878`) and Sonarr (`sonarr:8989`).
 
 ---
@@ -265,7 +265,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Media request, discovery, and approval portal. Allows users to search for movies and television shows, view trailers, request additions, and automatically track download progress.
 * **Network & Access**: Accessible internally at `https://seerr.turing.home`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/seerr/data` for application state and SQLite database.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/seerr/data:/app/config` for application state and SQLite database.
 * **Dependencies & Interconnections**: Interfaces directly with Jellyfin (`http://jellyfin:8096`) for user authentication and library discovery, Radarr (`http://radarr:7878`) for movie requests, and Sonarr (`http://sonarr:8989`) for TV requests.
 
 ---
@@ -285,7 +285,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Comprehensive recipe management system, meal planner, and grocery list organizer. Supports web scraping, ingredient scaling, and multi-user recipe sharing.
 * **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://recipes.turing.home` (internal) and `https://recipes.kamaka.tech` (external). Nginx serves user-uploaded media files directly from `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/media:ro`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/tandoor/data/staticfiles` and `${DOCKER_DATA_DIR}/tandoor/data/mediafiles`.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/tandoor/data/staticfiles:/opt/recipes/staticfiles` for application static assets, and `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/opt/recipes/mediafiles` for user recipe photos and attachments (shared read-only with NPM at `/media:ro`).
 * **Dependencies & Interconnections**: Relies on PostgreSQL container (`postgresql:5432`) for data storage.
 
 ---
@@ -295,7 +295,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | Attribute | Value |
 | :--- | :--- |
 | **Stack Directory** | `postgres/` |
-| **Container Name** | `postgres` |
+| **Container Name** | `postgresql` |
 | **Host / Network Binding** | Internal `homelab` bridge only (Isolated from host) |
 | **Internal Container Port**| `5432` |
 | **LAN Address** | `postgresql:5432` (Internal) |
@@ -348,5 +348,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 * **Role & Capabilities**: Dedicated privacy bridge providing an encrypted Tailscale exit node routing all client WAN traffic through Private Internet Access in US regions (`PIA_REGION: us_east,us_chicago,us_nyc`). Completely decoupled from the primary Tailscale subnet router (`homelab` / `192.168.0.5`) and qBittorrent stack (`qbittorrentvpn`).
 * **Network & Access**: The Tailscale container operates inside the network namespace of the PIA container (`network_mode: "service:vpn"`). The PIA container provisions WireGuard interface `wg0`, sets kernel `ip_forward=1`, forward interface `FWD_IFACE: tailscale+`, and establishes NAT masquerading (`-o wg0 -j MASQUERADE`). Mobile/remote devices selecting `vpn-bridge` as their exit node route all public internet traffic through PIA without leaking the homelab ISP IP address or bypassing local LAN subnet access.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/vpn-bridge/data/pia:/pia` for WireGuard PIA runtime state and `${DOCKER_DATA_DIR}/vpn-bridge/data/tailscale:/var/lib/tailscale` for node state and machine identity keys. Uses `/dev/net/tun` for kernel tunnel routing and `tmpfs: [/tmp]` for Tailscale daemon sockets.
+* **Storage & Volume Mappings**:
+  * **`vpn-bridge-pia` (VPN)**: Mounts `${DOCKER_DATA_DIR}/vpn-bridge/data/pia:/pia` for WireGuard PIA runtime configuration and lease state.
+  * **`vpn-bridge-tailscale` (Tailscale Exit Node)**: Mounts `${DOCKER_DATA_DIR}/vpn-bridge/data/tailscale:/var/lib/tailscale` for node state and machine identity keys, `/dev/net/tun:/dev/net/tun` for kernel tunnel routing, and `tmpfs: [/tmp]` for Tailscale daemon sockets.
 * **Dependencies & Interconnections**: Requires `NET_ADMIN` capability on `vpn-bridge-pia` and `NET_ADMIN`, `NET_RAW` capabilities on `vpn-bridge-tailscale`. Operates independently on the `homelab` bridge network.

@@ -106,7 +106,6 @@ The project encompasses:
 - `/volume2/docker/qbittorrentvpn/data/set-qbt-port.sh` -> `/set-qbt-port.sh:ro` (`wireguard-pia`)
 - `/volume2/docker/qbittorrentvpn/data/config` -> `/config` (`qbittorrentvpn`)
 - `/volume2/docker/qbittorrentvpn/data/incomplete` -> `/incomplete` (`qbittorrentvpn`)
-- `/volume1/media` -> `/media` (`qbittorrentvpn`)
 - `/volume2/docker/radarr/data` -> `/config` (`radarr`)
 - `/volume2/docker/sonarr/data` -> `/config` (`sonarr`)
 - `/volume2/docker/prowlarr/data` -> `/config` (`prowlarr`)
@@ -118,6 +117,10 @@ The project encompasses:
 - `/volume2/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
 - `/volume2/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
 - `/volume1/media` -> `/media` (`radarr`, `sonarr`, `qbittorrentvpn`) and `/data/media:ro` (`jellyfin`)
+- `/var/run/docker.sock` -> `/var/run/docker.sock` (`dockge`, `homepage`)
+- `/opt/brandon/dockge/stacks` -> `${DOCKGE_STACKS_DIR}` (`dockge`)
+- `/dev/net/tun` -> `/dev/net/tun` (`tailscale`, `vpn-bridge-tailscale`)
+- `/dev/dri/renderD128` -> `/dev/dri/renderD128` (`jellyfin`)
 
 ### 3.3 Container Privilege and UID/GID Model
 
