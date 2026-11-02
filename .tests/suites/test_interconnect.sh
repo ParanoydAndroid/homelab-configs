@@ -106,6 +106,12 @@ test_interconnect_vpn_bridge_pia_egress() {
   return 1
 }
 
+# ------------------------------------------------------------------------------
+# Function: test_interconnect_vpn_bridge_tailscale_backend_state
+# Description:
+#   Checks that the vpn-bridge-tailscale exit node container daemon is active
+#   and authenticated on the Tailscale tailnet.
+# ------------------------------------------------------------------------------
 test_interconnect_vpn_bridge_tailscale_backend_state() {
   local ts_status
   ts_status="$(docker exec vpn-bridge-tailscale tailscale status --json 2>/dev/null || true)"
@@ -122,6 +128,84 @@ test_interconnect_vpn_bridge_tailscale_backend_state() {
   return 1
 }
 
+# ------------------------------------------------------------------------------
+# Function: test_interconnect_qbittorrent_volume_write_permissions
+# Description:
+#   Verifies that the non-root container user ('abc', UID 1000) inside
+#   'qbittorrentvpn' has write and delete permissions across all mounted persistent
+#   storage directories (/config, /incomplete, /media). Prevents regressions
+#   caused by host POSIX permission drift or UGOS proprietary ACL masks
+#   (system.ugacl_self) blocking downloads and file movement.
+# Arguments:
+#   None.
+# Outputs:
+#   Writes human-readable diagnostic status or failure details to stdout.
+# Side Effects:
+#   Creates and immediately unlinks a temporary probe file (.perm_probe_<PID>)
+#   in each target directory as user 'abc'.
+# Returns:
+#   0 on full write/delete success across all volumes; 1 if any directory fails.
+# ------------------------------------------------------------------------------
+test_interconnect_qbittorrent_volume_write_permissions() {
+  local target_user="abc"
+  local dirs=(/config /incomplete /media)
+  local failed_dirs=()
+
+  for dir in "${dirs[@]}"; do
+    local probe="${dir}/.perm_probe_$$"
+    # Execute write probe inside container under non-root user 'abc' (UID 1000)
+    if ! docker exec -u "${target_user}" qbittorrentvpn sh -c "touch '${probe}' && rm -f '${probe}'" >/dev/null 2>&1; then
+      failed_dirs+=("${dir}")
+    fi
+  done
+
+  if [[ ${#failed_dirs[@]} -eq 0 ]]; then
+    printf "Write permissions verified for user %s across all volume mounts (%s)" "${target_user}" "${dirs[*]}"
+    return 0
+  fi
+
+  printf "Permission denied writing to volume mounts as user %s: %s" "${target_user}" "${failed_dirs[*]}"
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# Function: test_interconnect_qbittorrent_torrent_error_status
+# Description:
+#   Queries the qBittorrent WebAPI (/api/v2/torrents/info?filter=errored) from the
+#   shared network namespace container ('wireguard-pia') to assert that zero
+#   torrents have entered an errored state. Catches runtime file I/O failures,
+#   permission errors, or corrupted torrent states.
+# Arguments:
+#   None.
+# Outputs:
+#   Writes verification summary or failure error counts to stdout.
+# Side Effects:
+#   Executes HTTP GET request against local qBittorrent WebAPI.
+# Returns:
+#   0 if zero torrents are errored; 1 if API fails or any errored torrents found.
+# ------------------------------------------------------------------------------
+test_interconnect_qbittorrent_torrent_error_status() {
+  local errored_json errored_trimmed
+  errored_json="$(docker exec wireguard-pia curl -fsS --max-time 15 "http://127.0.0.1:8081/api/v2/torrents/info?filter=errored" 2>/dev/null || true)"
+
+  if [[ -z "${errored_json}" ]]; then
+    printf "Failed to query qBittorrent API for errored torrents"
+    return 1
+  fi
+
+  # Trim whitespace to verify an empty JSON array '[]'
+  errored_trimmed="$(echo "${errored_json}" | tr -d '[:space:]')"
+  if [[ "${errored_trimmed}" == "[]" ]]; then
+    printf "Zero torrents in error state"
+    return 0
+  fi
+
+  local count
+  count="$(echo "${errored_json}" | grep -o '"hash":' | wc -l || echo "unknown")"
+  printf "%s torrents reported in error state" "${count}"
+  return 1
+}
+
 suite_interconnect() {
   init_suite "4. Inter-Container DNS, Sockets & Service Interconnections"
 
@@ -135,6 +219,8 @@ suite_interconnect() {
   run_test test_interconnect_tailscale_backend_state "Check Tailscale Subnet Router status and authentication"
   run_test test_interconnect_vpn_bridge_pia_egress "Verify VPN Bridge PIA WireGuard egress through US endpoint"
   run_test test_interconnect_vpn_bridge_tailscale_backend_state "Check VPN Bridge Tailscale exit node status"
+  run_test test_interconnect_qbittorrent_volume_write_permissions "Verify non-root volume write permissions in qbittorrentvpn"
+  run_test test_interconnect_qbittorrent_torrent_error_status "Verify qBittorrent torrent queue has zero errored torrents"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
