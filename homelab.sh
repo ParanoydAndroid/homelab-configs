@@ -61,6 +61,16 @@ setup_homelab() {
     chown "${TARGET_USER}:${TARGET_GROUP}" "${DOCKGE_DIR}/compose.yml" 2>/dev/null || true
   fi
 
+  # Deploy qBittorrent port forwarding and anti-thrashing preference script
+  local qbt_data_dir="${DOCKER_DATA_DIR}/qbittorrentvpn/data"
+  if [[ -f "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" ]]; then
+    log_info "Ensuring qBittorrent port sync script is present (${qbt_data_dir}/set-qbt-port.sh)..."
+    mkdir -p "${qbt_data_dir}"
+    cp -p "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" "${qbt_data_dir}/set-qbt-port.sh"
+    chmod +x "${qbt_data_dir}/set-qbt-port.sh"
+    chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_data_dir}/set-qbt-port.sh" 2>/dev/null || true
+  fi
+
   log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."
   docker compose -f "${DOCKGE_DIR}/compose.yml" --env-file "${DOCKGE_DIR}/.env" up -d
 

@@ -105,6 +105,8 @@ The project encompasses:
 - `/volume2/docker/qbittorrentvpn/data/pia-shared` -> `/pia-shared` (`wireguard-pia`)
 - `/volume2/docker/qbittorrentvpn/data/set-qbt-port.sh` -> `/set-qbt-port.sh:ro` (`wireguard-pia`)
 - `/volume2/docker/qbittorrentvpn/data/config` -> `/config` (`qbittorrentvpn`)
+- `/volume2/docker/qbittorrentvpn/data/incomplete` -> `/incomplete` (`qbittorrentvpn`)
+- `/volume1/media` -> `/media` (`qbittorrentvpn`)
 - `/volume2/docker/radarr/data` -> `/config` (`radarr`)
 - `/volume2/docker/sonarr/data` -> `/config` (`sonarr`)
 - `/volume2/docker/prowlarr/data` -> `/config` (`prowlarr`)
