@@ -48,74 +48,7 @@ Directing Docker's `data-root` to solid-state storage (e.g. `/volume2/@docker`) 
 
 ---
 
-## 3. BitTorrent I/O & Network Optimization (qBittorrent)
-
-BitTorrent traffic downloads files non-sequentially in unaligned pieces (typically 16KB to 2MB). Unoptimized default settings can cause severe mechanical drive thrashing, extreme Btrfs fragmentation, and unnecessary network chatter. 
-
-The following settings in `qBittorrent.conf` optimize I/O throughput and network behavior:
-
-### 3.1 Incomplete Download Buffering on Solid-State Storage
-Buffer active downloads on solid-state storage and transfer completed files to mechanical storage sequentially:
-
-```yaml
-volumes:
-  # High-IOPS buffer for active peer writes
-  - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/incomplete:/incomplete
-  # Sequential storage for completed torrents
-  - ${MEDIA_DIR:?See env.example for default.}/downloads:/media/downloads
-```
-* **Configuration**: In qBittorrent (**Options -> Downloads**), enable **"Keep incomplete torrents in:"** and set the path to `/incomplete` (`Session\TempPath=/incomplete` and `Session\TempPathEnabled=true`).
-* **I/O Benefit**: Absorbs random unaligned chunk writes on SSD; completed payloads are written sequentially to the RAID array in a single continuous stream, minimizing mechanical head seeks.
-
-### 3.2 RAM Write Cache (`Session\DiskQueueSize`)
-Allows incoming network chunks to buffer in memory before being committed to physical storage:
-* **Configuration (`qBittorrent.conf`)**:
-  ```ini
-  [BitTorrent]
-  Session\DiskQueueSize=536870912
-  ```
-  *(In WebUI: **Options -> Advanced -> Disk queue size / Physical memory write cache** set to 512 MiB or higher).*
-* **I/O Benefit**: Prevents synchronous disk writes on every packet receipt, coalescing fragmented blocks in RAM so the filesystem can write larger, contiguous extents.
-
-### 3.3 Piece Extent Affinity (`Session\PieceExtentAffinity`)
-Forces the libtorrent download engine to prioritize completing contiguous file regions (extents) rather than downloading scattered pieces across the entire file payload:
-* **Configuration (`qBittorrent.conf`)**:
-  ```ini
-  [BitTorrent]
-  Session\PieceExtentAffinity=true
-  ```
-* **I/O Benefit**: Significantly reduces file fragmentation on copy-on-write filesystems (Btrfs) and mechanical disks. Keeps active write heads constrained to localized disk sectors.
-
-### 3.4 Suggest Mode & Peer Advertising (`Session\SuggestMode`)
-Enables BEP 54 (libtorrent suggest mode), which allows the client to suggest preferred contiguous pieces to connected peers:
-* **Configuration (`qBittorrent.conf`)**:
-  ```ini
-  [BitTorrent]
-  Session\SuggestMode=true
-  ```
-* **Network & I/O Benefit**: Encourages swarm peers to upload pieces that align with the client's contiguous allocation extents, reducing random block distribution.
-
-### 3.5 Interface Affinity & UPnP Disabling
-Secures network routing and disables redundant router discovery:
-* **Interface Binding**: Bind qBittorrent strictly to the WireGuard tunnel interface (`wg0`):
-  ```ini
-  [BitTorrent]
-  Session\Interface=wg0
-  Session\InterfaceName=wg0
-  ```
-  *Provides defense-in-depth binding libtorrent sockets directly to the VPN interface, preventing socket creation on host interfaces if container namespaces change.*
-* **Disable UPnP / NAT-PMP Advertising**:
-  ```ini
-  [Network]
-  PortForwardingEnabled=false
-  [WebUI]
-  UseUPnP=false
-  ```
-  *Since qBittorrent runs behind a WireGuard VPN tunnel, router-level UPnP and NAT-PMP requests are ineffective and generate useless LAN discovery traffic. Dynamic port forwarding is handled exclusively by the PIA forwarding script (`set-qbt-port.sh`).*
-
----
-
-## 4. Btrfs Copy-on-Write (No-CoW) Optimization
+## 3. Btrfs Copy-on-Write (No-CoW) Optimization
 
 On Btrfs filesystems, the Copy-on-Write (CoW) feature causes severe file fragmentation and write amplification when modifying databases (PostgreSQL, SQLite) or updating downloading torrent files in-place.
 
@@ -138,7 +71,7 @@ lsattr -d /volume2/docker/postgres/data
 
 ---
 
-## 5. Linux Virtual Memory Dirty Ratio Smoothing
+## 4. Linux Virtual Memory Dirty Ratio Smoothing
 
 Default Linux kernel settings allow up to 20% of total system memory to accumulate unwritten "dirty" pages before forcing flushes to disk. On high-RAM systems with mechanical storage arrays, this can trigger periodic 10–30 second system-wide I/O lockups when gigabytes of buffered writes flush simultaneously.
 
@@ -160,7 +93,7 @@ sudo sysctl --system
 
 ---
 
-## 6. In-Memory Transcoding Caches (`tmpfs`)
+## 5. In-Memory Transcoding Caches (`tmpfs`)
 
 Media servers like Jellyfin transcode incompatible video streams on the fly, writing temporary HLS video segments every 2 to 6 seconds. Writing transcode segments to physical disks generates continuous disk activity and unnecessary write cycles.
 
@@ -179,7 +112,7 @@ services:
 
 ---
 
-## 7. Container Log Rotation Invariants
+## 6. Container Log Rotation Invariants
 
 Unconstrained container logs can grow indefinitely, consuming gigabytes of disk space and causing unnecessary journaling overhead.
 
@@ -197,7 +130,7 @@ This guarantees that no container log ever exceeds 30MB total on disk.
 
 ---
 
-## 8. Read-Only Media Mount Enforcement (`:ro`)
+## 7. Read-Only Media Mount Enforcement (`:ro`)
 
 Services that only consume media (e.g. Jellyfin for playback, Seerr for requests) should never mount media storage with write permissions.
 
@@ -212,7 +145,7 @@ This prevents accidental modification, avoids acquiring unnecessary directory wr
 
 ---
 
-## 9. Online Logical Database Staging
+## 8. Online Logical Database Staging
 
 Traditional container backup methods either stop containers (causing service downtime) or copy raw database files directly off disk (risking corruption if writes are mid-transaction).
 

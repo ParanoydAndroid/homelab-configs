@@ -9,7 +9,9 @@
 #        Linux kernel WireGuard interface (wg0), enforces an iptables kill
 #        switch, negotiates PIA NextGen dynamic port forwarding (refreshing the
 #        lease every 15 minutes), and executes '/set-qbt-port.sh <port>' to
-#        push the assigned port directly into qBittorrent's WebUI API.
+#        push the assigned port and anti-thrashing preferences (512MB RAM write
+#        cache, piece extent affinity, suggest mode, wg0 interface binding)
+#        directly into qBittorrent's WebUI API.
 #     2. 'qbittorrent' (lscr.io/linuxserver/qbittorrent):
 #        Attaches to the WireGuard container's network stack via
 #        'network_mode: "service:vpn"' so all BitTorrent peer traffic is
