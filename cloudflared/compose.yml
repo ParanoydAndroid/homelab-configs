@@ -25,7 +25,7 @@ services:
       - homepage.name=Cloudflare Tunnel
       - homepage.icon=cloudflare
       - homepage.href=https://one.dash.cloudflare.com/
-      - homepage.description=Zero Trust CGNAT Ingress Tunnel
+      - homepage.description=Zero Trust Tunnel
 
 networks:
   homelab:

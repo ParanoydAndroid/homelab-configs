@@ -39,8 +39,8 @@ services:
       - homepage.group=Administration
       - homepage.name=Dockge
       - homepage.icon=dockge
-      - homepage.href=http://dockge.turing.home
-      - homepage.description=Container Orchestrator
+      - homepage.href=https://dockge.turing.home
+      - homepage.description=Stack Manager
 
 networks:
   homelab:

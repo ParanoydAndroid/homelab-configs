@@ -84,7 +84,7 @@ services:
       - homepage.name=VPN Bridge Exit Node
       - homepage.icon=tailscale
       - homepage.href=https://login.tailscale.com/admin/machines
-      - homepage.description=Tailscale Exit Node routed through PIA WireGuard
+      - homepage.description=WireGuard Exit Node
 
 networks:
   homelab:

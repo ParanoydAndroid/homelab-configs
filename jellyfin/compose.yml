@@ -54,8 +54,8 @@ services:
       - homepage.group=Players
       - homepage.name=Jellyfin
       - homepage.icon=jellyfin
-      - homepage.href=http://jellyfin.turing.home
-      - homepage.description=Open source media server. Hosts local movies, shows, music, and ebooks.
+      - homepage.href=https://jellyfin.turing.home
+      - homepage.description=Media Server
       - homepage.widget.type=jellyfin
       - homepage.widget.version=2
       - homepage.widget.url=http://jellyfin:8096

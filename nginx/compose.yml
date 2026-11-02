@@ -44,6 +44,12 @@ services:
           - services
       external_npm:
         ipv4_address: ${NPM_IPV4_ADDRESS:?See env.example for default.}
+    labels:
+      - homepage.group=Administration
+      - homepage.name=Proxy Manager
+      - homepage.icon=nginx-proxy-manager
+      - homepage.href=https://proxy.turing.home
+      - homepage.description=Reverse Proxy & SSL
 
 networks:
   external_npm:

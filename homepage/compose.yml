@@ -28,6 +28,8 @@ services:
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/homepage/data:/app/config
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${MEDIA_DIR:?See env.example for default.}:/volume1:ro
+      - ${DOCKER_DATA_DIR:?See env.example for default.}:/volume2:ro
     # Accessed via Nginx Proxy Manager over the 'homelab' bridge network (homepage:3000).
     # Historical host port 8030 retained below as a comment for emergency debugging.
     # ports:
@@ -38,8 +40,8 @@ services:
       - homepage.group=Administration
       - homepage.name=Homepage
       - homepage.icon=homepage
-      - homepage.href=http://homepage.turing.home
-      - homepage.description=Dashboard
+      - homepage.href=https://homepage.turing.home
+      - homepage.description=Homelab Dashboard
 
 networks:
   homelab:

@@ -96,8 +96,8 @@ services:
       - homepage.group=Downloads
       - homepage.name=QBittorrentVPN
       - homepage.icon=qbittorrent
-      - homepage.href=http://torrent.turing.home
-      - homepage.description=BitTorrent client routed through PIA WireGuard kill switch.
+      - homepage.href=https://torrent.turing.home
+      - homepage.description=BitTorrent Client
       - homepage.widget.type=qbittorrent
       - homepage.widget.url=http://qbittorrentvpn:8081
       - homepage.widget.username=admin

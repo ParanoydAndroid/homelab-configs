@@ -35,8 +35,8 @@ services:
       - homepage.group=Downloads
       - homepage.name=Radarr
       - homepage.icon=radarr
-      - homepage.href=http://radarr.turing.home
-      - homepage.description=Movie Autodownloader
+      - homepage.href=https://radarr.turing.home
+      - homepage.description=Movie Automation
       - homepage.widget.type=radarr
       - homepage.widget.url=http://radarr:7878
       - homepage.widget.key=${RADARR_API_KEY:?See env.example for default.}
@@ -63,8 +63,8 @@ services:
       - homepage.group=Downloads
       - homepage.name=Sonarr
       - homepage.icon=sonarr
-      - homepage.href=http://sonarr.turing.home
-      - homepage.description=TV Autodownloader
+      - homepage.href=https://sonarr.turing.home
+      - homepage.description=TV Automation
       - homepage.widget.type=sonarr
       - homepage.widget.url=http://sonarr:8989
       - homepage.widget.key=${SONARR_API_KEY:?See env.example for default.}
@@ -90,7 +90,7 @@ services:
       - homepage.group=Infrastructure
       - homepage.name=Prowlarr
       - homepage.icon=prowlarr
-      - homepage.href=http://prowlarr.turing.home
+      - homepage.href=https://prowlarr.turing.home
       - homepage.description=Indexer Management
       - homepage.widget.type=prowlarr
       - homepage.widget.url=http://prowlarr:9696
@@ -114,8 +114,8 @@ services:
       - homepage.group=Infrastructure
       - homepage.name=Flaresolverr
       - homepage.icon=flaresolverr
-      - homepage.href=http://flaresolverr.turing.home
-      - homepage.description=Cloudflare Bypass (degraded)
+      - homepage.href=https://flaresolverr.turing.home
+      - homepage.description=Cloudflare Solver
 
 networks:
   homelab:

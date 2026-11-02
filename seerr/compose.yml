@@ -44,7 +44,7 @@ services:
       - homepage.name=Seerr
       - homepage.icon=seerr
       - homepage.href=https://seerr.turing.home
-      - homepage.description=Media Request and Discovery Management
+      - homepage.description=Media Requests
       - homepage.widget.type=overseerr
       - homepage.widget.url=http://seerr:5055
       - homepage.widget.key=${SEERR_API_KEY:?See env.example for default.}

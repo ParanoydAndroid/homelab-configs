@@ -45,6 +45,12 @@ services:
       homelab:
       external_npm:
         ipv4_address: ${TAILSCALE_IPV4_ADDRESS:?See env.example for default.}
+    labels:
+      - homepage.group=Network
+      - homepage.name=Tailscale Router
+      - homepage.icon=tailscale
+      - homepage.href=https://login.tailscale.com/admin/machines
+      - homepage.description=Mesh Subnet Router
 
 networks:
   homelab:
