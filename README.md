@@ -86,3 +86,23 @@ Detailed architectural specifications, configuration runbooks, and references ar
 * **[Operations and Appliance Engineering](.docs/operations.md)**: Operational runbooks, backup and secret restoration procedures, systemd background units, asynchronous mount handling, and OS workarounds.
 * **[Changelog](CHANGELOG.md)**: Historical release milestones with paired semantic and CalVer tags.
 * **[Project Backlog](BACKLOG.md)**: Tracked technical improvements and non-blocking optimizations.
+
+---
+
+## 5. Agent Skills & Operational Runbooks
+
+Procedural workflows, interactive scaffolding, and diagnostic algorithms are modularized as on-demand skills under `.skills/` (mirrored in `.agents/skills/`):
+
+| Skill Name | Purpose & Operational Scope |
+| :--- | :--- |
+| **`start-homelab`** | Interactive onboarding wizard for new developers: guides project orientation, service selection (keep/defer/remove), hardware & platform adaptation, secret provisioning, and verified deployment. |
+| **`stack-lifecycle`** | Standardized runbook for adding, retiring, or decommissioning a service stack across Compose, `.env.example`, reverse proxy, dashboard widgets, backups, and smoke tests. |
+| **`tls-certificates`** | Local root CA generation, wildcard certificate provisioning (`*.home`), NPM deployment, and client OS trust distribution (macOS, Windows, Linux, iOS, Android, Firefox). |
+| **`disaster-recovery-drill`** | Zero-downtime sandbox database restoration and integrity verification (`pg_restore`, SQLite PRAGMA checks) from Restic snapshots into `/tmp/dr-drill`. |
+| **`homelab-audit`** | Continuous drift detection auditing container runtimes, untracked containers, volume permissions/ACLs, Btrfs No-CoW flags, routing endpoints, and backup timer health. |
+| **`feature-initiation`** | Mainline synchronization, branch checkout (`feature/<name>`), architectural plan drafting, and adversarial "grill-me" design critique cycle. |
+| **`feature-completion`** | Full test suite verification, stop-on-failure enforcement, roll-up SemVer/CalVer changelog synthesis, merge, and dual tagging. |
+| **`stack-authoring`** | Compose authoring standards, canonical key ordering, variable assertion syntax, non-root user execution, and network attachment. |
+| **`backup-recovery`** | Restic persistent volume snapshots, online database staging, snapshot inspection, and disaster recovery. |
+| **`network-diagnostics`** | Systematic diagnostic triage flowchart for virtual hosts, container DNS resolution, WireGuard killswitches, and Tailscale routing. |
+| **`test-authoring`** | Systematic recipe and standards for authoring automated smoke, interconnect, and security tests in `.tests/suites/`. |

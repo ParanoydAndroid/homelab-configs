@@ -46,6 +46,9 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 │   ├── networking.md              # Dual-ingress architecture, routing, and TLS certificates
 │   └── operations.md              # CLI runbooks, systemd services, and storage operations
 ├── .agents/                       # Agent personas, instructions, rules, and architecture specs
+│   ├── rules/                     # Project conventions (project-conventions.md)
+│   ├── skills/                    # Operational runbooks (start-homelab, stack-lifecycle, etc.)
+│   └── artifacts/                 # Versioned design plans and architecture specifications
 ├── .skills -> .agents/skills      # Convenience symlink for agent workflow skills
 ├── AGENTS.md -> .agents/rules/project-conventions.md # Canonical agent instructions symlink
 ├── homelab.sh                     # Primary CLI orchestration entrypoint
