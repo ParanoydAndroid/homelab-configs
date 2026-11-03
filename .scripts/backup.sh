@@ -299,7 +299,7 @@ stage_database_dumps() {
   mkdir -p "${staging_dir}/sqlite"
 
   # 1. PostgreSQL online dump
-  if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'postgresql'; then
+  if is_service_enabled "postgresql" && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'postgresql'; then
     log_info "Creating online PostgreSQL dump for database 'recipes'..."
     if docker exec postgresql pg_dumpall -U postgres > "${staging_dir}/postgres_dumpall.sql" 2>/dev/null; then
       chmod 0600 "${staging_dir}/postgres_dumpall.sql" 2>/dev/null || true

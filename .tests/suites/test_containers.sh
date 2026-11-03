@@ -1,24 +1,30 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Suite:   .tests/suites/test_containers.sh
-# Purpose: Verifies container runtime states and healthchecks across all 15
+# Purpose: Verifies container runtime states and healthchecks across all
 #          services defined in the homelab environment.
 # ==============================================================================
 set -euo pipefail
 
-# Helper to assert running state and healthy/none status for a single container.
-# If an associated stack name is provided, checks whether the stack is enabled first.
-_assert_container_running() {
-  local container="$1"
-  local stack="${2:-}"
+# ------------------------------------------------------------------------------
+# Function: assert_service_running
+# Description:
+#   Helper to assert running state and healthy/none status for a service's container.
+#   If the service is omitted or disabled in compose.yml, returns 77 (SKIP).
+# Arguments:
+#   $1 (service)   - Service identifier or container name.
+#   $2 (container) - Optional container name override (defaults to $1).
+# ------------------------------------------------------------------------------
+assert_service_running() {
+  local service="$1"
+  local container="${2:-$1}"
 
-  if [[ -n "${stack}" ]] && ! is_stack_enabled "${stack}"; then
-    printf "Stack '%s' omitted or disabled" "${stack}"
+  if ! is_service_enabled "${service}"; then
+    printf "Service '%s' omitted or disabled" "${service}"
     return 77
   fi
 
   local state health
-
   state="$(docker inspect -f '{{.State.Status}}' "${container}" 2>/dev/null || echo "missing")"
   health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "${container}" 2>/dev/null || echo "none")"
 
@@ -37,135 +43,78 @@ _assert_container_running() {
 }
 
 test_docker_up_dockge() {
-  _assert_container_running "dockge"
+  local state health
+  state="$(docker inspect -f '{{.State.Status}}' "dockge" 2>/dev/null || echo "missing")"
+  health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "dockge" 2>/dev/null || echo "none")"
+  if [[ "${state}" != "running" ]]; then
+    printf "State is '%s' (expected 'running')" "${state}"
+    return 1
+  fi
+  printf "running (health: %s)" "${health}"
 }
 
 test_docker_up_postgresql() {
-  if ! is_stack_enabled "productivity" && ! is_stack_enabled "postgres"; then
-    printf "Stack 'productivity' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "postgresql"
+  assert_service_running "postgresql"
 }
 
 test_docker_up_nginx() {
-  if ! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"; then
-    printf "Stack 'ingress' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "nginx"
+  assert_service_running "nginx"
 }
 
 test_docker_up_tailscale() {
-  if ! is_stack_enabled "mesh" && ! is_stack_enabled "tailscale"; then
-    printf "Stack 'mesh' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "tailscale"
-}
-
-test_docker_up_homepage() {
-  if ! is_stack_enabled "dashboard" && ! is_stack_enabled "homepage"; then
-    printf "Stack 'dashboard' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "homepage"
-}
-
-test_docker_up_jellyfin() {
-  if ! is_stack_enabled "media" && ! is_stack_enabled "jellyfin"; then
-    printf "Stack 'media' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "jellyfin"
-}
-
-test_docker_up_wireguard_pia() {
-  if ! is_stack_enabled "torrent" && ! is_stack_enabled "qbittorrentvpn"; then
-    printf "Stack 'torrent' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "wireguard-pia"
-}
-
-test_docker_up_qbittorrentvpn() {
-  if ! is_stack_enabled "torrent" && ! is_stack_enabled "qbittorrentvpn"; then
-    printf "Stack 'torrent' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "qbittorrentvpn"
-}
-
-test_docker_up_radarr() {
-  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
-    printf "Stack 'media' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "radarr"
-}
-
-test_docker_up_sonarr() {
-  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
-    printf "Stack 'media' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "sonarr"
-}
-
-test_docker_up_prowlarr() {
-  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
-    printf "Stack 'media' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "prowlarr"
-}
-
-test_docker_up_flaresolverr() {
-  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
-    printf "Stack 'media' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "flaresolverr"
-}
-
-test_docker_up_seerr() {
-  if ! is_stack_enabled "media" && ! is_stack_enabled "seerr"; then
-    printf "Stack 'media' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "seerr"
-}
-
-test_docker_up_tandoor() {
-  if ! is_stack_enabled "productivity" && ! is_stack_enabled "tandoor"; then
-    printf "Stack 'productivity' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "tandoor"
-}
-
-test_docker_up_cloudflared() {
-  if ! is_stack_enabled "ingress" && ! is_stack_enabled "cloudflared"; then
-    printf "Stack 'ingress' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "cloudflared"
+  assert_service_running "tailscale"
 }
 
 test_docker_up_vpn_bridge_pia() {
-  if ! is_stack_enabled "mesh" && ! is_stack_enabled "vpn-bridge"; then
-    printf "Stack 'mesh' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "vpn-bridge-pia"
+  assert_service_running "vpn-bridge-pia"
 }
 
 test_docker_up_vpn_bridge_tailscale() {
-  if ! is_stack_enabled "mesh" && ! is_stack_enabled "vpn-bridge"; then
-    printf "Stack 'mesh' omitted or disabled"
-    return 77
-  fi
-  _assert_container_running "vpn-bridge-tailscale"
+  assert_service_running "vpn-bridge-tailscale"
+}
+
+test_docker_up_homepage() {
+  assert_service_running "homepage"
+}
+
+test_docker_up_jellyfin() {
+  assert_service_running "jellyfin"
+}
+
+test_docker_up_wireguard_pia() {
+  assert_service_running "wireguard-pia"
+}
+
+test_docker_up_qbittorrentvpn() {
+  assert_service_running "qbittorrentvpn"
+}
+
+test_docker_up_radarr() {
+  assert_service_running "radarr"
+}
+
+test_docker_up_sonarr() {
+  assert_service_running "sonarr"
+}
+
+test_docker_up_prowlarr() {
+  assert_service_running "prowlarr"
+}
+
+test_docker_up_flaresolverr() {
+  assert_service_running "flaresolverr"
+}
+
+test_docker_up_seerr() {
+  assert_service_running "seerr"
+}
+
+test_docker_up_tandoor() {
+  assert_service_running "tandoor"
+}
+
+test_docker_up_cloudflared() {
+  assert_service_running "cloudflared"
 }
 
 suite_containers() {

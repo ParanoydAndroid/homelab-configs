@@ -19,16 +19,79 @@ fi
 TARGET_GROUP="$(id -gn "${TARGET_USER}" 2>/dev/null || echo "admin")"
 
 # ------------------------------------------------------------------------------
+# Function: discover_services
+# Description:
+#   Parses all 'compose.yml' files across non-hidden root directories to discover
+#   active, enabled services. A service is enabled if declared and uncommented
+#   under the 'services:' block. Captures both top-level service identifiers
+#   (e.g. 'qbittorrent', 'vpn') and container names ('container_name: <name>').
+# Outputs:
+#   Populates the global 'ENABLED_SERVICES' array.
+# Returns:
+#   0 if one or more services are discovered; 1 otherwise.
+# ------------------------------------------------------------------------------
+discover_services() {
+  ENABLED_SERVICES=()
+  local compose_file
+
+  for compose_file in "${REPO_DIR}"/*/compose.yml; do
+    [[ -f "${compose_file}" ]] || continue
+    local stack_dir
+    stack_dir="$(basename "$(dirname "${compose_file}")")"
+    [[ "${stack_dir}" =~ ^\. ]] && continue
+
+    while IFS= read -r svc; do
+      [[ -n "${svc}" ]] && ENABLED_SERVICES+=("${svc}")
+    done < <(awk '
+      /^services:/ { in_services=1; next }
+      /^[^ #[:space:]]/ { in_services=0 }
+      in_services && /^  [a-zA-Z0-9_-]+:/ && !/^  #/ {
+        svc=$1; sub(/:.*/, "", svc); if (svc != "") print svc
+      }
+      in_services && /^[[:space:]]*container_name:[[:space:]]*/ && !/^[[:space:]]*#/ {
+        cn=$0
+        sub(/^[[:space:]]*container_name:[[:space:]]*/, "", cn)
+        sub(/[[:space:]]*#.*/, "", cn)
+        gsub(/["'\'' ]/, "", cn)
+        if (cn != "") print cn
+      }
+    ' "${compose_file}")
+  done
+
+  [[ ${#ENABLED_SERVICES[@]} -gt 0 ]]
+}
+
+# ------------------------------------------------------------------------------
+# Function: is_service_enabled
+# Description:
+#   Checks whether a given service or container is defined and enabled in any
+#   active stack compose.yml.
+# Arguments:
+#   $1 (service_name) - Service key or container name (e.g. "seerr", "postgresql").
+# Returns:
+#   0 if enabled; 1 if omitted, commented out, or disabled.
+# ------------------------------------------------------------------------------
+is_service_enabled() {
+  local target="$1"
+  local s
+  for s in "${ENABLED_SERVICES[@]}"; do
+    if [[ "${s}" == "${target}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# ------------------------------------------------------------------------------
 # Function: discover_stacks
 # Description:
 #   Dynamically discovers all active Dockge-compatible stack directories at the
-#   repository root. A valid stack is a non-hidden directory containing a
-#   'compose.yml' file without a '.disabled' marker.
+#   repository root. A stack is active as a derived consequence of containing
+#   at least one enabled service in its 'compose.yml'.
 #
 #   Ordering:
-#     Applies deterministic bootstrapping precedence: foundational network and
-#     database services ('postgres', 'nginx', 'tailscale', 'vpn-bridge') are
-#     ordered first, followed alphabetically by remaining application stacks.
+#     Applies deterministic bootstrapping precedence across the 6 canonical stacks:
+#     'productivity', 'ingress', 'mesh', 'dashboard', 'media', 'torrent'.
 #
 # Arguments:
 #   None.
@@ -39,22 +102,34 @@ TARGET_GROUP="$(id -gn "${TARGET_USER}" 2>/dev/null || echo "admin")"
 # ------------------------------------------------------------------------------
 discover_stacks() {
   local found_stacks=()
-  local dir stack_name
+  local compose_file stack_name
 
   # Search for all compose.yml files exactly one directory deep under REPO_DIR
-  for dir in "${REPO_DIR}"/*/compose.yml; do
-    [[ -f "${dir}" ]] || continue
-    stack_name="$(basename "$(dirname "${dir}")")"
+  for compose_file in "${REPO_DIR}"/*/compose.yml; do
+    [[ -f "${compose_file}" ]] || continue
+    stack_name="$(basename "$(dirname "${compose_file}")")"
 
-    # Ignore hidden directories or explicitly disabled stacks
-    if [[ "${stack_name}" =~ ^\. ]] || [[ -f "${REPO_DIR}/${stack_name}/.disabled" ]]; then
-      continue
+    # Ignore hidden directories
+    [[ "${stack_name}" =~ ^\. ]] && continue
+
+    # A stack is active only if it has at least one active service declared
+    local has_services=0
+    if awk '
+      /^services:/ { in_services=1; next }
+      /^[^ #[:space:]]/ { in_services=0 }
+      in_services && /^  [a-zA-Z0-9_-]+:/ && !/^  #/ { has_services=1; exit }
+      END { exit (has_services ? 0 : 1) }
+    ' "${compose_file}"; then
+      has_services=1
     fi
-    found_stacks+=("${stack_name}")
+
+    if [[ "${has_services}" -eq 1 ]]; then
+      found_stacks+=("${stack_name}")
+    fi
   done
 
-  # Foundational priority order
-  local priority_order=("productivity" "ingress" "mesh" "dashboard" "postgres" "nginx" "tailscale" "vpn-bridge")
+  # Foundational priority order: canonical 6 domain stacks
+  local priority_order=("productivity" "ingress" "mesh" "dashboard" "media" "torrent")
   local ordered_stacks=()
   local remaining_stacks=()
 
@@ -98,11 +173,11 @@ discover_stacks() {
 # ------------------------------------------------------------------------------
 # Function: is_stack_enabled
 # Description:
-#   Checks whether a given stack is active and discovered in the current repository.
+#   Checks whether a given stack is active and contains at least one enabled service.
 # Arguments:
-#   $1 (stack_name) - Directory name of the stack (e.g. "postgres", "tandoor").
+#   $1 (stack_name) - Directory name of the stack (e.g. "productivity", "media").
 # Returns:
-#   0 if enabled/present; 1 if omitted, disabled, or not found.
+#   0 if enabled/present; 1 if omitted, empty, or not found.
 # ------------------------------------------------------------------------------
 is_stack_enabled() {
   local target="$1"
@@ -113,6 +188,10 @@ is_stack_enabled() {
   done
   return 1
 }
+
+# Dynamically discovered list of enabled services and container names
+ENABLED_SERVICES=()
+discover_services || true
 
 # Dynamically discovered list of Docker Compose stack directories
 STACKS=()

@@ -7,38 +7,37 @@
 # ==============================================================================
 set -euo pipefail
 
-# Helper to execute client-impersonated HTTPS curl against NPM via any available container on 'homelab'
+# ------------------------------------------------------------------------------
+# Function: _curl_vhost
+# Description:
+#   Executes client-impersonated HTTPS curl against NPM via any available
+#   container on the 'homelab' bridge network.
+# Arguments:
+#   $1 (domain)         - Virtual host FQDN to query.
+#   $2 (path)           - URI path (defaults to '/').
+#   $3 (expected_regex) - Regex pattern of acceptable HTTP status codes.
+#   $4 (service)        - Optional target service identifier. Skips if disabled.
+# ------------------------------------------------------------------------------
 _curl_vhost() {
   local domain="$1"
   local path="${2:-/}"
   local expected_regex="${3:-^(200|301|302|307|308)$}"
-  local stack="${4:-}"
+  local service="${4:-}"
 
-  if ! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"; then
-    printf "Reverse proxy stack 'ingress' omitted or disabled"
+  if ! is_service_enabled "nginx"; then
+    printf "Reverse proxy service 'nginx' omitted or disabled"
     return 77
   fi
 
-  if [[ -n "${stack}" ]]; then
-    local stack_active=0
-    case "${stack}" in
-      dashboard) is_stack_enabled "dashboard" || is_stack_enabled "homepage" && stack_active=1 ;;
-      ingress) is_stack_enabled "ingress" || is_stack_enabled "nginx" && stack_active=1 ;;
-      media) is_stack_enabled "media" || is_stack_enabled "jellyfin" || is_stack_enabled "sonarr-radarr" || is_stack_enabled "seerr" && stack_active=1 ;;
-      torrent) is_stack_enabled "torrent" || is_stack_enabled "qbittorrentvpn" && stack_active=1 ;;
-      productivity) is_stack_enabled "productivity" || is_stack_enabled "tandoor" && stack_active=1 ;;
-      *) is_stack_enabled "${stack}" && stack_active=1 ;;
-    esac
-    if [[ "${stack_active}" -eq 0 ]]; then
-      printf "Stack '%s' omitted or disabled" "${stack}"
-      return 77
-    fi
+  if [[ -n "${service}" ]] && ! is_service_enabled "${service}"; then
+    printf "Target service '%s' omitted or disabled" "${service}"
+    return 77
   fi
 
   local probe_container=""
   local c
   for c in radarr sonarr homepage jellyfin seerr nginx; do
-    if docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null | grep -q "running"; then
+    if is_service_enabled "${c}" && docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null | grep -q "running"; then
       probe_container="${c}"
       break
     fi
@@ -70,11 +69,11 @@ _curl_vhost() {
 }
 
 test_vhost_homepage_internal() {
-  _curl_vhost "homepage.turing.home" "/" "^200$" "dashboard"
+  _curl_vhost "homepage.turing.home" "/" "^200$" "homepage"
 }
 
 test_vhost_proxy_internal() {
-  _curl_vhost "proxy.turing.home" "/" "^200$" "ingress"
+  _curl_vhost "proxy.turing.home" "/" "^200$" "nginx"
 }
 
 test_vhost_dockge_internal() {
@@ -82,35 +81,35 @@ test_vhost_dockge_internal() {
 }
 
 test_vhost_jellyfin_internal() {
-  _curl_vhost "jellyfin.turing.home" "/web/index.html" "^200$" "media"
+  _curl_vhost "jellyfin.turing.home" "/web/index.html" "^200$" "jellyfin"
 }
 
 test_vhost_radarr_internal() {
-  _curl_vhost "radarr.turing.home" "/ping" "^200$" "media"
+  _curl_vhost "radarr.turing.home" "/ping" "^200$" "radarr"
 }
 
 test_vhost_sonarr_internal() {
-  _curl_vhost "sonarr.turing.home" "/ping" "^200$" "media"
+  _curl_vhost "sonarr.turing.home" "/ping" "^200$" "sonarr"
 }
 
 test_vhost_prowlarr_internal() {
-  _curl_vhost "prowlarr.turing.home" "/ping" "^200$" "media"
+  _curl_vhost "prowlarr.turing.home" "/ping" "^200$" "prowlarr"
 }
 
 test_vhost_flaresolverr_internal() {
-  _curl_vhost "flaresolverr.turing.home" "/health" "^200$" "media"
+  _curl_vhost "flaresolverr.turing.home" "/health" "^200$" "flaresolverr"
 }
 
 test_vhost_seerr_internal() {
-  _curl_vhost "seerr.turing.home" "/api/v1/status" "^200$" "media"
+  _curl_vhost "seerr.turing.home" "/api/v1/status" "^200$" "seerr"
 }
 
 test_vhost_torrent_internal() {
-  _curl_vhost "torrent.turing.home" "/" "^200$" "torrent"
+  _curl_vhost "torrent.turing.home" "/" "^200$" "qbittorrentvpn"
 }
 
 test_vhost_recipes_internal() {
-  _curl_vhost "recipes.turing.home" "/" "^(200|302)$" "productivity"
+  _curl_vhost "recipes.turing.home" "/" "^(200|302)$" "tandoor"
 }
 
 test_vhost_nas_internal() {
@@ -118,11 +117,11 @@ test_vhost_nas_internal() {
 }
 
 test_vhost_jellyfin_external() {
-  _curl_vhost "jellyfin.kamaka.tech" "/web/index.html" "^200$" "media"
+  _curl_vhost "jellyfin.kamaka.tech" "/web/index.html" "^200$" "jellyfin"
 }
 
 test_vhost_recipes_external() {
-  _curl_vhost "recipes.kamaka.tech" "/" "^(200|302)$" "productivity"
+  _curl_vhost "recipes.kamaka.tech" "/" "^(200|302)$" "tandoor"
 }
 
 suite_routing() {

@@ -73,20 +73,22 @@ setup_homelab() {
   fi
 
   # Deploy qBittorrent port forwarding and anti-thrashing preference script
-  local qbt_data_dir="${DOCKER_DATA_DIR}/qbittorrentvpn/data"
-  if [[ -f "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" ]]; then
-    log_info "Ensuring qBittorrent port sync script is present (${qbt_data_dir}/set-qbt-port.sh)..."
-    mkdir -p "${qbt_data_dir}"
-    cp -p "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" "${qbt_data_dir}/set-qbt-port.sh"
-    chmod +x "${qbt_data_dir}/set-qbt-port.sh"
-    chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_data_dir}/set-qbt-port.sh" 2>/dev/null || true
-  fi
+  if is_service_enabled "wireguard-pia" || is_service_enabled "qbittorrent"; then
+    local qbt_data_dir="${DOCKER_DATA_DIR}/qbittorrentvpn/data"
+    if [[ -f "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" ]]; then
+      log_info "Ensuring qBittorrent port sync script is present (${qbt_data_dir}/set-qbt-port.sh)..."
+      mkdir -p "${qbt_data_dir}"
+      cp -p "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" "${qbt_data_dir}/set-qbt-port.sh"
+      chmod +x "${qbt_data_dir}/set-qbt-port.sh"
+      chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_data_dir}/set-qbt-port.sh" 2>/dev/null || true
+    fi
 
-  # Ensure qBittorrent scratch incomplete directory exists with write permissions
-  local qbt_incomplete_dir="${qbt_data_dir}/incomplete"
-  if [[ -d "${qbt_incomplete_dir}" ]]; then
-    chmod 775 "${qbt_incomplete_dir}" 2>/dev/null || true
-    chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_incomplete_dir}" 2>/dev/null || true
+    # Ensure qBittorrent scratch incomplete directory exists with write permissions
+    local qbt_incomplete_dir="${qbt_data_dir}/incomplete"
+    if [[ -d "${qbt_incomplete_dir}" ]]; then
+      chmod 775 "${qbt_incomplete_dir}" 2>/dev/null || true
+      chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_incomplete_dir}" 2>/dev/null || true
+    fi
   fi
 
   log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."
@@ -152,14 +154,14 @@ startup_homelab() {
       )
 
       # PostgreSQL readiness probe for dependent services
-      if [[ "${stack}" == "productivity" || "${stack}" == "postgres" ]]; then
+      if [[ "${stack}" == "productivity" ]] && is_service_enabled "postgresql"; then
         log_info "Waiting for PostgreSQL database readiness..."
         local pg_wait=20
-        while ! (docker exec postgresql pg_isready -q 2>/dev/null || docker exec postgres pg_isready -q 2>/dev/null) && (( pg_wait > 0 )); do
+        while ! docker exec postgresql pg_isready -q 2>/dev/null && (( pg_wait > 0 )); do
           sleep 1
           (( pg_wait-- )) || true
         done
-        if docker exec postgresql pg_isready -q 2>/dev/null || docker exec postgres pg_isready -q 2>/dev/null; then
+        if docker exec postgresql pg_isready -q 2>/dev/null; then
           log_info "PostgreSQL is ready and accepting connections."
         else
           log_warn "PostgreSQL did not report ready within timeout; continuing startup sequence."

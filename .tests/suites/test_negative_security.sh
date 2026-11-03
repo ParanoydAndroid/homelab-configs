@@ -10,7 +10,7 @@ set -euo pipefail
 _get_security_probe_container() {
   local c
   for c in radarr sonarr homepage jellyfin seerr nginx; do
-    if docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null | grep -q "running"; then
+    if is_service_enabled "${c}" && docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null | grep -q "running"; then
       printf "%s" "${c}"
       return 0
     fi
@@ -19,8 +19,8 @@ _get_security_probe_container() {
 }
 
 test_security_jellyfin_metrics_blocked() {
-  if (! is_stack_enabled "media" && ! is_stack_enabled "jellyfin") || (! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"); then
-    printf "Stack 'media' or 'ingress' omitted or disabled"
+  if ! is_service_enabled "jellyfin" || ! is_service_enabled "nginx"; then
+    printf "Service 'jellyfin' or 'nginx' omitted or disabled"
     return 77
   fi
   local probe_c
@@ -46,8 +46,8 @@ test_security_jellyfin_metrics_blocked() {
 }
 
 test_security_jellyfin_swagger_blocked() {
-  if (! is_stack_enabled "media" && ! is_stack_enabled "jellyfin") || (! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"); then
-    printf "Stack 'media' or 'ingress' omitted or disabled"
+  if ! is_service_enabled "jellyfin" || ! is_service_enabled "nginx"; then
+    printf "Service 'jellyfin' or 'nginx' omitted or disabled"
     return 77
   fi
   local probe_c
@@ -73,8 +73,8 @@ test_security_jellyfin_swagger_blocked() {
 }
 
 test_security_jellyfin_api_docs_blocked() {
-  if (! is_stack_enabled "media" && ! is_stack_enabled "jellyfin") || (! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"); then
-    printf "Stack 'media' or 'ingress' omitted or disabled"
+  if ! is_service_enabled "jellyfin" || ! is_service_enabled "nginx"; then
+    printf "Service 'jellyfin' or 'nginx' omitted or disabled"
     return 77
   fi
   local probe_c
@@ -100,11 +100,10 @@ test_security_jellyfin_api_docs_blocked() {
 }
 
 test_security_postgres_port_isolated_from_host() {
-  if ! is_stack_enabled "productivity" && ! is_stack_enabled "postgres"; then
-    printf "Stack 'productivity' omitted or disabled"
+  if ! is_service_enabled "postgresql"; then
+    printf "Service 'postgresql' omitted or disabled"
     return 77
   fi
-  # Port 5432 must NOT be bound to host 0.0.0.0 or 127.0.0.1
   if curl -sS --connect-timeout 2 "http://127.0.0.1:5432" >/dev/null 2>&1; then
     printf "Host port 5432 is unexpectedly accessible from host!"
     return 1
@@ -114,8 +113,8 @@ test_security_postgres_port_isolated_from_host() {
 }
 
 test_security_npm_api_unauthenticated_rejected() {
-  if ! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"; then
-    printf "Stack 'ingress' omitted or disabled"
+  if ! is_service_enabled "nginx"; then
+    printf "Service 'nginx' omitted or disabled"
     return 77
   fi
   local probe_c
@@ -124,7 +123,6 @@ test_security_npm_api_unauthenticated_rejected() {
     printf "No active probe container found on 'homelab' bridge network"
     return 77
   fi
-  # Accessing protected NPM user management endpoint without Bearer token must return HTTP 401 or 403
   local code
   code="$(docker exec "${probe_c}" curl -sS -o /dev/null -w '%{http_code}' \
     --max-time 20 \
@@ -140,11 +138,10 @@ test_security_npm_api_unauthenticated_rejected() {
 }
 
 test_security_radarr_api_unauthenticated_rejected() {
-  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
-    printf "Stack 'media' omitted or disabled"
+  if ! is_service_enabled "radarr"; then
+    printf "Service 'radarr' omitted or disabled"
     return 77
   fi
-  # Requesting Radarr movie REST API without an API key must return HTTP 401 Unauthorized
   local code
   code="$(docker exec radarr curl -sS -o /dev/null -w '%{http_code}' \
     --max-time 20 \
@@ -160,11 +157,10 @@ test_security_radarr_api_unauthenticated_rejected() {
 }
 
 test_security_sonarr_api_unauthenticated_rejected() {
-  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
-    printf "Stack 'media' omitted or disabled"
+  if ! is_service_enabled "sonarr"; then
+    printf "Service 'sonarr' omitted or disabled"
     return 77
   fi
-  # Requesting Sonarr series REST API without an API key must return HTTP 401 Unauthorized
   local code
   code="$(docker exec sonarr curl -sS -o /dev/null -w '%{http_code}' \
     --max-time 20 \
