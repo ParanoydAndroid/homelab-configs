@@ -21,15 +21,15 @@ test_direct_dockge_host_port() {
 }
 
 test_direct_npm_admin_api() {
-  if ! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"; then
-    printf "Stack 'ingress' omitted or disabled"
+  if ! is_service_enabled "nginx"; then
+    printf "Service 'nginx' omitted or disabled"
     return 77
   fi
 
   local probe_c=""
   local c
   for c in radarr sonarr homepage jellyfin seerr nginx; do
-    if docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null | grep -q "running"; then
+    if is_service_enabled "${c}" && docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null | grep -q "running"; then
       probe_c="${c}"
       break
     fi

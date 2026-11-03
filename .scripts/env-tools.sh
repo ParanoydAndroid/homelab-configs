@@ -95,7 +95,7 @@ init_and_sync_env() {
             gen_key="$(LC_ALL=C tr -dc 'A-Za-z0-9!#%&*+,-./:;<=>?@^_~' < /dev/urandom | head -c 50 || true)"
             upsert_env_var "${target_env}" "SECRET_KEY" "${gen_key}"
             log_info "Auto-generated random cryptographic SECRET_KEY for ${stack}."
-          elif [[ "${req_key}" == "TS_AUTHKEY" ]]; then
+          elif [[ "${req_key}" == "TS_AUTHKEY" || "${req_key}" == "EXIT_NODE_TS_AUTHKEY" ]]; then
             # Optional pre-auth key; intentionally allowed to remain blank after initial registration
             :
           else
