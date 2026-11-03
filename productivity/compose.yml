@@ -38,7 +38,7 @@ services:
     restart: unless-stopped
     environment:
       ALLOW_SIGNUP: "true"
-      BASE_URL: https://mealie.kamaka.tech
+      BASE_URL: https://recipes.kamaka.tech
       PUID: ${PUID:?See env.example for default.}
       PGID: ${PGID:?See env.example for default.}
       TZ: ${TZ:?See env.example for default.}
@@ -49,13 +49,13 @@ services:
     networks:
       - homelab
     labels:
-      - caddy=mealie.kamaka.tech, mealie.kamakakai.com, mom.kamakakai.com
+      - caddy=recipes.kamaka.tech, recipes.kamakakai.com, mom.kamakakai.com
       - caddy.reverse_proxy={{upstreams 9000}}
       - caddy.import=cloudflare_tls
       - homepage.group=Productivity
-      - homepage.name=Mealie
+      - homepage.name=Mealie Recipes
       - homepage.icon=mealie
-      - homepage.href=https://mealie.kamaka.tech
+      - homepage.href=https://recipes.kamaka.tech
       - homepage.description=Modern Recipe & Meal Planning
 
 networks:

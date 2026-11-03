@@ -24,7 +24,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Prowlarr** | `media/` | `prowlarr` | Internal Bridge Only | `9696` | HTTP | `https://prowlarr.kamaka.tech` | None |
 | **FlareSolverr** | `media/` | `flaresolverr` | Internal Bridge Only | `8191` | HTTP | `https://flaresolverr.kamaka.tech` | None |
 | **Seerr** | `media/` | `seerr` | Internal Bridge Only | `5055` | HTTP | `https://seerr.kamaka.tech` | None |
-| **Mealie Recipes** | `productivity/` | `mealie` | Internal Bridge Only | `9000` | HTTP | `https://mealie.kamaka.tech` | `https://mealie.kamakakai.com`, `https://mom.kamakakai.com` |
+| **Mealie Recipes** | `productivity/` | `mealie` | Internal Bridge Only | `9000` | HTTP | `https://recipes.kamaka.tech` | `https://recipes.kamakakai.com`, `https://mom.kamakakai.com` |
 | **PostgreSQL** | `productivity/` | `postgresql` | Internal Bridge Only | `5432` | TCP | `postgresql:5432` (Internal) | None |
 | **WireGuard PIA VPN** | `torrent/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.kamaka.tech` | None |
 | **qBittorrent** | `torrent/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
@@ -99,13 +99,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `mealie` |
 | **Host / Network Binding** | Internal Bridge Only (`homelab`) |
 | **Internal Container Port**| `9000` (HTTP) |
-| **LAN Address** | `https://mealie.kamaka.tech` |
-| **WAN Address** | `https://mealie.kamakakai.com`, `https://mom.kamakakai.com` |
+| **LAN Address** | `https://recipes.kamaka.tech` |
+| **WAN Address** | `https://recipes.kamakakai.com`, `https://mom.kamakakai.com` |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/mealie/data` |
 | **Associated Secrets** | None (embedded SQLite, non-root PUID/PGID execution) |
 
 * **Role & Capabilities**: Modern recipe manager and meal planner with automated recipe scraping, interactive meal planning, shopping lists, and REST API.
-* **Network & Access**: Accessible locally at `https://mealie.kamaka.tech` and publicly at `https://mealie.kamakakai.com` / `https://mom.kamakakai.com`.
+* **Network & Access**: Accessible locally at `https://recipes.kamaka.tech` and publicly at `https://recipes.kamakakai.com` / `https://mom.kamakakai.com`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/mealie/data:/app/data` for embedded SQLite database, recipe photos, and migration backups.
 * **Dependencies & Interconnections**: Self-contained SQLite database engine; coexists with PostgreSQL in `productivity/compose.yml`.
 

@@ -105,7 +105,7 @@ test_vhost_torrent_internal() {
 }
 
 test_vhost_mealie_internal() {
-  _curl_vhost "mealie.kamaka.tech" "/" "^200$" "mealie"
+  _curl_vhost "recipes.kamaka.tech" "/" "^200$" "mealie"
 }
 
 test_vhost_nas_internal() {
@@ -121,7 +121,11 @@ test_vhost_jellyfin_external() {
 }
 
 test_vhost_mealie_external() {
-  _curl_vhost "mealie.kamakakai.com" "/" "^200$" "mealie"
+  _curl_vhost "recipes.kamakakai.com" "/" "^200$" "mealie"
+}
+
+test_vhost_mom_external() {
+  _curl_vhost "mom.kamakakai.com" "/" "^200$" "mealie"
 }
 
 suite_routing() {
@@ -136,11 +140,12 @@ suite_routing() {
   run_test test_vhost_flaresolverr_internal "Route https://flaresolverr.kamaka.tech/health"
   run_test test_vhost_seerr_internal "Route https://seerr.kamaka.tech/api/v1/status"
   run_test test_vhost_torrent_internal "Route https://torrent.kamaka.tech/"
-  run_test test_vhost_mealie_internal "Route https://mealie.kamaka.tech/"
+  run_test test_vhost_mealie_internal "Route https://recipes.kamaka.tech/"
   run_test test_vhost_nas_internal "Route https://nas.kamaka.tech/ (UGOS OS Portal)"
   run_test test_vhost_download_internal "Route https://download.kamaka.tech/ (File Delivery)"
   run_test test_vhost_jellyfin_external "Route https://jellyfin.kamakakai.com/web/index.html (External)"
-  run_test test_vhost_mealie_external "Route https://mealie.kamakakai.com/ (External)"
+  run_test test_vhost_mealie_external "Route https://recipes.kamakakai.com/ (External)"
+  run_test test_vhost_mom_external "Route https://mom.kamakakai.com/ (External)"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
