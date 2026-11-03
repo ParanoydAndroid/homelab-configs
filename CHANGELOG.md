@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0] / [2026.11.3] - Ingress Inversion to Caddy, Mealie Deployment & Stack Modernization (2026-11-03)
+
+### Added
+* Deployed Caddy Docker Proxy (`homelab-caddy:latest`) built with `caddy-dns/cloudflare` plugin, replacing Nginx Proxy Manager with declarative container label routing and automated Let's Encrypt DNS-01 ACME wildcard certificate issuance (`*.kamaka.tech`).
+* Integrated dual-domain routing architecture: `*.kamaka.tech` for internal LAN/Tailscale ingress via Pi-hole wildcard DNS (`192.168.0.4`), and `*.kamakakai.com` for public WAN ingress via Cloudflare Zero Trust Tunnel.
+* Deployed Mealie recipe and meal planning manager (`ghcr.io/mealie-recipes/mealie:latest`) with embedded SQLite storage, migrating all existing recipes.
+* Implemented permanent client file delivery mechanism (`https://download.kamaka.tech/`) backed by `${DOCKER_DATA_DIR}/caddy/downloads` with directory browsing for frictionless mobile downloads.
+* Added Caddy security hardening: global HTTP security headers (HSTS, nosniff, SAMEORIGIN, strict-origin-when-cross-origin), sensitive dotfile blocking (HTTP 404), Jellyfin diagnostic endpoint blocking (HTTP 403), and LAN/Tailscale subnet isolation snippets on administrative backends.
+
+### Changed
+* Assigned Mealie routing to `recipes.kamaka.tech` (internal LAN), `recipes.kamakakai.com` (public WAN), and `mom.kamakakai.com` (family WAN).
+* Standardized UGREEN NAS OS portal reverse proxy: Caddy terminates SSL cleanly for `https://nas.kamaka.tech` and proxies via standard HTTP to host port 9999.
+* Updated Restic backup automation in `.scripts/backup.sh` to stage live SQLite database checkpoints for Mealie (`mealie.db`).
+* Realigned all documentation (`README.md` and `.docs/`) enforcing brevity, proper architectural scoping, and removing decommissioned services.
+* Realigned automated smoke test suite to 51 passing tests with 100% pass rate.
+
+### Removed
+* Decommissioned Nginx Proxy Manager in full (`ingress/compose.yml`, `.configs/nginx/`, and test suite assertions).
+* Decommissioned PostgreSQL container (`postgresql:16-alpine`), persistent volume storage, and boot readiness checks from `homelab.sh`.
+* Decommissioned Tandoor Recipes stack in full.
+
+---
+
 ## [2.9.0] / [2026.11.2.3] - Service-First Discovery Engine, Derived Stack Enablement & Script Audit (2026-11-02)
 
 ### Added
