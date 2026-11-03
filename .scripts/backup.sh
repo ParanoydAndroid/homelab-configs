@@ -317,6 +317,8 @@ stage_database_dumps() {
       "${DOCKER_DATA_DIR}/sonarr/data/sonarr.db"
       "${DOCKER_DATA_DIR}/radarr/data/radarr.db"
       "${DOCKER_DATA_DIR}/prowlarr/data/prowlarr.db"
+      "${DOCKER_DATA_DIR}/bindery/data/bindery.db"
+      "${DOCKER_DATA_DIR}/calibre-web/data/app.db"
     )
     local db db_name
     for db in "${sqlite_dbs[@]}"; do

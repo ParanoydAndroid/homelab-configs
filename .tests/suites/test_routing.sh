@@ -140,8 +140,12 @@ test_vhost_books_internal() {
   _curl_vhost "books.kamaka.tech" "/" "^(200|302)$" "calibre-web"
 }
 
+test_vhost_bindery_internal() {
+  _curl_vhost "bindery.kamaka.tech" "/" "^200$" "bindery"
+}
+
 test_vhost_readarr_internal() {
-  _curl_vhost "readarr.kamaka.tech" "/ping" "^200$" "readarr"
+  _curl_vhost "readarr.kamaka.tech" "/" "^200$" "bindery"
 }
 
 suite_routing() {
@@ -159,7 +163,8 @@ suite_routing() {
   run_test test_vhost_torrent_internal "Route https://torrent.kamaka.tech/"
   run_test test_vhost_mealie_internal "Route https://recipes.kamaka.tech/"
   run_test test_vhost_books_internal "Route https://books.kamaka.tech/ (Calibre-Web)"
-  run_test test_vhost_readarr_internal "Route https://readarr.kamaka.tech/ping (Readarr)"
+  run_test test_vhost_bindery_internal "Route https://bindery.kamaka.tech/ (Bindery)"
+  run_test test_vhost_readarr_internal "Route https://readarr.kamaka.tech/ (Readarr Alias)"
   run_test test_vhost_nas_internal "Route https://nas.kamaka.tech/ (UGOS OS Portal)"
   run_test test_vhost_download_internal "Route https://download.kamaka.tech/ (File Delivery)"
   run_test test_vhost_jellyfin_external "Route https://jellyfin.kamakakai.com/web/index.html (External)"

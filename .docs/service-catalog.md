@@ -246,12 +246,10 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/prowlarr/data` |
 | **Associated Secrets** | `PROWLARR_API_KEY` |
 
-* **Role & Capabilities**: Centralized indexer proxy and aggregator for BitTorrent trackers and Usenet indexers. Automatically synchronizes indexer configurations and health across Radarr, Sonarr, and Readarr.
+* **Role & Capabilities**: Centralized indexer proxy and aggregator for BitTorrent trackers and Usenet indexers. Automatically synchronizes indexer configurations and health across Radarr, Sonarr, and Bindery.
 * **Network & Access**: Accessible internally at `https://prowlarr.kamaka.tech`. API authenticated via `PROWLARR_API_KEY`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/prowlarr/data:/config` for application database and settings.
-* **Dependencies & Interconnections**: Integrates with FlareSolverr (`http://flaresolverr:8191`) for Cloudflare challenge resolution, and pushes indexer definitions to Radarr (`http://radarr:7878`), Sonarr (`http://sonarr:8989`), and Readarr (`http://readarr:8787`).
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/prowlarr/data:/config` for application settings and indexer configurations.
-* **Dependencies & Interconnections**: Routes Cloudflare-protected indexer requests through FlareSolverr (`http://flaresolverr:8191`). Syncs directly to Radarr (`radarr:7878`) and Sonarr (`sonarr:8989`).
+* **Dependencies & Interconnections**: Integrates with FlareSolverr (`http://flaresolverr:8191`) for Cloudflare challenge resolution, and pushes indexer definitions to Radarr (`http://radarr:7878`), Sonarr (`http://sonarr:8989`), and Bindery (`http://bindery:8787`).
 
 ---
 
@@ -360,22 +358,22 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 ---
 
-### Readarr
+### Bindery
 
 | Attribute | Value |
 | :--- | :--- |
 | **Stack Directory** | `books/` |
-| **Container Name** | `readarr` |
+| **Container Name** | `bindery` |
 | **Host / Network Binding** | Internal `homelab` bridge only (No exposed host ports) |
 | **Internal Container Port**| `8787` |
-| **LAN Address** | `https://readarr.kamaka.tech` |
+| **LAN Address** | `https://bindery.kamaka.tech` (alias `https://readarr.kamaka.tech`) |
 | **WAN Address** | None |
-| **Persistent Data Path** | `${DOCKER_DATA_DIR}/readarr/data` |
-| **Associated Secrets** | `READARR_API_KEY` |
+| **Persistent Data Path** | `${DOCKER_DATA_DIR}/bindery/data` |
+| **Associated Secrets** | `BINDERY_API_KEY` |
 
-* **Role & Capabilities**: Automated book collection manager, author monitor, and indexer search coordinator. Integrates with Prowlarr for indexers and qBittorrent for downloads.
-* **Network & Access**: Proxied internally at `https://readarr.kamaka.tech`. Protected by mandatory API key authentication.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/readarr/data:/config` for SQLite databases and application state, `${MEDIA_DIR}/books/library:/books` as the root library destination, and `${MEDIA_DIR}:/media` enabling atomic zero-copy hardlinks from `/media/downloads/books`.
+* **Role & Capabilities**: Modern automated book collection manager, author monitor, and indexer search coordinator built in Go with React. Uses resilient public metadata APIs (OpenLibrary, Google Books, Hardcover, DNB) bypassing defunct Goodreads scrapers. Integrates with Prowlarr for indexers and qBittorrent for downloads.
+* **Network & Access**: Proxied internally at `https://bindery.kamaka.tech` (and `readarr.kamaka.tech`). API protected by API key authentication.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/bindery/data:/config` for SQLite database (`bindery.db`) and application state, `${MEDIA_DIR}/books/library:/books` as the root library destination, and `${MEDIA_DIR}:/media` enabling atomic zero-copy hardlinks from `/media/downloads/books`.
 * **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`) for indexer definitions and qBittorrent (`http://qbittorrentvpn:8081`) for torrent client automation.
 
 ---

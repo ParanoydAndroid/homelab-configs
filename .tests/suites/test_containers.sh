@@ -117,8 +117,8 @@ test_docker_up_calibre_web() {
   assert_service_running "calibre-web"
 }
 
-test_docker_up_readarr() {
-  assert_service_running "readarr"
+test_docker_up_bindery() {
+  assert_service_running "bindery"
 }
 
 test_docker_up_royalroad_sync() {
@@ -145,7 +145,7 @@ suite_containers() {
   run_test test_docker_up_mealie "Verify Mealie recipe manager is running"
   run_test test_docker_up_cloudflared "Verify Cloudflare Zero Trust Tunnel is running"
   run_test test_docker_up_calibre_web "Verify Calibre-Web e-book catalog manager is running"
-  run_test test_docker_up_readarr "Verify Readarr book indexer is running"
+  run_test test_docker_up_bindery "Verify Bindery book manager is running"
   run_test test_docker_up_royalroad_sync "Verify Royal Road sync worker is running"
 }
 

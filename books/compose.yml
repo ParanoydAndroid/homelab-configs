@@ -43,17 +43,19 @@ services:
       - homepage.icon=calibre-web
       - homepage.href=https://books.kamaka.tech
 
-  readarr:
-    image: lscr.io/linuxserver/readarr:0.4.18-develop
-    container_name: readarr
-    hostname: readarr
+  bindery:
+    image: ghcr.io/vavallee/bindery:latest
+    container_name: bindery
+    hostname: bindery
     restart: unless-stopped
+    user: "${PUID:?See env.example for default.}:${PGID:?See env.example for default.}"
     environment:
-      PUID: ${PUID:?See env.example for default.}
-      PGID: ${PGID:?See env.example for default.}
+      BINDERY_PUID: ${PUID:?See env.example for default.}
+      BINDERY_PGID: ${PGID:?See env.example for default.}
+      BINDERY_LOG_LEVEL: info
       TZ: ${TZ:?See env.example for default.}
     volumes:
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/readarr/data:/config
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/bindery/data:/config
       - ${MEDIA_DIR:?See env.example for default.}/books/library:/books
       - ${MEDIA_DIR:?See env.example for default.}:/media
     networks:
@@ -64,13 +66,13 @@ services:
         max-size: "10m"
         max-file: "3"
     labels:
-      - caddy=readarr.kamaka.tech
+      - caddy=bindery.kamaka.tech, readarr.kamaka.tech
       - caddy.reverse_proxy={{upstreams 8787}}
       - caddy.import=cloudflare_tls lan_only
       - homepage.group=Media Automation
-      - homepage.name=Readarr
+      - homepage.name=Bindery
       - homepage.icon=readarr
-      - homepage.href=https://readarr.kamaka.tech
+      - homepage.href=https://bindery.kamaka.tech
 
   royalroad-sync:
     build:

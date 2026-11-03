@@ -44,15 +44,15 @@ test_security_sonarr_api_unauthenticated_rejected() {
   return 1
 }
 
-test_security_readarr_api_unauthenticated_rejected() {
-  if ! is_service_enabled "readarr"; then
-    printf "Service 'readarr' omitted or disabled"
+test_security_bindery_api_unauthenticated_rejected() {
+  if ! is_service_enabled "bindery"; then
+    printf "Service 'bindery' omitted or disabled"
     return 77
   fi
   local code
-  code="$(docker exec readarr curl -sS -o /dev/null -w '%{http_code}' \
+  code="$(docker exec radarr curl -sS -o /dev/null -w '%{http_code}' \
     --max-time 20 \
-    "http://readarr:8787/api/v1/system/status" 2>/dev/null || true)"
+    "http://bindery:8787/api/health" 2>/dev/null || true)"
 
   if [[ "${code}" == "401" ]]; then
     printf "HTTP 401 Unauthorized (Auth required and rejected as expected)"
@@ -68,7 +68,7 @@ suite_negative_security() {
 
   run_test test_security_radarr_api_unauthenticated_rejected "Confirm Radarr REST API requires API key"
   run_test test_security_sonarr_api_unauthenticated_rejected "Confirm Sonarr REST API requires API key"
-  run_test test_security_readarr_api_unauthenticated_rejected "Confirm Readarr REST API requires API key"
+  run_test test_security_bindery_api_unauthenticated_rejected "Confirm Bindery REST API requires API key"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

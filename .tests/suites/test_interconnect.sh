@@ -199,31 +199,35 @@ test_interconnect_qbittorrent_torrent_error_status() {
   return 1
 }
 
-test_interconnect_readarr_to_qbittorrent() {
-  if ! is_service_enabled "readarr" || ! is_service_enabled "qbittorrentvpn"; then
-    printf "Service 'readarr' or 'qbittorrentvpn' omitted or disabled"
+test_interconnect_bindery_to_qbittorrent() {
+  if ! is_service_enabled "bindery" || ! is_service_enabled "qbittorrentvpn"; then
+    printf "Service 'bindery' or 'qbittorrentvpn' omitted or disabled"
     return 77
   fi
-  local ver
-  ver="$(docker exec readarr curl -fsS --max-time 15 "http://qbittorrentvpn:8081/api/v2/app/version" 2>/dev/null || true)"
-  if [[ -n "${ver}" ]]; then
-    printf "qBittorrent API responding (%s)" "${ver}"
+  local data_dir="${DOCKER_DATA_DIR:-$(grep -E '^DOCKER_DATA_DIR=' "${REPO_DIR}/.env" 2>/dev/null | cut -d'=' -f2- || echo "/volume2/docker")}"
+  local clients
+  clients="$(sqlite3 "${data_dir}/bindery/data/bindery.db" "SELECT count(*) FROM download_clients WHERE enabled=1;" 2>/dev/null || echo "0")"
+  if [[ "${clients}" -gt 0 ]]; then
+    printf "qBittorrent download client registered in Bindery (%s client)" "${clients}"
     return 0
   fi
-  printf "Failed to query qBittorrent API from readarr"
+  printf "No enabled download clients found in Bindery"
   return 1
 }
 
-test_interconnect_readarr_to_prowlarr() {
-  if ! is_service_enabled "readarr" || ! is_service_enabled "prowlarr"; then
-    printf "Service 'readarr' or 'prowlarr' omitted or disabled"
+test_interconnect_bindery_to_prowlarr() {
+  if ! is_service_enabled "bindery" || ! is_service_enabled "prowlarr"; then
+    printf "Service 'bindery' or 'prowlarr' omitted or disabled"
     return 77
   fi
-  if docker exec readarr curl -fsS --max-time 15 "http://prowlarr:9696/ping" >/dev/null 2>&1; then
-    printf "http://prowlarr:9696/ping accessible"
+  local data_dir="${DOCKER_DATA_DIR:-$(grep -E '^DOCKER_DATA_DIR=' "${REPO_DIR}/.env" 2>/dev/null | cut -d'=' -f2- || echo "/volume2/docker")}"
+  local indexers
+  indexers="$(sqlite3 "${data_dir}/bindery/data/bindery.db" "SELECT count(*) FROM indexers WHERE enabled=1;" 2>/dev/null || echo "0")"
+  if [[ "${indexers}" -gt 0 ]]; then
+    printf "Prowlarr indexers synchronized into Bindery (%s indexers)" "${indexers}"
     return 0
   fi
-  printf "Failed to reach http://prowlarr:9696/ping from readarr"
+  printf "No active indexers synced from Prowlarr into Bindery"
   return 1
 }
 
@@ -233,7 +237,7 @@ test_interconnect_calibre_web_opds() {
     return 77
   fi
   local feed
-  feed="$(docker exec readarr curl -fsS --max-time 15 -u admin:admin123 "http://calibre-web:8083/opds" 2>/dev/null || true)"
+  feed="$(docker exec radarr curl -fsS --max-time 15 -u admin:admin123 "http://calibre-web:8083/opds" 2>/dev/null || true)"
   if echo "${feed}" | grep -q "http://www.w3.org/2005/Atom"; then
     printf "OPDS Atom feed valid and responding"
     return 0
@@ -249,8 +253,8 @@ suite_interconnect() {
   run_test test_interconnect_radarr_to_qbittorrent "Check Radarr -> qBittorrent (http://qbittorrentvpn:8081)"
   run_test test_interconnect_radarr_to_prowlarr "Check Radarr -> Prowlarr (http://prowlarr:9696/ping)"
   run_test test_interconnect_sonarr_to_qbittorrent "Check Sonarr -> qBittorrent (http://qbittorrentvpn:8081)"
-  run_test test_interconnect_readarr_to_qbittorrent "Check Readarr -> qBittorrent (http://qbittorrentvpn:8081)"
-  run_test test_interconnect_readarr_to_prowlarr "Check Readarr -> Prowlarr (http://prowlarr:9696/ping)"
+  run_test test_interconnect_bindery_to_qbittorrent "Check Bindery -> qBittorrent (http://qbittorrentvpn:8081)"
+  run_test test_interconnect_bindery_to_prowlarr "Check Bindery -> Prowlarr (http://prowlarr:9696)"
   run_test test_interconnect_calibre_web_opds "Check Calibre-Web OPDS catalog endpoint (http://calibre-web:8083/opds)"
   run_test test_interconnect_prowlarr_to_flaresolverr "Check Prowlarr -> FlareSolverr (http://flaresolverr:8191/health)"
   run_test test_interconnect_pia_to_qbittorrent_port_sync "Check WireGuard PIA port forward sync to qBittorrent"
