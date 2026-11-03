@@ -27,6 +27,9 @@
 #     6. 'upnp' (false) - Disables redundant router-level UPnP/NAT-PMP requests.
 #     7. 'temp_path' ("/incomplete") & 'temp_path_enabled' (true) - Routes active
 #        downloads to high-IOPS NVMe scratch storage.
+#     8. 'queueing_enabled' (false), 'max_active_downloads' (50), 'max_active_torrents' (100),
+#        and 'dont_count_slow_torrents' (true) - Completely eliminates queue starvation
+#        where stalled magnet metadata downloads (metaDL) lock active download slots.
 #
 #   Because 'WebUI\LocalHostAuth=false' is enabled in 'qBittorrent.conf',
 #   localhost API calls inside the isolated container namespace do not require
@@ -48,7 +51,11 @@ PREFS_JSON=$(cat <<EOF
   "current_network_interface": "wg0",
   "upnp": false,
   "temp_path": "/incomplete",
-  "temp_path_enabled": true
+  "temp_path_enabled": true,
+  "queueing_enabled": false,
+  "max_active_downloads": 50,
+  "max_active_torrents": 100,
+  "dont_count_slow_torrents": true
 }
 EOF
 )
