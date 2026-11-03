@@ -35,7 +35,7 @@ Ingress traffic is strictly segmented into two non-overlapping pillars. Public i
 * **Pi-hole v6 Wildcard DNS**: Local DNS resolver injects `address=/kamaka.tech/192.168.0.4` directly into Pi-hole FTL, resolving all internal subdomains to Caddy without manual per-host record management.
 * **Dedicated Macvlan LAN IP (`192.168.0.4`)**: Caddy binds to `192.168.0.4` on `eth0` via Docker macvlan (`external_npm`), isolating reverse-proxied traffic from the host OS portal on `192.168.0.3`.
 * **Automated DNS-01 ACME Certificates**: Caddy automatically provisions and renews trusted Let's Encrypt certificates across all subdomains using its Cloudflare DNS module (`caddy-dns/cloudflare`), guaranteeing green browser padlocks without deploying internal root CAs.
-* **UGOS Portal Reverse Proxy (`nas.kamaka.tech`)**: Macvlan isolation prevents macvlan children from reaching the host directly. Caddy routes `https://nas.kamaka.tech` across the Docker bridge to `https://192.168.255.1:9443` with `tls_insecure_skip_verify`.
+* **UGOS Portal Reverse Proxy (`nas.kamaka.tech`)**: Macvlan isolation prevents macvlan children from reaching the host directly. Caddy terminates TLS for `https://nas.kamaka.tech` and routes across the Docker bridge to the host management portal at `http://192.168.255.1:9999`.
 * **Client File Delivery (`download.kamaka.tech`)**: Staged files in `${DOCKER_DATA_DIR}/caddy/downloads` are served over HTTPS with an interactive HTML directory index (`file_server browse`), enabling direct mobile and desktop downloads.
 
 ### Pillar 3: Secure VPN Bridge Egress (`vpn-bridge`)

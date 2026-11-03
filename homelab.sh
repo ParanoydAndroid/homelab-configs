@@ -163,21 +163,6 @@ startup_homelab() {
         cd "${REPO_DIR}/${stack}"
         docker compose up -d
       )
-
-      # PostgreSQL readiness probe for dependent services
-      if [[ "${stack}" == "productivity" ]] && is_service_enabled "postgresql"; then
-        log_info "Waiting for PostgreSQL database readiness..."
-        local pg_wait=20
-        while ! docker exec postgresql pg_isready -q 2>/dev/null && (( pg_wait > 0 )); do
-          sleep 1
-          (( pg_wait-- )) || true
-        done
-        if docker exec postgresql pg_isready -q 2>/dev/null; then
-          log_info "PostgreSQL is ready and accepting connections."
-        else
-          log_warn "PostgreSQL did not report ready within timeout; continuing startup sequence."
-        fi
-      fi
     fi
   done
 

@@ -1,36 +1,14 @@
 # ==============================================================================
-# Stack: Productivity Applications & Databases (productivity/compose.yml)
+# Stack: Productivity Applications (productivity/compose.yml)
 #
 # Purpose:
-#   Productivity suite providing Mealie recipe management with embedded SQLite
-#   and a co-located PostgreSQL database container.
+#   Productivity suite providing Mealie recipe management with embedded SQLite.
 #
 # Architecture:
-#   - postgresql: Database server with healthcheck (pg_isready).
 #   - mealie: Recipe and meal planning server with embedded SQLite engine.
 # ==============================================================================
 
 services:
-  postgresql:
-    image: postgres:16-alpine
-    container_name: postgresql
-    hostname: postgresql
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: recipes
-      TZ: ${TZ:?See env.example for default.}
-    volumes:
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/postgres/data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d recipes"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - homelab
-
   mealie:
     image: ghcr.io/mealie-recipes/mealie:latest
     container_name: mealie

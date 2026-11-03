@@ -6,19 +6,6 @@
 # ==============================================================================
 set -euo pipefail
 
-test_security_postgres_port_isolated_from_host() {
-  if ! is_service_enabled "postgresql"; then
-    printf "Service 'postgresql' omitted or disabled"
-    return 77
-  fi
-  if curl -sS --connect-timeout 2 "http://127.0.0.1:5432" >/dev/null 2>&1; then
-    printf "Host port 5432 is unexpectedly accessible from host!"
-    return 1
-  fi
-  printf "Port 5432 is not exposed on host interfaces (isolated to Docker bridge)"
-  return 0
-}
-
 test_security_radarr_api_unauthenticated_rejected() {
   if ! is_service_enabled "radarr"; then
     printf "Service 'radarr' omitted or disabled"
@@ -60,7 +47,6 @@ test_security_sonarr_api_unauthenticated_rejected() {
 suite_negative_security() {
   init_suite "5. Security Hardening, Isolation & Authentication Rejection"
 
-  run_test test_security_postgres_port_isolated_from_host "Confirm PostgreSQL port 5432 is isolated from host"
   run_test test_security_radarr_api_unauthenticated_rejected "Confirm Radarr REST API requires API key"
   run_test test_security_sonarr_api_unauthenticated_rejected "Confirm Sonarr REST API requires API key"
 }

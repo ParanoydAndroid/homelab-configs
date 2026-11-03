@@ -25,7 +25,6 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **FlareSolverr** | `media/` | `flaresolverr` | Internal Bridge Only | `8191` | HTTP | `https://flaresolverr.kamaka.tech` | None |
 | **Seerr** | `media/` | `seerr` | Internal Bridge Only | `5055` | HTTP | `https://seerr.kamaka.tech` | None |
 | **Mealie Recipes** | `productivity/` | `mealie` | Internal Bridge Only | `9000` | HTTP | `https://recipes.kamaka.tech` | `https://recipes.kamakakai.com`, `https://mom.kamakakai.com` |
-| **PostgreSQL** | `productivity/` | `postgresql` | Internal Bridge Only | `5432` | TCP | `postgresql:5432` (Internal) | None |
 | **WireGuard PIA VPN** | `torrent/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.kamaka.tech` | None |
 | **qBittorrent** | `torrent/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
 | **VPN Bridge (PIA)** | `mesh/` | `vpn-bridge-pia` | Internal Bridge Only | N/A | WireGuard | Outbound PIA Tunnel (`wg0`) | Egress via US PIA Regions |
@@ -46,7 +45,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Active Host Binding** | Native Host OS Listeners |
 
 * **Role & Capabilities**: Appliance operating system managing storage pools (`/volume1` HDD array and `/volume2` NVMe SSD), user permissions, SMB/NFS file shares, and system-level daemons.
-* **Network & Access**: Accessed locally at `https://nas.home:9443` or via reverse proxy at `https://nas.kamaka.tech`. Because Linux kernel macvlan isolation prevents macvlan child `192.168.0.5` (Tailscale) from reaching host `192.168.0.3` directly, Caddy Proxy bridges incoming requests from `homelab` to `https://192.168.255.1:9443`.
+* **Network & Access**: Accessed locally at `https://nas.home:9443` or via reverse proxy at `https://nas.kamaka.tech`. Because Linux kernel macvlan isolation prevents macvlan child `192.168.0.5` (Tailscale) from reaching host `192.168.0.3` directly, Caddy terminates TLS and bridges incoming requests from `homelab` to `http://192.168.255.1:9999`.
 * **Storage & Volume Mappings**: N/A (Host root OS).
 
 ---
@@ -107,7 +106,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 * **Role & Capabilities**: Modern recipe manager and meal planner with automated recipe scraping, interactive meal planning, shopping lists, and REST API.
 * **Network & Access**: Accessible locally at `https://recipes.kamaka.tech` and publicly at `https://recipes.kamakakai.com` / `https://mom.kamakakai.com`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/mealie/data:/app/data` for embedded SQLite database, recipe photos, and migration backups.
-* **Dependencies & Interconnections**: Self-contained SQLite database engine; coexists with PostgreSQL in `productivity/compose.yml`.
+* **Dependencies & Interconnections**: Self-contained SQLite database engine; completely decoupled from external database engines.
 
 ---
 
@@ -288,26 +287,6 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 * **Network & Access**: Accessible internally at `https://seerr.kamaka.tech`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/seerr/data:/app/config` for application state and SQLite database.
 * **Dependencies & Interconnections**: Interfaces directly with Jellyfin (`http://jellyfin:8096`) for user authentication and library discovery, Radarr (`http://radarr:7878`) for movie requests, and Sonarr (`http://sonarr:8989`) for TV requests.
-
----
-
-### PostgreSQL
-
-| Attribute | Value |
-| :--- | :--- |
-| **Stack Directory** | `productivity/` |
-| **Container Name** | `postgresql` |
-| **Host / Network Binding** | Internal `homelab` bridge only (Isolated from host) |
-| **Internal Container Port**| `5432` |
-| **LAN Address** | `postgresql:5432` (Internal) |
-| **WAN Address** | None |
-| **Persistent Data Path** | `${DOCKER_DATA_DIR}/postgres/data` |
-| **Associated Secrets** | None (Internal database credentials inline in `compose.yml`) |
-
-* **Role & Capabilities**: Relational database server backing backend applications.
-* **Network & Access**: Completely isolated to the internal `homelab` Docker bridge network (`192.168.255.0/24`). Port `5432` is not bound to host interfaces or LAN.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/postgres/data:/var/lib/postgresql/data` (owned by internal PostgreSQL UID `70`).
-* **Dependencies & Interconnections**: Starts first in homelab dependency order; verified by `pg_isready` before dependent services launch.
 
 ---
 

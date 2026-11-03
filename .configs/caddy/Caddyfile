@@ -45,11 +45,7 @@
 nas.kamaka.tech {
     import cloudflare_tls
     import lan_only
-    reverse_proxy https://192.168.255.1:9443 {
-        transport http {
-            tls_insecure_skip_verify
-        }
-    }
+    reverse_proxy 192.168.255.1:9999
 }
 
 # Direct Client File Delivery Endpoint:

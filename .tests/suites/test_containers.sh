@@ -53,10 +53,6 @@ test_docker_up_dockge() {
   printf "running (health: %s)" "${health}"
 }
 
-test_docker_up_postgresql() {
-  assert_service_running "postgresql"
-}
-
 test_docker_up_caddy() {
   assert_service_running "caddy"
 }
@@ -121,7 +117,6 @@ suite_containers() {
   init_suite "1. Container Runtime & Health Checks"
 
   run_test test_docker_up_dockge "Verify Dockge container is running and healthy"
-  run_test test_docker_up_postgresql "Verify PostgreSQL container is running"
   run_test test_docker_up_caddy "Verify Caddy reverse proxy container is running"
   run_test test_docker_up_tailscale "Verify Tailscale Subnet Router is running"
   run_test test_docker_up_vpn_bridge_pia "Verify VPN Bridge PIA WireGuard container is running and healthy"
