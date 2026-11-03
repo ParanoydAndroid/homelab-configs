@@ -12,7 +12,7 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 ~/services/
 ├── compose stack directories/     # Each non-hidden directory represents a single Dockge stack
 │   ├── dashboard/                 # Homepage dashboard
-│   ├── ingress/                   # Nginx Proxy Manager + Cloudflare Tunnel
+│   ├── ingress/                   # Caddy Docker Proxy + Cloudflare Tunnel
 │   ├── media/                     # Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, FlareSolverr
 │   ├── mesh/                      # Tailscale Subnet Router + PIA WireGuard Exit Node
 │   ├── productivity/              # Tandoor Recipes + PostgreSQL
@@ -76,7 +76,7 @@ The homelab hardware architecture separates storage into two distinct physical t
 | **`/volume2`** | 500GB NVMe SSD (M.2 Slot 1) | Btrfs | High-IOPS container configurations, databases, and image caches (`/volume2/docker`). Delivers 300,000+ random 4K IOPS with sub-millisecond seek latency. |
 
 ### Architectural Rationale
-Applications like Jellyfin, Nginx Proxy Manager, and Homepage perform continuous random read/write transactions against SQLite databases (`jellyfin.db`, `db.sqlite`) and look up tens of thousands of image thumbnails and metadata files. On spinning disks, 10–15 ms mechanical head seeks cause poster pop-in, slow library browsing, and sluggish reverse proxy response times. 
+Applications like Jellyfin, Caddy Proxy, and Homepage perform continuous random read/write transactions against SQLite databases (`jellyfin.db`, `mealie.db`) and look up tens of thousands of image thumbnails and metadata files. On spinning disks, 10–15 ms mechanical head seeks cause poster pop-in, slow library browsing, and sluggish reverse proxy response times. 
 
 Placing `${DOCKER_DATA_DIR}` on native PCIe NVMe eliminates seek latency entirely, reducing dashboard and streaming UI load times from 15+ seconds to under 1.5 seconds while keeping large video files safely on the fault-tolerant RAID 5 mechanical array.
 

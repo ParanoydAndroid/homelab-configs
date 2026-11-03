@@ -57,10 +57,6 @@ test_docker_up_postgresql() {
   assert_service_running "postgresql"
 }
 
-test_docker_up_nginx() {
-  assert_service_running "nginx"
-}
-
 test_docker_up_caddy() {
   assert_service_running "caddy"
 }
@@ -130,7 +126,6 @@ suite_containers() {
 
   run_test test_docker_up_dockge "Verify Dockge container is running and healthy"
   run_test test_docker_up_postgresql "Verify PostgreSQL container is running"
-  run_test test_docker_up_nginx "Verify Nginx Proxy Manager container is running"
   run_test test_docker_up_caddy "Verify Caddy reverse proxy container is running"
   run_test test_docker_up_tailscale "Verify Tailscale Subnet Router is running"
   run_test test_docker_up_vpn_bridge_pia "Verify VPN Bridge PIA WireGuard container is running and healthy"

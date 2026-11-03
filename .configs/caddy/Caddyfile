@@ -15,6 +15,11 @@
     }
 }
 
+(jellyfin_hardening) {
+    @blocked_paths path /metrics /swagger* /api-docs*
+    respond @blocked_paths "Forbidden" 403
+}
+
 # Physical UGREEN NAS Host Management Portal (UGOS):
 nas.kamaka.tech {
     import cloudflare_tls

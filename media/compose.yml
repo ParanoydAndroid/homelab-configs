@@ -44,7 +44,7 @@ services:
     labels:
       - caddy=jellyfin.kamaka.tech, jellyfin.kamakakai.com
       - caddy.reverse_proxy={{upstreams 8096}}
-      - caddy.import=cloudflare_tls
+      - caddy.import=cloudflare_tls jellyfin_hardening
       - homepage.group=Players
       - homepage.name=Jellyfin
       - homepage.icon=jellyfin

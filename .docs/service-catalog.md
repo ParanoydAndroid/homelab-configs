@@ -6,26 +6,28 @@ This catalog documents every containerized service, orchestrator, and host porta
 
 ## 1. Active Network Bindings & Port Reference
 
-Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where strictly required for non-HTTP broadcast discovery or emergency orchestrator fallback. All other web applications communicate strictly over the internal `homelab` Docker bridge network (`192.168.255.0/24`) and are reverse-proxied by Nginx Proxy Manager.
+Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where strictly required for non-HTTP broadcast discovery or emergency orchestrator fallback. All other web applications communicate strictly over the internal `homelab` Docker bridge network (`192.168.255.0/24`) and are reverse-proxied by Caddy Docker Proxy.
 
-| Service Name | Stack Directory | Container Name | Active Host / Network Binding | Container Port | Protocol | LAN Address (`turing.home`) | WAN Address (`kamaka.tech`) |
+| Service Name | Stack Directory | Container Name | Active Host / Network Binding | Container Port | Protocol | LAN Address (`kamaka.tech`) | WAN Address (`kamakakai.com`) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **UGREEN NAS (UGOS)** | Host OS | N/A | `192.168.0.3:9443` | `9443` | HTTPS | `https://nas.turing.home` | None |
-| **Dockge** | `.configs/dockge` | `dockge` | `127.0.0.1:8010` / `192.168.0.3:8010` | `5001` | HTTP | `https://dockge.turing.home` | None |
-| **Nginx Proxy Manager** | `ingress/` | `nginx` | Macvlan `192.168.0.4` (`80`, `443`, `81`) | `80`, `443`, `81` | HTTP / HTTPS | `https://proxy.turing.home` | `https://*.kamaka.tech` (via Tunnel) |
+| **UGREEN NAS (UGOS)** | Host OS | N/A | `192.168.0.3:9443` | `9443` | HTTPS | `https://nas.kamaka.tech` | None |
+| **Dockge** | `.configs/dockge` | `dockge` | `127.0.0.1:8010` / `192.168.0.3:8010` | `5001` | HTTP | `https://dockge.kamaka.tech` | None |
+| **Caddy Proxy** | `ingress/` | `caddy` | Macvlan `192.168.0.4` (`80`, `443`) | `80`, `443` | HTTP / HTTPS | `https://*.kamaka.tech` | `https://*.kamakakai.com` (via Tunnel) |
+| **File Delivery** | `ingress/` | `caddy` | Internal / Macvlan | `443` | HTTPS | `https://download.kamaka.tech` | None |
 | **Tailscale Router** | `mesh/` | `tailscale` | Macvlan `192.168.0.5` | N/A | WireGuard | Node `homelab` on Mesh | None |
-| **Cloudflare Tunnel** | `ingress/` | `cloudflared` | Outbound Egress Tunnel | N/A | QUIC / HTTP/2 | None | Public Ingress for `*.kamaka.tech` |
-| **Jellyfin** | `media/` | `jellyfin` | Internal Bridge Only | `8096` | HTTP | `https://jellyfin.turing.home` | `https://jellyfin.kamaka.tech` |
+| **Cloudflare Tunnel** | `ingress/` | `cloudflared` | Outbound Egress Tunnel | N/A | QUIC / HTTP/2 | None | Public Ingress for `*.kamakakai.com` |
+| **Jellyfin** | `media/` | `jellyfin` | Internal Bridge Only | `8096` | HTTP | `https://jellyfin.kamaka.tech` | `https://jellyfin.kamakakai.com` |
 | **Jellyfin Discovery** | `media/` | `jellyfin` | `0.0.0.0:8022:7359/udp` | `7359` | UDP | LAN Broadcast | None |
-| **Homepage** | `dashboard/` | `homepage` | Internal Bridge Only | `3000` | HTTP | `https://homepage.turing.home` | None |
-| **Radarr** | `media/` | `radarr` | Internal Bridge Only | `7878` | HTTP | `https://radarr.turing.home` | None |
-| **Sonarr** | `media/` | `sonarr` | Internal Bridge Only | `8989` | HTTP | `https://sonarr.turing.home` | None |
-| **Prowlarr** | `media/` | `prowlarr` | Internal Bridge Only | `9696` | HTTP | `https://prowlarr.turing.home` | None |
-| **FlareSolverr** | `media/` | `flaresolverr` | Internal Bridge Only | `8191` | HTTP | `https://flaresolverr.turing.home` | None |
-| **Seerr** | `media/` | `seerr` | Internal Bridge Only | `5055` | HTTP | `https://seerr.turing.home` | None |
-| **Tandoor Recipes** | `productivity/` | `tandoor` | Internal Bridge Only | `8050` | HTTP | `https://recipes.turing.home` | `https://recipes.kamaka.tech` |
+| **Homepage** | `dashboard/` | `homepage` | Internal Bridge Only | `3000` | HTTP | `https://homepage.kamaka.tech` | None |
+| **Radarr** | `media/` | `radarr` | Internal Bridge Only | `7878` | HTTP | `https://radarr.kamaka.tech` | None |
+| **Sonarr** | `media/` | `sonarr` | Internal Bridge Only | `8989` | HTTP | `https://sonarr.kamaka.tech` | None |
+| **Prowlarr** | `media/` | `prowlarr` | Internal Bridge Only | `9696` | HTTP | `https://prowlarr.kamaka.tech` | None |
+| **FlareSolverr** | `media/` | `flaresolverr` | Internal Bridge Only | `8191` | HTTP | `https://flaresolverr.kamaka.tech` | None |
+| **Seerr** | `media/` | `seerr` | Internal Bridge Only | `5055` | HTTP | `https://seerr.kamaka.tech` | None |
+| **Mealie Recipes** | `productivity/` | `mealie` | Internal Bridge Only | `9000` | HTTP | `https://mealie.kamaka.tech` | `https://mealie.kamakakai.com`, `https://mom.kamakakai.com` |
+| **Tandoor Recipes** | `productivity/` | `tandoor` | Internal Bridge Only | `8050` | HTTP | `https://recipes.kamaka.tech` | `https://recipes.kamakakai.com` |
 | **PostgreSQL** | `productivity/` | `postgresql` | Internal Bridge Only | `5432` | TCP | `postgresql:5432` (Internal) | None |
-| **WireGuard PIA VPN** | `torrent/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.turing.home` | None |
+| **WireGuard PIA VPN** | `torrent/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.kamaka.tech` | None |
 | **qBittorrent** | `torrent/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
 | **VPN Bridge (PIA)** | `mesh/` | `vpn-bridge-pia` | Internal Bridge Only | N/A | WireGuard | Outbound PIA Tunnel (`wg0`) | Egress via US PIA Regions |
 | **VPN Bridge (Tailscale)** | `mesh/` | `vpn-bridge-tailscale` | Network Mode: `service:vpn` | N/A | WireGuard | Node `vpn-bridge` on Mesh | Tailscale Exit Node |
@@ -40,12 +42,12 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | :--- | :--- |
 | **Component** | Host Storage Appliance Operating System (Debian 12 base) |
 | **Host IP & Port** | `192.168.0.3:9443` (Web Portal) / `80` (HTTP) / `443` (HTTPS) |
-| **LAN Address** | `https://nas.turing.home` |
+| **LAN Address** | `https://nas.kamaka.tech` |
 | **WAN Address** | None (Restricted to private LAN / Tailscale) |
 | **Active Host Binding** | Native Host OS Listeners |
 
 * **Role & Capabilities**: Appliance operating system managing storage pools (`/volume1` HDD array and `/volume2` NVMe SSD), user permissions, SMB/NFS file shares, and system-level daemons.
-* **Network & Access**: Accessed locally at `https://nas.home:9443` or via reverse proxy at `https://nas.turing.home`. Because Linux kernel macvlan isolation prevents macvlan child `192.168.0.5` (Tailscale) from reaching host `192.168.0.3` directly, Nginx Proxy Manager bridges incoming requests from `homelab` to `https://192.168.255.1:9443`.
+* **Network & Access**: Accessed locally at `https://nas.home:9443` or via reverse proxy at `https://nas.kamaka.tech`. Because Linux kernel macvlan isolation prevents macvlan child `192.168.0.5` (Tailscale) from reaching host `192.168.0.3` directly, Caddy Proxy bridges incoming requests from `homelab` to `https://192.168.255.1:9443`.
 * **Storage & Volume Mappings**: N/A (Host root OS).
 
 ---
@@ -58,35 +60,55 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `dockge` |
 | **Host / Network Binding** | `8010:5001` (Emergency Host Fallback) + `homelab` bridge |
 | **Internal Container Port**| `5001` |
-| **LAN Address** | `https://dockge.turing.home` (or direct `http://192.168.0.3:8010`) |
+| **LAN Address** | `https://dockge.kamaka.tech` (or direct `http://192.168.0.3:8010`) |
 | **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/dockge/data` |
 | **Associated Secrets** | None |
 
 * **Role & Capabilities**: Web-based orchestrator and visual management interface for Docker Compose stacks. Allows editing compose definitions, monitoring container health, viewing live logs, and controlling stack lifecycles.
-* **Network & Access**: Proxied internally at `https://dockge.turing.home`. In the event of a reverse proxy failure, direct host port `8010` provides an emergency administrative bypass.
+* **Network & Access**: Proxied internally at `https://dockge.kamaka.tech`. In the event of a reverse proxy failure, direct host port `8010` provides an emergency administrative bypass.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/dockge/data:/app/data` for Dockge database and application state, `/var/run/docker.sock:/var/run/docker.sock` to interface with the Docker daemon, and `${DOCKGE_STACKS_DIR}:${DOCKGE_STACKS_DIR}` to read and manage Compose stack directories.
 * **Dependencies & Interconnections**: Manages all other stacks in `${DOCKGE_STACKS_DIR}`. Deployed outside the stacks directory so it does not self-manage.
 
 ---
 
-### Nginx Proxy Manager (NPM)
+### Caddy Docker Proxy
 
 | Attribute | Value |
 | :--- | :--- |
 | **Stack Directory** | `ingress/` |
-| **Container Name** | `nginx` |
-| **Host / Network Binding** | Macvlan `192.168.0.4` (`80`, `443`, `81`) + `homelab` bridge (`192.168.255.0/24`) |
-| **Internal Container Port**| `80` (HTTP), `443` (HTTPS), `81` (Admin UI) |
-| **LAN Address** | `https://proxy.turing.home` (Admin UI) |
-| **WAN Address** | `https://*.kamaka.tech` (Terminates Cloudflare Tunnel ingress) |
-| **Persistent Data Path** | `${DOCKER_DATA_DIR}/nginx/data` |
-| **Associated Secrets** | Cloudflare DNS API Token (Let's Encrypt automated challenge) |
+| **Container Name** | `caddy` |
+| **Host / Network Binding** | Macvlan `192.168.0.4` (`80`, `443`) + `homelab` bridge (`192.168.255.0/24`) |
+| **Internal Container Port**| `80` (HTTP), `443` (HTTPS) |
+| **LAN Address** | `https://*.kamaka.tech` |
+| **WAN Address** | `https://*.kamakakai.com` (Terminates Cloudflare Tunnel ingress) |
+| **Persistent Data Path** | `${DOCKER_DATA_DIR}/caddy/data`, `${DOCKER_DATA_DIR}/caddy/downloads` |
+| **Associated Secrets** | `CLOUDFLARE_API_TOKEN` (DNS-01 ACME automated wildcard challenges) |
 
-* **Role & Capabilities**: Central reverse proxy and TLS termination gateway. Handles virtual host routing, SSL certificate management (Let's Encrypt DNS challenges and local wildcard certs), security headers, and access control lists.
-* **Network & Access**: Dual-homed on `external_npm` macvlan (`192.168.0.4`) and `homelab` bridge (`192.168.255.4`). Admin UI is available at `https://proxy.turing.home` or `http://192.168.0.4:81`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/nginx/data:/data` for SQLite database (`db.sqlite`), generated Nginx configurations (`nginx/`), and custom SSL certificates (`custom_ssl/`); `${DOCKER_DATA_DIR}/nginx/data/letsencrypt:/etc/letsencrypt` for Let's Encrypt certificates and ACME challenges; and `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/media:ro` read-only for direct static media serving.
-* **Dependencies & Interconnections**: Routes HTTP/HTTPS traffic to all containerized backend web services over the `homelab` bridge network.
+* **Role & Capabilities**: Declarative reverse proxy and automated TLS termination gateway. Discovers service backends dynamically through Docker Compose labels (`caddy=host`, `caddy.reverse_proxy={{upstreams port}}`), automates Let's Encrypt certificates via Cloudflare DNS-01, and provides a mobile-friendly file delivery server at `https://download.kamaka.tech/`.
+* **Network & Access**: Dual-homed on `external_npm` macvlan (`192.168.0.4`) and `homelab` bridge (`192.168.255.0/24`).
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/caddy/data:/data` for Let's Encrypt certificates and ACME state, `${DOCKER_DATA_DIR}/caddy/config:/config` for autosaved JSON runtime state, `${DOCKER_DATA_DIR}/caddy/downloads:/downloads` for client file delivery, and `/var/run/docker.sock:/var/run/docker.sock:ro` for container event observation.
+* **Dependencies & Interconnections**: Routes HTTP/HTTPS traffic to all backend containers across the `homelab` bridge network.
+
+---
+
+### Mealie Recipe Manager
+
+| Attribute | Value |
+| :--- | :--- |
+| **Stack Directory** | `productivity/` |
+| **Container Name** | `mealie` |
+| **Host / Network Binding** | Internal Bridge Only (`homelab`) |
+| **Internal Container Port**| `9000` (HTTP) |
+| **LAN Address** | `https://mealie.kamaka.tech` |
+| **WAN Address** | `https://mealie.kamakakai.com`, `https://mom.kamakakai.com` |
+| **Persistent Data Path** | `${DOCKER_DATA_DIR}/mealie/data` |
+| **Associated Secrets** | None (embedded SQLite, non-root PUID/PGID execution) |
+
+* **Role & Capabilities**: Modern recipe manager and meal planner with automated recipe scraping, interactive meal planning, shopping lists, and REST API.
+* **Network & Access**: Accessible locally at `https://mealie.kamaka.tech` and publicly at `https://mealie.kamakakai.com` / `https://mom.kamakakai.com`.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/mealie/data:/app/data` for embedded SQLite database, recipe photos, and migration backups.
+* **Dependencies & Interconnections**: Self-contained SQLite database engine; coexists with Tandoor and PostgreSQL in `productivity/compose.yml`.
 
 ---
 
@@ -104,7 +126,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Associated Secrets** | `TS_AUTHKEY` |
 
 * **Role & Capabilities**: Secure subnet router connecting the homelab to the private Tailscale WireGuard mesh. Advertises `192.168.0.0/24` with SNAT masquerading (`--snat-subnet-routes=true`), enabling authorized remote devices (laptops, phones) to reach internal LAN services without open firewall ports.
-* **Network & Access**: Dual-homed on `external_npm` (`192.168.0.5`) to reach LAN devices (`192.168.0.1`, `192.168.0.2`, `192.168.0.4`) and `homelab` bridge to proxy `nas.turing.home`.
+* **Network & Access**: Dual-homed on `external_npm` (`192.168.0.5`) to reach LAN devices (`192.168.0.1`, `192.168.0.2`, `192.168.0.4`) and `homelab` bridge to proxy `nas.kamaka.tech`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/tailscale/data:/var/lib/tailscale` for node identity and cryptographic keys, and `/dev/net/tun:/dev/net/tun` for kernel tunnel routing.
 * **Dependencies & Interconnections**: Requires `NET_ADMIN` and `NET_RAW` capabilities. Integrates with Pi-hole for split DNS resolution.
 
@@ -138,13 +160,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `jellyfin` |
 | **Host / Network Binding** | `8022:7359/udp` (LAN Discovery) + `homelab` bridge |
 | **Internal Container Port**| `8096` (HTTP), `8920` (HTTPS), `7359` (UDP Discovery) |
-| **LAN Address** | `https://jellyfin.turing.home` |
+| **LAN Address** | `https://jellyfin.kamaka.tech` |
 | **WAN Address** | `https://jellyfin.kamaka.tech` |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/jellyfin/data/config` |
 | **Associated Secrets** | `JELLYFIN_API_KEY` |
 
 * **Role & Capabilities**: Central media server for movies, television shows, and music. Features hardware-accelerated transcoding (`/dev/dri`), multi-user management, stream monitoring, and client synchronization.
-* **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://jellyfin.turing.home` (internal) and `https://jellyfin.kamaka.tech` (external). Binds host port `8022:7359/udp` for local client autodiscovery.
+* **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://jellyfin.kamaka.tech` (internal) and `https://jellyfin.kamaka.tech` (external). Binds host port `8022:7359/udp` for local client autodiscovery.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/jellyfin/data/config:/config` for server configuration, SQLite databases, and metadata; and `${MEDIA_DIR}:/data/media:ro` read-only for bulk media libraries. Exposes Intel iGPU render node `/dev/dri/renderD128:/dev/dri/renderD128` (group 105) for Quick Sync hardware transcoding.
 * **Dependencies & Interconnections**: Passes streaming metrics to Homepage via `JELLYFIN_API_KEY`. Connects to Seerr for media requests.
 
@@ -158,13 +180,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `homepage` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `3000` |
-| **LAN Address** | `https://homepage.turing.home` |
+| **LAN Address** | `https://homepage.kamaka.tech` |
 | **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/homepage/data` |
 | **Associated Secrets** | `HOMEPAGE_VAR_PIHOLE_KEY` |
 
 * **Role & Capabilities**: Central service dashboard providing quick navigation links, active container metrics, BitTorrent download progress, Jellyfin stream counters, and Pi-hole DNS query statistics.
-* **Network & Access**: Accessible internally at `https://homepage.turing.home`.
+* **Network & Access**: Accessible internally at `https://homepage.kamaka.tech`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/homepage/data:/app/config` for YAML configuration files (`services.yaml`, `settings.yaml`, `widgets.yaml`, `custom.css`), and `/var/run/docker.sock:/var/run/docker.sock` for automated Docker service discovery.
 * **Dependencies & Interconnections**: Interfaces with Docker daemon labels and polls APIs across the `homelab` bridge (`jellyfin:8096`, `qbittorrentvpn:8081`, `radarr:7878`, `sonarr:8989`) and LAN (`192.168.0.2:80`).
 
@@ -178,13 +200,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `radarr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `7878` |
-| **LAN Address** | `https://radarr.turing.home` |
+| **LAN Address** | `https://radarr.kamaka.tech` |
 | **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/radarr/data` |
 | **Associated Secrets** | `RADARR_API_KEY` |
 
 * **Role & Capabilities**: Automated movie collection manager, release indexer, and download coordinator. Searches for movie releases via Prowlarr, sends downloads to qBittorrent, and organizes files into media libraries.
-* **Network & Access**: Accessible internally at `https://radarr.turing.home`. REST API is authenticated via `RADARR_API_KEY`.
+* **Network & Access**: Accessible internally at `https://radarr.kamaka.tech`. REST API is authenticated via `RADARR_API_KEY`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/radarr/data:/config` for application configuration and SQLite database, and `${MEDIA_DIR}:/media` for file organization and hardlinking.
 * **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`), qBittorrent (`http://qbittorrentvpn:8081`), and Seerr.
 
@@ -198,13 +220,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `sonarr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `8989` |
-| **LAN Address** | `https://sonarr.turing.home` |
+| **LAN Address** | `https://sonarr.kamaka.tech` |
 | **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/sonarr/data` |
 | **Associated Secrets** | `SONARR_API_KEY` |
 
 * **Role & Capabilities**: Automated television series collection manager, episode monitor, and release grabber. Interfaces with Prowlarr to monitor indexers and delegates downloads to qBittorrent.
-* **Network & Access**: Accessible internally at `https://sonarr.turing.home`. REST API is authenticated via `SONARR_API_KEY`.
+* **Network & Access**: Accessible internally at `https://sonarr.kamaka.tech`. REST API is authenticated via `SONARR_API_KEY`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/sonarr/data:/config` for application database and settings, and `${MEDIA_DIR}:/media` for automated media renaming and hardlinking.
 * **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`), qBittorrent (`http://qbittorrentvpn:8081`), and Seerr.
 
@@ -218,13 +240,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `prowlarr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `9696` |
-| **LAN Address** | `https://prowlarr.turing.home` |
+| **LAN Address** | `https://prowlarr.kamaka.tech` |
 | **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/prowlarr/data` |
 | **Associated Secrets** | `PROWLARR_API_KEY` |
 
 * **Role & Capabilities**: Centralized indexer proxy and aggregator for BitTorrent trackers and Usenet indexers. Automatically synchronizes indexer configurations and health across Radarr and Sonarr.
-* **Network & Access**: Accessible internally at `https://prowlarr.turing.home`. API authenticated via `PROWLARR_API_KEY`.
+* **Network & Access**: Accessible internally at `https://prowlarr.kamaka.tech`. API authenticated via `PROWLARR_API_KEY`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/prowlarr/data:/config` for application settings and indexer configurations.
 * **Dependencies & Interconnections**: Routes Cloudflare-protected indexer requests through FlareSolverr (`http://flaresolverr:8191`). Syncs directly to Radarr (`radarr:7878`) and Sonarr (`sonarr:8989`).
 
@@ -238,13 +260,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `flaresolverr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `8191` |
-| **LAN Address** | `https://flaresolverr.turing.home` |
+| **LAN Address** | `https://flaresolverr.kamaka.tech` |
 | **WAN Address** | None |
 | **Persistent Data Path** | Stateless |
 | **Associated Secrets** | None |
 
 * **Role & Capabilities**: Headless Chromium proxy server designed to solve Cloudflare anti-bot challenges and DDoS protections on behalf of indexers managed by Prowlarr.
-* **Network & Access**: Accessible internally at `https://flaresolverr.turing.home` and directly over the `homelab` bridge at `http://flaresolverr:8191`.
+* **Network & Access**: Accessible internally at `https://flaresolverr.kamaka.tech` and directly over the `homelab` bridge at `http://flaresolverr:8191`.
 * **Storage & Volume Mappings**: Stateless container (no persistent volume mounts).
 * **Dependencies & Interconnections**: Used exclusively by Prowlarr as an indexing proxy.
 
@@ -258,13 +280,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `seerr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `5055` |
-| **LAN Address** | `https://seerr.turing.home` |
+| **LAN Address** | `https://seerr.kamaka.tech` |
 | **WAN Address** | None |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/seerr/data` |
 | **Associated Secrets** | `SEERR_API_KEY` |
 
 * **Role & Capabilities**: Media request, discovery, and approval portal. Allows users to search for movies and television shows, view trailers, request additions, and automatically track download progress.
-* **Network & Access**: Accessible internally at `https://seerr.turing.home`.
+* **Network & Access**: Accessible internally at `https://seerr.kamaka.tech`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/seerr/data:/app/config` for application state and SQLite database.
 * **Dependencies & Interconnections**: Interfaces directly with Jellyfin (`http://jellyfin:8096`) for user authentication and library discovery, Radarr (`http://radarr:7878`) for movie requests, and Sonarr (`http://sonarr:8989`) for TV requests.
 
@@ -278,13 +300,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `tandoor` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `8050` |
-| **LAN Address** | `https://recipes.turing.home` |
+| **LAN Address** | `https://recipes.kamaka.tech` |
 | **WAN Address** | `https://recipes.kamaka.tech` |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/tandoor/data` |
 | **Associated Secrets** | `SECRET_KEY` |
 
 * **Role & Capabilities**: Comprehensive recipe management system, meal planner, and grocery list organizer. Supports web scraping, ingredient scaling, and multi-user recipe sharing.
-* **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://recipes.turing.home` (internal) and `https://recipes.kamaka.tech` (external). Nginx serves user-uploaded media files directly from `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/media:ro`.
+* **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://recipes.kamaka.tech` (internal) and `https://recipes.kamaka.tech` (external). Caddy routes user-uploaded media files directly from `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/media:ro`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/tandoor/data/staticfiles:/opt/recipes/staticfiles` for application static assets, and `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/opt/recipes/mediafiles` for user recipe photos and attachments (shared read-only with NPM at `/media:ro`).
 * **Dependencies & Interconnections**: Relies on PostgreSQL container (`postgresql:5432`) for data storage.
 
@@ -318,13 +340,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Names** | `wireguard-pia` (VPN) & `qbittorrentvpn` (BitTorrent) |
 | **Host / Network Binding** | Internal `homelab` bridge only (`8081` WebUI) |
 | **Internal Container Port**| `8081` (WebUI), Dynamic Forwarded Port (BitTorrent) |
-| **LAN Address** | `https://torrent.turing.home` |
+| **LAN Address** | `https://torrent.kamaka.tech` |
 | **WAN Address** | None (Traffic routes exclusively via WireGuard tunnel `wg0`) |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/qbittorrentvpn/data` |
 | **Associated Secrets** | `VPN_USER`, `VPN_PASS`, `QBITTORRENT_PASSWORD` |
 
 * **Role & Capabilities**: Decoupled VPN network namespace and BitTorrent client. The `wireguard-pia` container maintains an encrypted WireGuard tunnel (`wg0`) to Private Internet Access with a strict `iptables` kill switch. The `qbittorrentvpn` container runs inside the VPN's network namespace (`network_mode: "service:vpn"`), preventing any packet from leaking to the LAN or WAN outside the tunnel.
-* **Network & Access**: WebUI accessible internally at `https://torrent.turing.home` and directly over the bridge at `http://qbittorrentvpn:8081`. Local access without VPN traversal is permitted via `LOCAL_NETWORK: 192.168.0.0/16`.
+* **Network & Access**: WebUI accessible internally at `https://torrent.kamaka.tech` and directly over the bridge at `http://qbittorrentvpn:8081`. Local access without VPN traversal is permitted via `LOCAL_NETWORK: 192.168.0.0/16`.
 * **Automated Port Forwarding & Anti-Thrashing Configuration**: The PIA container dynamically requests an open port in supported regions (e.g. Canada) and runs `/set-qbt-port.sh` ([.configs/qbittorrentvpn/set-qbt-port.sh](../.configs/qbittorrentvpn/set-qbt-port.sh)). On container startup and every 15-minute lease refresh, this script uses the qBittorrent WebUI API (`POST /api/v2/app/setPreferences`) to automatically configure the active listening port alongside declarative anti-thrashing and network preferences: allocating a 512 MiB in-memory write cache (`disk_cache: 512`), enabling piece extent affinity (`enable_piece_extent_affinity: true`) to write contiguous blocks and reduce filesystem fragmentation, enabling upload suggestions (`enable_upload_suggestions: true`), enforcing strict WireGuard socket binding (`current_network_interface: "wg0"`), disabling redundant router UPnP/NAT-PMP requests, and routing active downloads to high-IOPS solid-state scratch storage (`temp_path: "/incomplete"`).
 * **Storage & Volume Mappings**:
   * **`wireguard-pia` (VPN)**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia:/pia` for persistent PIA port forwarding tokens (`portsig.json`), `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia-shared:/pia-shared` for shared port runtime files, and `${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh:/set-qbt-port.sh:ro` for the automated port forwarding and anti-thrashing preference synchronization hook.

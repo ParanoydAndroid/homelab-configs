@@ -47,17 +47,31 @@ This reference details how to adapt `qbittorrentvpn` and `vpn-bridge` to differe
 
 ## 2. Remote Access & Ingress Providers
 
-### Cloudflare Zero Trust Tunnels (`cloudflared`) - Default
+### Caddy Docker Proxy (Default)
+- **Model**: Declarative reverse proxy on macvlan `external_npm` (`192.168.0.4`). Routes discovered dynamically via Compose labels (`caddy=host`, `caddy.reverse_proxy={{upstreams port}}`).
+- **Certificates**: Automated Let's Encrypt DNS-01 challenges via Cloudflare DNS module (`caddy-dns/cloudflare`).
+- **Client File Delivery**: Native HTTPS download endpoint at `https://download.<domain>/` backed by `${DOCKER_DATA_DIR}/caddy/downloads`.
+
+### Alternative: Nginx Proxy Manager (GUI-Managed)
+- **Model**: Imperative reverse proxy via web UI (`http://192.168.0.4:81`).
+- **Data Persistence**: Uses SQLite database at `${DOCKER_DATA_DIR}/nginx/data/database.sqlite`.
+- **Conversion Guide**:
+  1. Replace `caddy` service in `ingress/compose.yml` with `jc21/nginx-proxy-manager:latest`.
+  2. Map volumes `${DOCKER_DATA_DIR}/nginx/data:/data` and `${DOCKER_DATA_DIR}/nginx/letsencrypt:/etc/letsencrypt`.
+  3. Strip `caddy.*` labels from backend Compose files.
+  4. Access web UI on port `81` to configure proxy hosts and Cloudflare DNS-01 certificates manually.
+
+### Cloudflare Zero Trust Tunnels (`cloudflared`) - Default Public Egress
 - **Model**: Outbound HTTPS tunnel to Cloudflare Edge. Zero open inbound ports required on home router.
 - **Auth**: `CLOUDFLARE_TUNNEL_TOKEN`.
-- **Public Domain**: `*.kamaka.tech` (or custom domain).
-- **Hardening**: NPM blocks administrative endpoints (`/swagger`, `/api-docs`, `/metrics`) from external hosts.
+- **Public Domain**: `*.kamakakai.com` (or custom public domain).
+- **Hardening**: Reverse proxy blocks diagnostic endpoints (`/swagger`, `/api-docs`, `/metrics`) from external hosts.
 
 ### Tailscale Funnel / Subnet Routing
 - **Model**: WireGuard-based mesh networking.
 - **Auth**: `TS_AUTHKEY` (one-time pre-auth key).
 - **Public Ingress**: Optional `tailscale funnel 443` for public access, or private tailnet access for mobile devices without exposing any public domain.
 
-### Dynamic DNS (DuckDNS) + Nginx Proxy Manager Let's Encrypt
-- **Model**: Port forward 80/443 on WAN router to NPM IP (`192.168.0.4`).
-- **Certificates**: Let's Encrypt automated HTTP-01 or DNS-01 challenges via DuckDNS API.
+### Dynamic DNS (DuckDNS) + Let's Encrypt
+- **Model**: Port forward 80/443 on WAN router to reverse proxy IP (`192.168.0.4`).
+- **Certificates**: Automated HTTP-01 or DNS-01 challenges via DuckDNS API.

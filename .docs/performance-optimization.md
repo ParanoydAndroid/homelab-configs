@@ -199,7 +199,7 @@ To allow mobile phones and remote laptops to seamlessly access `<service>.turing
 4. Save the configuration.
 
 ### Ergonomic Result
-* When remote devices query `<service>.turing.home`, Tailscale routes the DNS query through the Subnet Router (`192.168.0.5`) to Pi-hole (`192.168.0.2`), resolving to Nginx Proxy Manager (`192.168.0.4`).
+* When remote devices query `<service>.kamaka.tech`, Tailscale routes the DNS query through the Subnet Router (`192.168.0.5`) to Pi-hole (`192.168.0.2`), resolving to Caddy (`192.168.0.4`).
 * All standard internet queries (e.g. Google, GitHub) continue using local Wi-Fi/cellular DNS, maintaining maximum browsing speed without battery drain or DNS latency.
 
 ---
@@ -324,7 +324,7 @@ sudo ./homelab.sh test all
 This automated smoke test suite verifies:
 * Container runtime states and internal health probes across all 17 containers.
 * Direct admin interfaces and emergency bypass ports (`8010:5001`).
-* Client-impersonated virtual host routing over Nginx Proxy Manager with TLS verification (`*.turing.home`, `*.kamaka.tech`).
+* Client-impersonated virtual host routing over Caddy with automated TLS verification (`*.kamaka.tech`, `*.kamakakai.com`).
 * Inter-container DNS resolution, database TCP sockets, REST API health, and WireGuard port synchronization.
 * Security access control lists, external diagnostic endpoint blocking (`403 Forbidden`), and unauthenticated API rejections.
 * Restic backup repository health and SemVer/CalVer tag auto-resolution.

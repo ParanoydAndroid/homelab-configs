@@ -73,7 +73,7 @@ These variables are defined in the repository root `.env` and synced automatical
 ### `NPM_IPV4_ADDRESS`
 * **Default**: `192.168.0.4`
 * **Type**: Static IPv4 Address
-* **Description**: Dedicated static LAN IP assigned to Nginx Proxy Manager on the `external_npm` macvlan network (`turing.home`).
+* **Description**: Dedicated static LAN IP assigned to Caddy reverse proxy on the `external_npm` macvlan network.
 
 ### `TAILSCALE_IPV4_ADDRESS`
 * **Default**: `192.168.0.5`
@@ -97,11 +97,15 @@ These variables are defined in the repository root `.env` and synced automatical
 These variables represent external credentials, cryptographic secrets, runtime selections, and API keys. They are declared in each `<stack>/.env.example` template with empty defaults and populated in untracked `<stack>/.env` files.
 
 ### `ingress` Stack
-*See [Nginx Proxy Manager](./service-catalog.md#nginx-proxy-manager-npm) and [Cloudflare Tunnel](./service-catalog.md#cloudflare-tunnel-cloudflared).*
+*See [Caddy Docker Proxy](./service-catalog.md#caddy-docker-proxy) and [Cloudflare Tunnel](./service-catalog.md#cloudflare-tunnel-cloudflared).*
 
 * **`CLOUDFLARE_TUNNEL_TOKEN`**  
   *Default*: None (Required Secret)  
-  *Description*: Base64 authentication token generated in Cloudflare Zero Trust Dashboard (**Networks -> Tunnels -> homelab-media**).
+  *Description*: Base64 authentication token generated in Cloudflare Zero Trust Dashboard (**Networks -> Tunnels -> homelab**).
+
+* **`CLOUDFLARE_API_TOKEN`**  
+  *Default*: None (Required Secret)  
+  *Description*: Cloudflare API Token with DNS edit permissions across hosted zones used by Caddy for automated DNS-01 Let's Encrypt certificate challenges.
 
 ---
 
