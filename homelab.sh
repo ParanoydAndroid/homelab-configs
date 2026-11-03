@@ -91,6 +91,17 @@ setup_homelab() {
     fi
   fi
 
+  # Deploy Caddyfile if caddy service is enabled
+  if is_service_enabled "caddy"; then
+    local caddy_data_dir="${DOCKER_DATA_DIR}/caddy"
+    if [[ -f "${REPO_DIR}/.configs/caddy/Caddyfile" ]]; then
+      log_info "Ensuring Caddyfile is present (${caddy_data_dir}/Caddyfile)..."
+      mkdir -p "${caddy_data_dir}"
+      cp -p "${REPO_DIR}/.configs/caddy/Caddyfile" "${caddy_data_dir}/Caddyfile"
+      chown "${TARGET_USER}:${TARGET_GROUP}" "${caddy_data_dir}/Caddyfile" 2>/dev/null || true
+    fi
+  fi
+
   log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."
   docker compose -f "${DOCKGE_DIR}/compose.yml" --env-file "${DOCKGE_DIR}/.env" up -d
 
@@ -152,21 +163,6 @@ startup_homelab() {
         cd "${REPO_DIR}/${stack}"
         docker compose up -d
       )
-
-      # PostgreSQL readiness probe for dependent services
-      if [[ "${stack}" == "productivity" ]] && is_service_enabled "postgresql"; then
-        log_info "Waiting for PostgreSQL database readiness..."
-        local pg_wait=20
-        while ! docker exec postgresql pg_isready -q 2>/dev/null && (( pg_wait > 0 )); do
-          sleep 1
-          (( pg_wait-- )) || true
-        done
-        if docker exec postgresql pg_isready -q 2>/dev/null; then
-          log_info "PostgreSQL is ready and accepting connections."
-        else
-          log_warn "PostgreSQL did not report ready within timeout; continuing startup sequence."
-        fi
-      fi
     fi
   done
 

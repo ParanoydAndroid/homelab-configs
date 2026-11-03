@@ -53,12 +53,8 @@ test_docker_up_dockge() {
   printf "running (health: %s)" "${health}"
 }
 
-test_docker_up_postgresql() {
-  assert_service_running "postgresql"
-}
-
-test_docker_up_nginx() {
-  assert_service_running "nginx"
+test_docker_up_caddy() {
+  assert_service_running "caddy"
 }
 
 test_docker_up_tailscale() {
@@ -109,8 +105,8 @@ test_docker_up_seerr() {
   assert_service_running "seerr"
 }
 
-test_docker_up_tandoor() {
-  assert_service_running "tandoor"
+test_docker_up_mealie() {
+  assert_service_running "mealie"
 }
 
 test_docker_up_cloudflared() {
@@ -121,8 +117,7 @@ suite_containers() {
   init_suite "1. Container Runtime & Health Checks"
 
   run_test test_docker_up_dockge "Verify Dockge container is running and healthy"
-  run_test test_docker_up_postgresql "Verify PostgreSQL container is running"
-  run_test test_docker_up_nginx "Verify Nginx Proxy Manager container is running"
+  run_test test_docker_up_caddy "Verify Caddy reverse proxy container is running"
   run_test test_docker_up_tailscale "Verify Tailscale Subnet Router is running"
   run_test test_docker_up_vpn_bridge_pia "Verify VPN Bridge PIA WireGuard container is running and healthy"
   run_test test_docker_up_vpn_bridge_tailscale "Verify VPN Bridge Tailscale exit node container is running"
@@ -135,7 +130,7 @@ suite_containers() {
   run_test test_docker_up_prowlarr "Verify Prowlarr indexer aggregator is running"
   run_test test_docker_up_flaresolverr "Verify FlareSolverr proxy is running"
   run_test test_docker_up_seerr "Verify Seerr request management is running and healthy"
-  run_test test_docker_up_tandoor "Verify Tandoor Recipes application server is running"
+  run_test test_docker_up_mealie "Verify Mealie recipe manager is running"
   run_test test_docker_up_cloudflared "Verify Cloudflare Zero Trust Tunnel is running"
 }
 

@@ -20,28 +20,19 @@ test_direct_dockge_host_port() {
   return 1
 }
 
-test_direct_npm_admin_api() {
-  if ! is_service_enabled "nginx"; then
-    printf "Service 'nginx' omitted or disabled"
+test_direct_caddy_admin_api() {
+  if ! is_service_enabled "caddy"; then
+    printf "Service 'caddy' omitted or disabled"
     return 77
   fi
 
-  local probe_c=""
-  local c
-  for c in radarr sonarr homepage jellyfin seerr nginx; do
-    if is_service_enabled "${c}" && docker inspect -f '{{.State.Status}}' "${c}" 2>/dev/null | grep -q "running"; then
-      probe_c="${c}"
-      break
-    fi
-  done
-
-  if [[ -z "${probe_c}" ]]; then
-    printf "No active probe container found on 'homelab' bridge network"
-    return 77
+  if ! docker inspect -f '{{.State.Status}}' "caddy" 2>/dev/null | grep -q "running"; then
+    printf "Container 'caddy' is not running"
+    return 1
   fi
 
   local code
-  code="$(docker exec "${probe_c}" curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "http://nginx:81/api/" 2>/dev/null || true)"
+  code="$(docker exec caddy curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "http://localhost:2019/config/" 2>/dev/null || true)"
   [[ -z "${code}" ]] && code="000"
 
   if [[ "${code}" == "200" ]]; then
@@ -57,7 +48,7 @@ suite_direct_admin() {
   init_suite "2. Direct Admin Interfaces & Fallback Ports"
 
   run_test test_direct_dockge_host_port "Verify Dockge emergency host port (127.0.0.1:8010)"
-  run_test test_direct_npm_admin_api "Verify NPM Admin UI API over bridge (http://nginx:81/api/)"
+  run_test test_direct_caddy_admin_api "Verify Caddy Admin API over bridge (http://caddy:2019/config/)"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

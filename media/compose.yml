@@ -42,10 +42,13 @@ services:
     networks:
       - homelab
     labels:
+      - caddy=jellyfin.kamaka.tech, jellyfin.kamakakai.com
+      - caddy.reverse_proxy={{upstreams 8096}}
+      - caddy.import=cloudflare_tls jellyfin_hardening
       - homepage.group=Players
       - homepage.name=Jellyfin
       - homepage.icon=jellyfin
-      - homepage.href=https://jellyfin.turing.home
+      - homepage.href=https://jellyfin.kamaka.tech
       - homepage.description=Media Server
       - homepage.widget.type=jellyfin
       - homepage.widget.version=2
@@ -70,10 +73,13 @@ services:
     networks:
       - homelab
     labels:
+      - caddy=seerr.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 5055}}
+      - caddy.import=cloudflare_tls
       - homepage.group=Media Requests
       - homepage.name=Seerr
       - homepage.icon=seerr
-      - homepage.href=https://seerr.turing.home
+      - homepage.href=https://seerr.kamaka.tech
       - homepage.description=Media Requests
       - homepage.widget.type=overseerr
       - homepage.widget.url=http://seerr:5055
@@ -95,10 +101,13 @@ services:
     networks:
       - homelab
     labels:
+      - caddy=radarr.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 7878}}
+      - caddy.import=cloudflare_tls
       - homepage.group=Downloads
       - homepage.name=Radarr
       - homepage.icon=radarr
-      - homepage.href=https://radarr.turing.home
+      - homepage.href=https://radarr.kamaka.tech
       - homepage.description=Movie Automation
       - homepage.widget.type=radarr
       - homepage.widget.url=http://radarr:7878
@@ -121,10 +130,13 @@ services:
     networks:
       - homelab
     labels:
+      - caddy=sonarr.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 8989}}
+      - caddy.import=cloudflare_tls
       - homepage.group=Downloads
       - homepage.name=Sonarr
       - homepage.icon=sonarr
-      - homepage.href=https://sonarr.turing.home
+      - homepage.href=https://sonarr.kamaka.tech
       - homepage.description=TV Automation
       - homepage.widget.type=sonarr
       - homepage.widget.url=http://sonarr:8989
@@ -146,10 +158,13 @@ services:
     networks:
       - homelab
     labels:
+      - caddy=prowlarr.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 9696}}
+      - caddy.import=cloudflare_tls
       - homepage.group=Infrastructure
       - homepage.name=Prowlarr
       - homepage.icon=prowlarr
-      - homepage.href=https://prowlarr.turing.home
+      - homepage.href=https://prowlarr.kamaka.tech
       - homepage.description=Indexer Management
       - homepage.widget.type=prowlarr
       - homepage.widget.url=http://prowlarr:9696
@@ -168,10 +183,13 @@ services:
     networks:
       - homelab
     labels:
+      - caddy=flaresolverr.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 8191}}
+      - caddy.import=cloudflare_tls
       - homepage.group=Infrastructure
       - homepage.name=Flaresolverr
       - homepage.icon=flaresolverr
-      - homepage.href=https://flaresolverr.turing.home
+      - homepage.href=https://flaresolverr.kamaka.tech
       - homepage.description=Cloudflare Solver
 
 networks:

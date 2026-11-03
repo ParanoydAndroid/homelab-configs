@@ -2,7 +2,7 @@
 # Stack: Homepage Dashboard (dashboard/compose.yml)
 #
 # Purpose:
-#   Serves the homelab application dashboard at https://homepage.turing.home.
+#   Serves the homelab application dashboard at https://homepage.kamaka.tech.
 #   Queries /var/run/docker.sock to auto-discover container status and reads
 #   'homepage.*' Docker labels defined across all stacks.
 # ==============================================================================
@@ -19,7 +19,7 @@ services:
       PGID: 0
       UMASK: "022"
       TZ: ${TZ:?See env.example for default.}
-      HOMEPAGE_ALLOWED_HOSTS: homepage.turing.home,www.turing.home,turing.home,192.168.0.4
+      HOMEPAGE_ALLOWED_HOSTS: homepage.kamaka.tech,kamaka.tech,homepage.turing.home,www.turing.home,turing.home,192.168.0.4
       HOMEPAGE_VAR_PIHOLE_KEY: ${HOMEPAGE_VAR_PIHOLE_KEY:?See env.example for default.}
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/homepage/data:/app/config
@@ -29,10 +29,13 @@ services:
     networks:
       - homelab
     labels:
+      - caddy=homepage.kamaka.tech, kamaka.tech
+      - caddy.reverse_proxy={{upstreams 3000}}
+      - caddy.import=cloudflare_tls
       - homepage.group=Administration
       - homepage.name=Homepage
       - homepage.icon=homepage
-      - homepage.href=https://homepage.turing.home
+      - homepage.href=https://homepage.kamaka.tech
       - homepage.description=Homelab Dashboard
 
 networks:

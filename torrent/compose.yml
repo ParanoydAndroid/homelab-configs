@@ -38,6 +38,10 @@ services:
       homelab:
         aliases:
           - qbittorrentvpn
+    labels:
+      - caddy=torrent.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 8081}}
+      - caddy.import=cloudflare_tls
 
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -60,7 +64,7 @@ services:
       - homepage.group=Downloads
       - homepage.name=QBittorrentVPN
       - homepage.icon=qbittorrent
-      - homepage.href=https://torrent.turing.home
+      - homepage.href=https://torrent.kamaka.tech
       - homepage.description=BitTorrent Client
       - homepage.widget.type=qbittorrent
       - homepage.widget.url=http://qbittorrentvpn:8081

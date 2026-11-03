@@ -1,0 +1,63 @@
+# ==============================================================================
+# Caddy Base Configuration (.configs/caddy/Caddyfile)
+#
+# Deployed to ${DOCKER_DATA_DIR}/caddy/Caddyfile by 'homelab.sh deploy-configs'.
+# Merged with dynamic Docker container labels by caddy-docker-proxy.
+# ==============================================================================
+
+{
+    email admin@kamakakai.com
+    acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+}
+
+# Wildcard certificate provisioner for all local subdomains:
+*.kamaka.tech {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    respond "Not Found" 404
+}
+
+# Baseline TLS & Security Hardening (imported across all proxy hosts):
+(cloudflare_tls) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+    @sensitive_files {
+        path */.*
+        path *.env*
+        path *.git*
+        path *.bak
+    }
+    respond @sensitive_files "Not Found" 404
+}
+
+# Subnet Access Control: restricts access to LAN and Tailscale clients only
+(lan_only) {
+    @external not client_ip 192.168.0.0/16 100.64.0.0/10 127.0.0.1 ::1
+    respond @external "Forbidden" 403
+}
+
+# External Endpoint Diagnostic Path Hardening (Jellyfin metrics/API docs):
+(jellyfin_hardening) {
+    @blocked_paths path /metrics /swagger* /api-docs*
+    respond @blocked_paths "Forbidden" 403
+}
+
+# Physical UGREEN NAS Host Management Portal (UGOS):
+nas.kamaka.tech {
+    import cloudflare_tls
+    import lan_only
+    reverse_proxy 192.168.255.1:9999
+}
+
+# Direct Client File Delivery Endpoint:
+download.kamaka.tech {
+    import cloudflare_tls
+    import lan_only
+    root * /downloads
+    file_server browse
+}

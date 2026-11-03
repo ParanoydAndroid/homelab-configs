@@ -181,20 +181,30 @@ run_test() {
 }
 
 # ------------------------------------------------------------------------------
-# Function: get_npm_bridge_ip
+# Function: get_npm_bridge_ip / get_ingress_bridge_ip
 # Description:
-#   Retrieves and caches the internal IP address of the 'nginx' (NPM) container
-#   on the 'homelab' bridge network.
+#   Retrieves and caches the internal IP address of the active reverse proxy
+#   ('caddy' or 'nginx') container on the 'homelab' bridge network.
 # ------------------------------------------------------------------------------
-NPM_CACHED_BRIDGE_IP=""
-get_npm_bridge_ip() {
-  if [[ -z "${NPM_CACHED_BRIDGE_IP}" ]]; then
-    NPM_CACHED_BRIDGE_IP="$(docker inspect -f '{{with index .NetworkSettings.Networks "homelab"}}{{.IPAddress}}{{end}}' nginx 2>/dev/null || true)"
-    if [[ -z "${NPM_CACHED_BRIDGE_IP}" ]]; then
-      NPM_CACHED_BRIDGE_IP="192.168.255.4"
+INGRESS_CACHED_BRIDGE_IP=""
+get_ingress_bridge_ip() {
+  if [[ -z "${INGRESS_CACHED_BRIDGE_IP}" ]]; then
+    for c in caddy nginx; do
+      local ip
+      ip="$(docker inspect -f '{{with index .NetworkSettings.Networks "homelab"}}{{.IPAddress}}{{end}}' "${c}" 2>/dev/null || true)"
+      if [[ -n "${ip}" ]]; then
+        INGRESS_CACHED_BRIDGE_IP="${ip}"
+        break
+      fi
+    done
+    if [[ -z "${INGRESS_CACHED_BRIDGE_IP}" ]]; then
+      INGRESS_CACHED_BRIDGE_IP="192.168.255.4"
     fi
   fi
-  printf "%s" "${NPM_CACHED_BRIDGE_IP}"
+  printf "%s" "${INGRESS_CACHED_BRIDGE_IP}"
+}
+get_npm_bridge_ip() {
+  get_ingress_bridge_ip
 }
 
 # ------------------------------------------------------------------------------

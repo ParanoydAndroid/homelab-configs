@@ -13,18 +13,19 @@ Traffic ingress and egress follow three distinct, non-overlapping paths:
 ```text
 [ Internet Client ] ---> Cloudflare Edge ---> [ Cloudflare Tunnel ] ---+
                                                                        |
-[ Remote Phone/PC ] ---> Tailscale Mesh  ---> [ Tailscale Router ] ----+---> [ Nginx Proxy Manager ] ---> [ Backend Stacks ]
-                                              (192.168.0.5 / homelab)  |     (192.168.0.4 / turing)      (192.168.255.0/24)
+[ Remote Phone/PC ] ---> Tailscale Mesh  ---> [ Tailscale Router ] ----+---> [ Caddy Proxy ] ------------> [ Backend Stacks ]
+                                              (192.168.0.5 / homelab)  |     (192.168.0.4 / macvlan)        (192.168.255.0/24)
                                                                        |
-[ Remote Mobile/PC] ---> Tailscale Mesh  ---> [ VPN Bridge Exit Node ] ----> [ PIA WireGuard (wg0) ] ---> [ Public Internet ]
+[ Remote Mobile/PC] ---> Tailscale Mesh  ---> [ VPN Bridge Exit Node ] ----> [ PIA WireGuard (wg0) ] -----> [ Public Internet ]
                                               (vpn-bridge-tailscale)         (vpn-bridge-pia)
                                                                        |
 [ Local LAN Client] ---------------------------------------------------+
 ```
 
-* **Public Web Ingress (`*.kamaka.tech`)**: Ingress routes through an outbound Cloudflare Zero Trust tunnel (`cloudflared`) to Nginx Proxy Manager without requiring port forwarding behind CGNAT residential internet.
-* **Private Admin Ingress (`*.turing.home`)**: Remote management routes through an encrypted Tailscale WireGuard mesh overlay via an internal subnet router (`192.168.0.5`), restricted by reverse proxy ACLs (`192.168.0.0/16`).
-* **Secure VPN Bridge Egress**: Remote mobile devices route internet traffic through a dedicated Tailscale exit node (`vpn-bridge`), which proxies outbound WAN traffic through an encrypted Private Internet Access (PIA) WireGuard tunnel in US server regions (`vpn-bridge-pia`), keeping ISP IP private without interfering with local subnet routing.
+* **Public Web Ingress (`*.kamakakai.com`)**: Ingress routes through an outbound Cloudflare Zero Trust tunnel (`cloudflared`) to Caddy reverse proxy without requiring port forwarding behind CGNAT residential internet.
+* **Private Homelab Ingress (`*.kamaka.tech`)**: Local LAN and Tailscale mesh management routes directly to Caddy (`192.168.0.4`) with automated Let's Encrypt TLS via Cloudflare DNS-01 and Pi-hole wildcard DNS.
+* **Client File Delivery (`download.kamaka.tech`)**: Authorized local and Tailscale clients download staged archives and files directly over HTTPS with an interactive directory index.
+* **VPN Bridge Egress**: Remote devices route outbound internet traffic through a Tailscale exit node (`vpn-bridge`) backed by WireGuard VPN egress, preserving client privacy on untrusted networks.
 
 ---
 
@@ -66,7 +67,7 @@ sudo ./homelab.sh setup
 | Subcommand | Description |
 | :--- | :--- |
 | `sudo ./homelab.sh setup` | End-to-end host convergence: applies OS fixes, syncs `.env` files, provisions networks, deploys Dockge orchestrator compose, and starts all stacks. |
-| `./homelab.sh startup` | Non-interactive boot hook designed for systemd execution on host startup with database readiness checks. |
+| `./homelab.sh startup` | Non-interactive boot hook designed for systemd execution on host startup. |
 | `sudo ./homelab.sh backup [-t <type|name>] [-m <msg>]` | Stages zero-downtime DB dumps, snapshots volumes with Restic, commits git changes, applies repeatable SemVer/CalVer/custom tags, pushes to remote, and archives `.env` secrets. |
 | `./homelab.sh snapshots` | Lists historical Restic backup snapshots with timestamps, snapshot IDs, and repository sizes. |
 | `sudo ./homelab.sh restore [snap] [svc]` | Restores full volume state or an individual service from a Restic snapshot with pre-restore safety checks. |
@@ -78,12 +79,12 @@ sudo ./homelab.sh setup
 
 Detailed architectural specifications, configuration runbooks, and references are organized into dedicated documents under `.docs/`:
 
-* **[Project Organization & Architecture](.docs/project-organization.md)**: Filesystem layout, Dockge compatibility constraints, storage tiering rationale (PCIe NVMe vs mechanical RAID 5), and the Restic-based volume backup and disaster recovery model.
-* **[Service Catalog and Port Reference](.docs/service-catalog.md)**: Uniform catalog entries for all 17 containerized services and the host OS portal, active port bindings, internal/external addresses, volume mappings, and container interconnections.
-* **[Post-Setup Optimization, Ergonomics & Maintenance Guide](.docs/performance-optimization.md)**: Recommended post-setup runbook covering storage anti-thrashing (No-CoW, Linux VM dirty writeback smoothing), local wildcard TLS certificates, Tailscale split-DNS, atomic media hardlinks, and disaster recovery verification.
-* **[Environment Variable Reference & Cheat Sheet](.docs/env-reference.md)**: Central dictionary of every global and per-stack environment variable, defaults, secrets, and Homepage dashboard discovery mechanisms.
-* **[Dual-Ingress Networking & Security](.docs/networking.md)**: Subnet topology (`192.168.0.0/24` LAN, `192.168.255.0/24` bridge), macvlan routing, static IP table, split DNS, TLS certificates, and edge security hardening.
-* **[Operations and Appliance Engineering](.docs/operations.md)**: Operational runbooks, backup and secret restoration procedures, systemd background units, asynchronous mount handling, and OS workarounds.
+* **[Project Organization & Architecture](.docs/project-organization.md)**: Filesystem layout, Dockge compatibility constraints, storage tiering rationale, and the Restic-based volume backup model.
+* **[Service Catalog and Port Reference](.docs/service-catalog.md)**: Catalog entries for containerized services and the host OS portal, active port bindings, internal/external addresses, volume mappings, and dependencies.
+* **[Post-Setup Optimization, Ergonomics & Maintenance Guide](.docs/performance-optimization.md)**: Recommended post-setup runbook covering storage anti-thrashing, TLS certificates, DNS resolution, and atomic media hardlinks.
+* **[Environment Variable Reference & Cheat Sheet](.docs/env-reference.md)**: Central dictionary of global and per-stack environment variables, defaults, and secrets.
+* **[Dual-Ingress Networking & Security](.docs/networking.md)**: Subnet topology, macvlan routing, static IP table, DNS, TLS certificates, and edge security hardening.
+* **[Operations and Appliance Engineering](.docs/operations.md)**: Operational runbooks, backup and secret restoration procedures, and systemd background units.
 * **[Changelog](CHANGELOG.md)**: Historical release milestones with paired semantic and CalVer tags.
 * **[Project Backlog](BACKLOG.md)**: Tracked technical improvements and non-blocking optimizations.
 
@@ -97,8 +98,8 @@ Procedural workflows, interactive scaffolding, and diagnostic algorithms are mod
 | :--- | :--- |
 | **`start-homelab`** | Interactive onboarding wizard for new developers: guides project orientation, service selection (keep/defer/remove), hardware & platform adaptation, secret provisioning, and verified deployment. |
 | **`stack-lifecycle`** | Standardized runbook for adding, retiring, or decommissioning a service stack across Compose, `.env.example`, reverse proxy, dashboard widgets, backups, and smoke tests. |
-| **`tls-certificates`** | Local root CA generation, wildcard certificate provisioning (`*.home`), NPM deployment, and client OS trust distribution (macOS, Windows, Linux, iOS, Android, Firefox). |
-| **`disaster-recovery-drill`** | Zero-downtime sandbox database restoration and integrity verification (`pg_restore`, SQLite PRAGMA checks) from Restic snapshots into `/tmp/dr-drill`. |
+| **`tls-certificates`** | Local root CA generation, certificate provisioning, and client OS trust distribution. |
+| **`disaster-recovery-drill`** | Zero-downtime sandbox database restoration and integrity verification (SQLite PRAGMA checks) from Restic snapshots into `/tmp/dr-drill`. |
 | **`homelab-audit`** | Continuous drift detection auditing container runtimes, untracked containers, volume permissions/ACLs, Btrfs No-CoW flags, routing endpoints, and backup timer health. |
 | **`feature-initiation`** | Mainline synchronization, branch checkout (`feature/<name>`), architectural plan drafting, and adversarial "grill-me" design critique cycle. |
 | **`feature-completion`** | Full test suite verification, stop-on-failure enforcement, roll-up SemVer/CalVer changelog synthesis, merge, and dual tagging. |

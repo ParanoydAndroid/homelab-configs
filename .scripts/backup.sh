@@ -312,7 +312,7 @@ stage_database_dumps() {
   # 2. SQLite online backups
   if command -v sqlite3 >/dev/null 2>&1; then
     local sqlite_dbs=(
-      "${DOCKER_DATA_DIR}/nginx/data/db.sqlite"
+      "${DOCKER_DATA_DIR}/mealie/data/mealie.db"
       "${DOCKER_DATA_DIR}/jellyfin/data/config/data/jellyfin.db"
       "${DOCKER_DATA_DIR}/sonarr/data/sonarr.db"
       "${DOCKER_DATA_DIR}/radarr/data/radarr.db"
