@@ -7,7 +7,17 @@
 # ==============================================================================
 set -euo pipefail
 
-# Helper to execute client-impersonated HTTPS curl against NPM via any available container on 'homelab'
+# ------------------------------------------------------------------------------
+# Function: _curl_vhost
+# Description:
+#   Executes client-impersonated HTTPS curl against NPM via any available
+#   container on the 'homelab' bridge network.
+# Arguments:
+#   $1 (domain)         - Virtual host FQDN to query.
+#   $2 (path)           - URI path (defaults to '/').
+#   $3 (expected_regex) - Regex pattern of acceptable HTTP status codes.
+#   $4 (service)        - Optional target service identifier. Skips if disabled.
+# ------------------------------------------------------------------------------
 _curl_vhost() {
   local domain="$1"
   local path="${2:-/}"
@@ -58,20 +68,61 @@ _curl_vhost() {
   return 1
 }
 
-test_vhost_homepage_internal() { _curl_vhost "homepage.turing.home" "/" "^200$" "homepage"; }
-test_vhost_proxy_internal() { _curl_vhost "proxy.turing.home" "/" "^200$" "nginx"; }
-test_vhost_dockge_internal() { _curl_vhost "dockge.turing.home" "/" "^200$"; }
-test_vhost_jellyfin_internal() { _curl_vhost "jellyfin.turing.home" "/web/index.html" "^200$" "jellyfin"; }
-test_vhost_radarr_internal() { _curl_vhost "radarr.turing.home" "/ping" "^200$" "radarr"; }
-test_vhost_sonarr_internal() { _curl_vhost "sonarr.turing.home" "/ping" "^200$" "sonarr"; }
-test_vhost_prowlarr_internal() { _curl_vhost "prowlarr.turing.home" "/ping" "^200$" "prowlarr"; }
-test_vhost_flaresolverr_internal() { _curl_vhost "flaresolverr.turing.home" "/health" "^200$" "flaresolverr"; }
-test_vhost_seerr_internal() { _curl_vhost "seerr.turing.home" "/api/v1/status" "^200$" "seerr"; }
-test_vhost_torrent_internal() { _curl_vhost "torrent.turing.home" "/" "^200$" "qbittorrentvpn"; }
-test_vhost_recipes_internal() { _curl_vhost "recipes.turing.home" "/" "^(200|302)$" "tandoor"; }
-test_vhost_nas_internal() { _curl_vhost "nas.turing.home" "/" "^(200|302|307)$"; }
-test_vhost_jellyfin_external() { _curl_vhost "jellyfin.kamaka.tech" "/web/index.html" "^200$" "jellyfin"; }
-test_vhost_recipes_external() { _curl_vhost "recipes.kamaka.tech" "/" "^(200|302)$" "tandoor"; }
+test_vhost_homepage_internal() {
+  _curl_vhost "homepage.turing.home" "/" "^200$" "homepage"
+}
+
+test_vhost_proxy_internal() {
+  _curl_vhost "proxy.turing.home" "/" "^200$" "nginx"
+}
+
+test_vhost_dockge_internal() {
+  _curl_vhost "dockge.turing.home" "/" "^200$"
+}
+
+test_vhost_jellyfin_internal() {
+  _curl_vhost "jellyfin.turing.home" "/web/index.html" "^200$" "jellyfin"
+}
+
+test_vhost_radarr_internal() {
+  _curl_vhost "radarr.turing.home" "/ping" "^200$" "radarr"
+}
+
+test_vhost_sonarr_internal() {
+  _curl_vhost "sonarr.turing.home" "/ping" "^200$" "sonarr"
+}
+
+test_vhost_prowlarr_internal() {
+  _curl_vhost "prowlarr.turing.home" "/ping" "^200$" "prowlarr"
+}
+
+test_vhost_flaresolverr_internal() {
+  _curl_vhost "flaresolverr.turing.home" "/health" "^200$" "flaresolverr"
+}
+
+test_vhost_seerr_internal() {
+  _curl_vhost "seerr.turing.home" "/api/v1/status" "^200$" "seerr"
+}
+
+test_vhost_torrent_internal() {
+  _curl_vhost "torrent.turing.home" "/" "^200$" "qbittorrentvpn"
+}
+
+test_vhost_recipes_internal() {
+  _curl_vhost "recipes.turing.home" "/" "^(200|302)$" "tandoor"
+}
+
+test_vhost_nas_internal() {
+  _curl_vhost "nas.turing.home" "/" "^(200|302|307)$"
+}
+
+test_vhost_jellyfin_external() {
+  _curl_vhost "jellyfin.kamaka.tech" "/web/index.html" "^200$" "jellyfin"
+}
+
+test_vhost_recipes_external() {
+  _curl_vhost "recipes.kamaka.tech" "/" "^(200|302)$" "tandoor"
+}
 
 suite_routing() {
   init_suite "3. NPM Reverse Proxy VirtualHost Routing (Client Impersonation)"

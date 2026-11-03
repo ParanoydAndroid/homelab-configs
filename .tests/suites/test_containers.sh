@@ -6,8 +6,15 @@
 # ==============================================================================
 set -euo pipefail
 
-# Helper to assert running state and healthy/none status for a service's container.
-# If the service is omitted or disabled in compose.yml, returns 77 (SKIP).
+# ------------------------------------------------------------------------------
+# Function: assert_service_running
+# Description:
+#   Helper to assert running state and healthy/none status for a service's container.
+#   If the service is omitted or disabled in compose.yml, returns 77 (SKIP).
+# Arguments:
+#   $1 (service)   - Service identifier or container name.
+#   $2 (container) - Optional container name override (defaults to $1).
+# ------------------------------------------------------------------------------
 assert_service_running() {
   local service="$1"
   local container="${2:-$1}"
@@ -46,22 +53,69 @@ test_docker_up_dockge() {
   printf "running (health: %s)" "${health}"
 }
 
-test_docker_up_postgresql() { assert_service_running "postgresql"; }
-test_docker_up_nginx() { assert_service_running "nginx"; }
-test_docker_up_tailscale() { assert_service_running "tailscale"; }
-test_docker_up_vpn_bridge_pia() { assert_service_running "vpn-bridge-pia"; }
-test_docker_up_vpn_bridge_tailscale() { assert_service_running "vpn-bridge-tailscale"; }
-test_docker_up_homepage() { assert_service_running "homepage"; }
-test_docker_up_jellyfin() { assert_service_running "jellyfin"; }
-test_docker_up_wireguard_pia() { assert_service_running "wireguard-pia"; }
-test_docker_up_qbittorrentvpn() { assert_service_running "qbittorrentvpn"; }
-test_docker_up_radarr() { assert_service_running "radarr"; }
-test_docker_up_sonarr() { assert_service_running "sonarr"; }
-test_docker_up_prowlarr() { assert_service_running "prowlarr"; }
-test_docker_up_flaresolverr() { assert_service_running "flaresolverr"; }
-test_docker_up_seerr() { assert_service_running "seerr"; }
-test_docker_up_tandoor() { assert_service_running "tandoor"; }
-test_docker_up_cloudflared() { assert_service_running "cloudflared"; }
+test_docker_up_postgresql() {
+  assert_service_running "postgresql"
+}
+
+test_docker_up_nginx() {
+  assert_service_running "nginx"
+}
+
+test_docker_up_tailscale() {
+  assert_service_running "tailscale"
+}
+
+test_docker_up_vpn_bridge_pia() {
+  assert_service_running "vpn-bridge-pia"
+}
+
+test_docker_up_vpn_bridge_tailscale() {
+  assert_service_running "vpn-bridge-tailscale"
+}
+
+test_docker_up_homepage() {
+  assert_service_running "homepage"
+}
+
+test_docker_up_jellyfin() {
+  assert_service_running "jellyfin"
+}
+
+test_docker_up_wireguard_pia() {
+  assert_service_running "wireguard-pia"
+}
+
+test_docker_up_qbittorrentvpn() {
+  assert_service_running "qbittorrentvpn"
+}
+
+test_docker_up_radarr() {
+  assert_service_running "radarr"
+}
+
+test_docker_up_sonarr() {
+  assert_service_running "sonarr"
+}
+
+test_docker_up_prowlarr() {
+  assert_service_running "prowlarr"
+}
+
+test_docker_up_flaresolverr() {
+  assert_service_running "flaresolverr"
+}
+
+test_docker_up_seerr() {
+  assert_service_running "seerr"
+}
+
+test_docker_up_tandoor() {
+  assert_service_running "tandoor"
+}
+
+test_docker_up_cloudflared() {
+  assert_service_running "cloudflared"
+}
 
 suite_containers() {
   init_suite "1. Container Runtime & Health Checks"

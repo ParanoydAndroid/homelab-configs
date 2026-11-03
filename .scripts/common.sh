@@ -45,11 +45,15 @@ discover_services() {
     done < <(awk '
       /^services:/ { in_services=1; next }
       /^[^ #[:space:]]/ { in_services=0 }
-      in_services && /^  [a-zA-Z0-9_-]+:/ {
-        svc=$1; sub(/:.*/, "", svc); print svc
+      in_services && /^  [a-zA-Z0-9_-]+:/ && !/^  #/ {
+        svc=$1; sub(/:.*/, "", svc); if (svc != "") print svc
       }
-      in_services && /container_name:/ {
-        cn=$2; gsub(/["'\'' ]/, "", cn); print cn
+      in_services && /^[[:space:]]*container_name:[[:space:]]*/ && !/^[[:space:]]*#/ {
+        cn=$0
+        sub(/^[[:space:]]*container_name:[[:space:]]*/, "", cn)
+        sub(/[[:space:]]*#.*/, "", cn)
+        gsub(/["'\'' ]/, "", cn)
+        if (cn != "") print cn
       }
     ' "${compose_file}")
   done
@@ -113,7 +117,7 @@ discover_stacks() {
     if awk '
       /^services:/ { in_services=1; next }
       /^[^ #[:space:]]/ { in_services=0 }
-      in_services && /^  [a-zA-Z0-9_-]+:/ { has_services=1; exit }
+      in_services && /^  [a-zA-Z0-9_-]+:/ && !/^  #/ { has_services=1; exit }
       END { exit (has_services ? 0 : 1) }
     ' "${compose_file}"; then
       has_services=1
