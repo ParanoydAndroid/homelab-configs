@@ -7,13 +7,19 @@
 
 {
     email admin@kamakakai.com
+    acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+}
+
+# Wildcard certificate provisioner for all local subdomains:
+*.kamaka.tech {
+    tls {
+        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    }
+    respond "Not Found" 404
 }
 
 # Baseline TLS & Security Hardening (imported across all proxy hosts):
 (cloudflare_tls) {
-    tls {
-        dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-    }
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
