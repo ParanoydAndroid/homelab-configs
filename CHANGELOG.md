@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.2.0] / [2026.11.3.2] - Bindery Book Engine, Calibre Auto-Ingest & BitTorrent Queue Resilience (2026-11-03)
+
+### Added
+* Replaced retired Readarr service with Bindery book acquisition engine (`https://bindery.kamaka.tech`), maintaining `https://readarr.kamaka.tech` as an active reverse proxy alias.
+* Automated Calibre-Web periodic library ingestion via an S6 container init hook (`calibredb add` cron worker) to continuously catalogue scraped EPUBs into the library.
+* Codified TRaSH Guides architectural adherence as the baseline standard across media management and download client configurations in project conventions.
+
+### Changed
+* Configured qBittorrent queue concurrency with slow torrent exemptions (`queueing_enabled: true`, `max_active_downloads: 15`, `max_active_torrents: 50`) in `.configs/qbittorrentvpn/set-qbt-port.sh`.
+* Enforced `minimumSeeders = 3` across all Prowlarr-backed indexers in Sonarr and Radarr to block dead magnet links from entering download queues.
+
+### Fixed
+* Resolved qBittorrent queue starvation caused by unseeded magnet links accumulating in `metaDL` status.
+* Populated 201 dead releases in Sonarr's blocklist and 22 dead releases in Radarr's blocklist to prevent repeated grab attempts.
+
+---
+
 ## [3.1.0] / [2026.11.3.1] - E-Book Automation Stack & Multi-Domain Media Routing (2026-11-03)
 
 ### Added
