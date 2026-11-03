@@ -199,6 +199,49 @@ test_interconnect_qbittorrent_torrent_error_status() {
   return 1
 }
 
+test_interconnect_readarr_to_qbittorrent() {
+  if ! is_service_enabled "readarr" || ! is_service_enabled "qbittorrentvpn"; then
+    printf "Service 'readarr' or 'qbittorrentvpn' omitted or disabled"
+    return 77
+  fi
+  local ver
+  ver="$(docker exec readarr curl -fsS --max-time 15 "http://qbittorrentvpn:8081/api/v2/app/version" 2>/dev/null || true)"
+  if [[ -n "${ver}" ]]; then
+    printf "qBittorrent API responding (%s)" "${ver}"
+    return 0
+  fi
+  printf "Failed to query qBittorrent API from readarr"
+  return 1
+}
+
+test_interconnect_readarr_to_prowlarr() {
+  if ! is_service_enabled "readarr" || ! is_service_enabled "prowlarr"; then
+    printf "Service 'readarr' or 'prowlarr' omitted or disabled"
+    return 77
+  fi
+  if docker exec readarr curl -fsS --max-time 15 "http://prowlarr:9696/ping" >/dev/null 2>&1; then
+    printf "http://prowlarr:9696/ping accessible"
+    return 0
+  fi
+  printf "Failed to reach http://prowlarr:9696/ping from readarr"
+  return 1
+}
+
+test_interconnect_calibre_web_opds() {
+  if ! is_service_enabled "calibre-web"; then
+    printf "Service 'calibre-web' omitted or disabled"
+    return 77
+  fi
+  local feed
+  feed="$(docker exec readarr curl -fsS --max-time 15 -u admin:admin123 "http://calibre-web:8083/opds" 2>/dev/null || true)"
+  if echo "${feed}" | grep -q "http://www.w3.org/2005/Atom"; then
+    printf "OPDS Atom feed valid and responding"
+    return 0
+  fi
+  printf "Failed to query valid OPDS Atom feed from calibre-web"
+  return 1
+}
+
 suite_interconnect() {
   init_suite "4. Inter-Container DNS, Sockets & Service Interconnections"
 
@@ -206,6 +249,9 @@ suite_interconnect() {
   run_test test_interconnect_radarr_to_qbittorrent "Check Radarr -> qBittorrent (http://qbittorrentvpn:8081)"
   run_test test_interconnect_radarr_to_prowlarr "Check Radarr -> Prowlarr (http://prowlarr:9696/ping)"
   run_test test_interconnect_sonarr_to_qbittorrent "Check Sonarr -> qBittorrent (http://qbittorrentvpn:8081)"
+  run_test test_interconnect_readarr_to_qbittorrent "Check Readarr -> qBittorrent (http://qbittorrentvpn:8081)"
+  run_test test_interconnect_readarr_to_prowlarr "Check Readarr -> Prowlarr (http://prowlarr:9696/ping)"
+  run_test test_interconnect_calibre_web_opds "Check Calibre-Web OPDS catalog endpoint (http://calibre-web:8083/opds)"
   run_test test_interconnect_prowlarr_to_flaresolverr "Check Prowlarr -> FlareSolverr (http://flaresolverr:8191/health)"
   run_test test_interconnect_pia_to_qbittorrent_port_sync "Check WireGuard PIA port forward sync to qBittorrent"
   run_test test_interconnect_tailscale_backend_state "Check Tailscale Subnet Router status and authentication"

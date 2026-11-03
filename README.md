@@ -86,7 +86,7 @@ flowchart TD
 
 ## 2. Service Stacks Overview
 
-The homelab is organized into 6 domain-aligned stacks plus Dockge:
+The homelab is organized into 7 domain-aligned stacks plus Dockge:
 
 | Stack Directory | Containers | Operational Role | Internal LAN Address | Public WAN Address |
 | :--- | :--- | :--- | :--- | :--- |
@@ -95,6 +95,7 @@ The homelab is organized into 6 domain-aligned stacks plus Dockge:
 | **`mesh/`** | `tailscale`, `vpn-bridge-pia`, `vpn-bridge-tailscale` | Tailscale subnet router (`192.168.0.5`) and privacy VPN exit node (`vpn-bridge`) | Private WireGuard Mesh | Egress via WireGuard VPN |
 | **`media/`** | `jellyfin`, `seerr`, `radarr`, `sonarr`, `prowlarr`, `flaresolverr` | Media streaming, acquisition, indexing, and request management | `https://jellyfin.kamaka.tech`, `https://seerr.kamaka.tech`, `https://<app>.kamaka.tech` | `https://jellyfin.kamakakai.com` |
 | **`torrent/`** | `wireguard-pia`, `qbittorrentvpn` | BitTorrent client isolated in WireGuard VPN network namespace | `https://torrent.kamaka.tech` | None (VPN Tunnel Only) |
+| **`books/`** | `calibre-web`, `readarr`, `royalroad-sync` | E-book catalog, acquisition, Send-to-Kindle/OPDS reading sync, and Royal Road serial updates | `https://books.kamaka.tech`, `https://readarr.kamaka.tech` | None |
 | **`productivity/`** | `mealie` | Recipe management and meal planning (embedded SQLite) | `https://recipes.kamaka.tech` | `https://recipes.kamakakai.com`, `https://mom.kamakakai.com` |
 | **`dashboard/`** | `homepage` | Application portal and service health monitoring | `https://homepage.kamaka.tech` | None |
 

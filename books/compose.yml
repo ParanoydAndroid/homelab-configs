@@ -1,0 +1,100 @@
+# ==============================================================================
+# Stack: Books & Reading Automation (books/compose.yml)
+#
+# Purpose:
+#   E-book catalog management (Calibre-Web), commercial book acquisition
+#   (Readarr), wireless reading sync (Kindle Send-to-Kindle SMTP and Onyx Boox
+#   OPDS), and automated Royal Road web serial tracking (FanFicFare).
+#
+# Services:
+#   - calibre-web: Web reader, OPDS server, and Send-to-Kindle dispatcher (:8083).
+#   - readarr: Author monitoring, indexer search, and download manager (:8787).
+#   - royalroad-sync: Automated chapter scraper and EPUB builder for web serials.
+# ==============================================================================
+
+services:
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    hostname: calibre-web
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:?See env.example for default.}
+      PGID: ${PGID:?See env.example for default.}
+      TZ: ${TZ:?See env.example for default.}
+      DOCKER_MODS: linuxserver/mods:universal-calibre
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/calibre-web/data:/config
+      - ${MEDIA_DIR:?See env.example for default.}/books/library:/books
+      - ${MEDIA_DIR:?See env.example for default.}/books/import:/import
+    networks:
+      - homelab
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - caddy=books.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 8083}}
+      - caddy.import=cloudflare_tls lan_only
+      - homepage.group=Media
+      - homepage.name=Books
+      - homepage.icon=calibre-web
+      - homepage.href=https://books.kamaka.tech
+
+  readarr:
+    image: lscr.io/linuxserver/readarr:0.4.18-develop
+    container_name: readarr
+    hostname: readarr
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:?See env.example for default.}
+      PGID: ${PGID:?See env.example for default.}
+      TZ: ${TZ:?See env.example for default.}
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/readarr/data:/config
+      - ${MEDIA_DIR:?See env.example for default.}/books/library:/books
+      - ${MEDIA_DIR:?See env.example for default.}:/media
+    networks:
+      - homelab
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - caddy=readarr.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 8787}}
+      - caddy.import=cloudflare_tls lan_only
+      - homepage.group=Media Automation
+      - homepage.name=Readarr
+      - homepage.icon=readarr
+      - homepage.href=https://readarr.kamaka.tech
+
+  royalroad-sync:
+    build:
+      context: ./fanficfare
+      dockerfile: Dockerfile
+    image: homelab-fanficfare:latest
+    container_name: royalroad-sync
+    hostname: royalroad-sync
+    restart: unless-stopped
+    user: "${PUID:?See env.example for default.}:${PGID:?See env.example for default.}"
+    environment:
+      TZ: ${TZ:?See env.example for default.}
+      POLL_INTERVAL: "14400"
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/royalroad/data:/config
+      - ${MEDIA_DIR:?See env.example for default.}/books/import:/import
+    networks:
+      - homelab
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homelab:
+    external: true

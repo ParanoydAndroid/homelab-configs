@@ -128,6 +128,14 @@ test_vhost_mom_external() {
   _curl_vhost "mom.kamakakai.com" "/" "^200$" "mealie"
 }
 
+test_vhost_books_internal() {
+  _curl_vhost "books.kamaka.tech" "/" "^(200|302)$" "calibre-web"
+}
+
+test_vhost_readarr_internal() {
+  _curl_vhost "readarr.kamaka.tech" "/ping" "^200$" "readarr"
+}
+
 suite_routing() {
   init_suite "3. Reverse Proxy VirtualHost Routing (Client Impersonation)"
 
@@ -141,6 +149,8 @@ suite_routing() {
   run_test test_vhost_seerr_internal "Route https://seerr.kamaka.tech/api/v1/status"
   run_test test_vhost_torrent_internal "Route https://torrent.kamaka.tech/"
   run_test test_vhost_mealie_internal "Route https://recipes.kamaka.tech/"
+  run_test test_vhost_books_internal "Route https://books.kamaka.tech/ (Calibre-Web)"
+  run_test test_vhost_readarr_internal "Route https://readarr.kamaka.tech/ping (Readarr)"
   run_test test_vhost_nas_internal "Route https://nas.kamaka.tech/ (UGOS OS Portal)"
   run_test test_vhost_download_internal "Route https://download.kamaka.tech/ (File Delivery)"
   run_test test_vhost_jellyfin_external "Route https://jellyfin.kamakakai.com/web/index.html (External)"

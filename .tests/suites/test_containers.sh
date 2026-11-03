@@ -113,6 +113,18 @@ test_docker_up_cloudflared() {
   assert_service_running "cloudflared"
 }
 
+test_docker_up_calibre_web() {
+  assert_service_running "calibre-web"
+}
+
+test_docker_up_readarr() {
+  assert_service_running "readarr"
+}
+
+test_docker_up_royalroad_sync() {
+  assert_service_running "royalroad-sync"
+}
+
 suite_containers() {
   init_suite "1. Container Runtime & Health Checks"
 
@@ -132,6 +144,9 @@ suite_containers() {
   run_test test_docker_up_seerr "Verify Seerr request management is running and healthy"
   run_test test_docker_up_mealie "Verify Mealie recipe manager is running"
   run_test test_docker_up_cloudflared "Verify Cloudflare Zero Trust Tunnel is running"
+  run_test test_docker_up_calibre_web "Verify Calibre-Web e-book catalog manager is running"
+  run_test test_docker_up_readarr "Verify Readarr book indexer is running"
+  run_test test_docker_up_royalroad_sync "Verify Royal Road sync worker is running"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
