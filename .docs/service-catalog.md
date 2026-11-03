@@ -101,12 +101,12 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **LAN Address** | `https://recipes.kamaka.tech` |
 | **WAN Address** | `https://recipes.kamakakai.com`, `https://mom.kamakakai.com` |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/mealie/data` |
-| **Associated Secrets** | None (embedded SQLite, non-root PUID/PGID execution) |
+| **Associated Secrets** | None |
 
-* **Role & Capabilities**: Modern recipe manager and meal planner with automated recipe scraping, interactive meal planning, shopping lists, and REST API.
+* **Role & Capabilities**: Recipe manager and meal planner with recipe scraping, shopping lists, and REST API.
 * **Network & Access**: Accessible locally at `https://recipes.kamaka.tech` and publicly at `https://recipes.kamakakai.com` / `https://mom.kamakakai.com`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/mealie/data:/app/data` for embedded SQLite database, recipe photos, and migration backups.
-* **Dependencies & Interconnections**: Self-contained SQLite database engine; completely decoupled from external database engines.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/mealie/data:/app/data` for persistent application data and recipe assets.
+* **Dependencies & Interconnections**: None.
 
 ---
 
@@ -136,17 +136,17 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | :--- | :--- |
 | **Stack Directory** | `ingress/` |
 | **Container Name** | `cloudflared` |
-| **Host / Network Binding** | Outbound Tunnel (No host ports or LAN IP) |
+| **Host / Network Binding** | Outbound Tunnel (Internal Bridge Only) |
 | **Internal Container Port**| N/A |
 | **LAN Address** | None |
-| **WAN Address** | Egress tunnel for `*.kamaka.tech` |
-| **Persistent Data Path** | Stateless (No persistent volume) |
+| **WAN Address** | Ingress tunnel for `*.kamakakai.com` |
+| **Persistent Data Path** | Stateless |
 | **Associated Secrets** | `CLOUDFLARE_TUNNEL_TOKEN` |
 
-* **Role & Capabilities**: Zero Trust outbound edge tunnel. Connects over QUIC/HTTP2 to Cloudflare data centers to expose public services (`jellyfin.kamaka.tech`, `recipes.kamaka.tech`) securely through CGNAT residential internet connections without port forwarding.
-* **Network & Access**: Attaches strictly to the `homelab` Docker bridge network. Forwards incoming wildcard `*.kamaka.tech` requests down the tunnel directly to `https://nginx:443`.
-* **Storage & Volume Mappings**: Stateless container; configuration and authentication are driven purely by `CLOUDFLARE_TUNNEL_TOKEN`.
-* **Dependencies & Interconnections**: Requires outbound internet connectivity to Cloudflare edge nodes and DNS resolution for `nginx` on the `homelab` bridge.
+* **Role & Capabilities**: Zero Trust outbound edge tunnel exposing public services (`jellyfin.kamakakai.com`, `recipes.kamakakai.com`, `mom.kamakakai.com`) securely through CGNAT residential internet connections without port forwarding.
+* **Network & Access**: Attaches to the `homelab` Docker bridge network and forwards incoming public requests directly to `https://caddy:443`.
+* **Storage & Volume Mappings**: Stateless container.
+* **Dependencies & Interconnections**: Outbound internet connectivity to Cloudflare edge nodes and internal connectivity to `caddy`.
 
 ---
 
@@ -159,13 +159,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Host / Network Binding** | `8022:7359/udp` (LAN Discovery) + `homelab` bridge |
 | **Internal Container Port**| `8096` (HTTP), `8920` (HTTPS), `7359` (UDP Discovery) |
 | **LAN Address** | `https://jellyfin.kamaka.tech` |
-| **WAN Address** | `https://jellyfin.kamaka.tech` |
+| **WAN Address** | `https://jellyfin.kamakakai.com` |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/jellyfin/data/config` |
 | **Associated Secrets** | `JELLYFIN_API_KEY` |
 
-* **Role & Capabilities**: Central media server for movies, television shows, and music. Features hardware-accelerated transcoding (`/dev/dri`), multi-user management, stream monitoring, and client synchronization.
-* **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://jellyfin.kamaka.tech` (internal) and `https://jellyfin.kamaka.tech` (external). Binds host port `8022:7359/udp` for local client autodiscovery.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/jellyfin/data/config:/config` for server configuration, SQLite databases, and metadata; and `${MEDIA_DIR}:/data/media:ro` read-only for bulk media libraries. Exposes Intel iGPU render node `/dev/dri/renderD128:/dev/dri/renderD128` (group 105) for Quick Sync hardware transcoding.
+* **Role & Capabilities**: Central media server for movies, television shows, and music. Features hardware-accelerated transcoding (`/dev/dri`), multi-user management, and client synchronization.
+* **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://jellyfin.kamaka.tech` (internal) and `https://jellyfin.kamakakai.com` (external). Binds host port `8022:7359/udp` for local client autodiscovery.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/jellyfin/data/config:/config` for server configuration and metadata, and `${MEDIA_DIR}:/data/media:ro` read-only for bulk media libraries. Exposes Intel iGPU render node `/dev/dri/renderD128` for Quick Sync transcoding.
 * **Dependencies & Interconnections**: Passes streaming metrics to Homepage via `JELLYFIN_API_KEY`. Connects to Seerr for media requests.
 
 ---
@@ -303,12 +303,12 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/qbittorrentvpn/data` |
 | **Associated Secrets** | `VPN_USER`, `VPN_PASS`, `QBITTORRENT_PASSWORD` |
 
-* **Role & Capabilities**: Decoupled VPN network namespace and BitTorrent client. The `wireguard-pia` container maintains an encrypted WireGuard tunnel (`wg0`) to Private Internet Access with a strict `iptables` kill switch. The `qbittorrentvpn` container runs inside the VPN's network namespace (`network_mode: "service:vpn"`), preventing any packet from leaking to the LAN or WAN outside the tunnel.
+* **Role & Capabilities**: Decoupled VPN network namespace and BitTorrent client. The `wireguard-pia` container maintains an encrypted WireGuard tunnel (`wg0`) to Private Internet Access with a strict `iptables` kill switch. The `qbittorrentvpn` container runs inside the VPN's network namespace (`network_mode: "service:vpn"`).
 * **Network & Access**: WebUI accessible internally at `https://torrent.kamaka.tech` and directly over the bridge at `http://qbittorrentvpn:8081`. Local access without VPN traversal is permitted via `LOCAL_NETWORK: 192.168.0.0/16`.
-* **Automated Port Forwarding & Anti-Thrashing Configuration**: The PIA container dynamically requests an open port in supported regions (e.g. Canada) and runs `/set-qbt-port.sh` ([.configs/qbittorrentvpn/set-qbt-port.sh](../.configs/qbittorrentvpn/set-qbt-port.sh)). On container startup and every 15-minute lease refresh, this script uses the qBittorrent WebUI API (`POST /api/v2/app/setPreferences`) to automatically configure the active listening port alongside declarative anti-thrashing and network preferences: allocating a 512 MiB in-memory write cache (`disk_cache: 512`), enabling piece extent affinity (`enable_piece_extent_affinity: true`) to write contiguous blocks and reduce filesystem fragmentation, enabling upload suggestions (`enable_upload_suggestions: true`), enforcing strict WireGuard socket binding (`current_network_interface: "wg0"`), disabling redundant router UPnP/NAT-PMP requests, and routing active downloads to high-IOPS solid-state scratch storage (`temp_path: "/incomplete"`).
+* **Automated Port Forwarding**: The PIA container requests an open port dynamically and synchronizes active listening port and anti-thrashing preferences to qBittorrent via [.configs/qbittorrentvpn/set-qbt-port.sh](../.configs/qbittorrentvpn/set-qbt-port.sh).
 * **Storage & Volume Mappings**:
-  * **`wireguard-pia` (VPN)**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia:/pia` for persistent PIA port forwarding tokens (`portsig.json`), `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia-shared:/pia-shared` for shared port runtime files, and `${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh:/set-qbt-port.sh:ro` for the automated port forwarding and anti-thrashing preference synchronization hook.
-  * **`qbittorrentvpn` (BitTorrent)**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/config:/config` for qBittorrent state, torrent database, and preferences, `${DOCKER_DATA_DIR}/qbittorrentvpn/data/incomplete:/incomplete` as high-IOPS solid-state scratch storage (No-CoW) to buffer active peer writes, and `${MEDIA_DIR}:/media` for completed media downloads and atomic cross-service hardlinks.
+  * **`wireguard-pia` (VPN)**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia:/pia` for port tokens, `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia-shared:/pia-shared` for port sync state, and `${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh:/set-qbt-port.sh:ro`.
+  * **`qbittorrentvpn` (BitTorrent)**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/config:/config` for preferences and state, `${DOCKER_DATA_DIR}/qbittorrentvpn/data/incomplete:/incomplete` as scratch storage, and `${MEDIA_DIR}:/media` for completed downloads.
 * **Dependencies & Interconnections**: Downloads managed by Radarr and Sonarr via REST API.
 
 ---
@@ -322,13 +322,13 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Host / Network Binding** | Internal `homelab` bridge only (No exposed host ports) |
 | **Internal Container Port**| N/A (WireGuard Tunnel & Mesh Daemon) |
 | **LAN Address** | Node `vpn-bridge` on Tailscale Mesh |
-| **WAN Address** | Egress via US PIA WireGuard tunnel (`wg0`) |
+| **WAN Address** | Egress via WireGuard tunnel (`wg0`) |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/vpn-bridge/data` |
 | **Associated Secrets** | `VPN_USER`, `VPN_PASS`, `TS_AUTHKEY` |
 
-* **Role & Capabilities**: Dedicated privacy bridge providing an encrypted Tailscale exit node routing all client WAN traffic through Private Internet Access in US regions (`PIA_REGION: us_east,us_chicago,us_nyc`). Completely decoupled from the primary Tailscale subnet router (`homelab` / `192.168.0.5`) and qBittorrent stack (`qbittorrentvpn`).
-* **Network & Access**: The Tailscale container operates inside the network namespace of the PIA container (`network_mode: "service:vpn"`). The PIA container provisions WireGuard interface `wg0`, sets kernel `ip_forward=1`, forward interface `FWD_IFACE: tailscale+`, and establishes NAT masquerading (`-o wg0 -j MASQUERADE`). Mobile/remote devices selecting `vpn-bridge` as their exit node route all public internet traffic through PIA without leaking the homelab ISP IP address or bypassing local LAN subnet access.
+* **Role & Capabilities**: Dedicated privacy bridge providing an encrypted Tailscale exit node routing remote client WAN traffic through Private Internet Access.
+* **Network & Access**: The Tailscale container operates inside the network namespace of the PIA container (`network_mode: "service:vpn"`). Devices selecting `vpn-bridge` route public traffic through the WireGuard tunnel without exposing the homelab ISP IP.
 * **Storage & Volume Mappings**:
-  * **`vpn-bridge-pia` (VPN)**: Mounts `${DOCKER_DATA_DIR}/vpn-bridge/data/pia:/pia` for WireGuard PIA runtime configuration and lease state.
-  * **`vpn-bridge-tailscale` (Tailscale Exit Node)**: Mounts `${DOCKER_DATA_DIR}/vpn-bridge/data/tailscale:/var/lib/tailscale` for node state and machine identity keys, `/dev/net/tun:/dev/net/tun` for kernel tunnel routing, and `tmpfs: [/tmp]` for Tailscale daemon sockets.
-* **Dependencies & Interconnections**: Requires `NET_ADMIN` capability on `vpn-bridge-pia` and `NET_ADMIN`, `NET_RAW` capabilities on `vpn-bridge-tailscale`. Operates independently on the `homelab` bridge network.
+  * **`vpn-bridge-pia` (VPN)**: Mounts `${DOCKER_DATA_DIR}/vpn-bridge/data/pia:/pia` for WireGuard lease state.
+  * **`vpn-bridge-tailscale` (Tailscale Exit Node)**: Mounts `${DOCKER_DATA_DIR}/vpn-bridge/data/tailscale:/var/lib/tailscale` for node state, `/dev/net/tun:/dev/net/tun` for tunnel routing, and `tmpfs: [/tmp]`.
+* **Dependencies & Interconnections**: Requires `NET_ADMIN` capability on `vpn-bridge-pia` and `NET_ADMIN`, `NET_RAW` capabilities on `vpn-bridge-tailscale`.

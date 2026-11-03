@@ -161,11 +161,9 @@ These variables represent external credentials, cryptographic secrets, runtime s
 ---
 
 ### `productivity` Stack
-*See [Mealie](./service-catalog.md#mealie-recipe-manager) and [PostgreSQL](./service-catalog.md#postgresql).*
+*See [Mealie](./service-catalog.md#mealie-recipe-manager).*
 
-* **`SECRET_KEY`**  
-  *Default*: None (Required Cryptographic Secret)  
-  *Description*: Django cryptographic signing key. Automatically generated from `/dev/urandom` by `./homelab.sh setup` if left blank.
+The `productivity` stack requires no external secrets; all runtime variables inherit defaults from root `.env`.
 
 ---
 
@@ -193,10 +191,7 @@ In accordance with project conventions, configuration parameters representing fi
 
 | Stack / Service | Inlined Parameter | Static Value | Architectural Rationale |
 | :--- | :--- | :--- | :--- |
-| **`dashboard` / `homepage`** | `HOMEPAGE_ALLOWED_HOSTS` | `homepage.turing.home,www.turing.home,turing.home,192.168.0.4` | Enforces reverse proxy host header validation required by Homepage v0.8+. |
-| **`ingress` / `nginx`** | `DISABLE_IPV6` | `"true"` | Standardizes single-stack IPv4 routing across internal Docker networks. |
-| **`ingress` / `nginx`** | `DB_SQLITE_FILE` | `/data/db.sqlite` | Internal SQLite database location inside the NPM container. |
-| **`productivity` / `postgresql`** | `POSTGRES_DB` / `USER` / `PASSWORD` | `recipes` / `postgres` / `password` | Internal container-to-container credentials isolated to the private `homelab` bridge network. |
+| **`dashboard` / `homepage`** | `HOMEPAGE_ALLOWED_HOSTS` | `homepage.kamaka.tech,kamaka.tech,192.168.0.4` | Enforces reverse proxy host header validation. |
 | **`torrent` / `wireguard-pia`** | `LOCAL_NETWORK` | `192.168.0.0/16` | Bypasses VPN kill switch for LAN and Docker subnets. |
 | **`torrent` / `wireguard-pia`** | `PORT_FORWARDING` / `PORT_FATAL` / `PORT_PERSIST` | `1` / `1` / `1` | Enforces automated port acquisition, fail-closed container exit on port drops, and ~60-day lease token persistence. |
 | **`torrent` / `wireguard-pia`** | `PORT_SCRIPT` | `/set-qbt-port.sh` | Automated port and anti-thrashing synchronization hook. |

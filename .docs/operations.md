@@ -17,15 +17,15 @@ Usage: homelab.sh <subcommand> [options]
 * **`setup`** (`sudo ./homelab.sh setup`):
   Complete host and service convergence workflow. Remediates host OS Go 1.23+ bugs, initializes `.env` files, syncs root global variables into stack `.env` files, audits for blank secrets, provisions `homelab` and `external_npm` networks, deploys Dockge orchestrator compose, starts Dockge, and brings up all Compose stacks in dependency order.
 * **`startup`** (`./homelab.sh startup`):
-  Non-interactive boot hook designed for systemd execution on host startup. Waits for storage volume mounts (up to 60s), ensures Docker networks exist, and launches Dockge and all stacks in strict dependency order with PostgreSQL database readiness verification.
+  Non-interactive boot hook designed for systemd execution on host startup. Waits for storage volume mounts (up to 60s), ensures Docker networks exist, and launches Dockge and all stacks in dependency order.
 * **`backup`** (`sudo ./homelab.sh backup [-t <type|name>] [-m <message>]`):
-  Stages zero-downtime database dumps (`pg_dumpall` for PostgreSQL, SQLite `.backup` / WAL checkpoints for NPM/Jellyfin/Sonarr/Radarr), creates untracked `.env` secret archives, and streams incremental deduplicated snapshots of `${DOCKER_DATA_DIR}` to `${BACKUP_RESTIC_REPO}` via native Restic (`--insecure-no-password`) with 30-day retention pruning. If requested, automatically commits repository changes, applies repeatable SemVer (`semver-major`, `semver-minor`, `semver-patch`), CalVer (`YYYY.M.D[.N]`), and custom git tags, pushes commits and tags to remote `origin`, and forwards the exact same tags into Restic.
+  Stages zero-downtime database dumps (SQLite `.backup` / WAL checkpoints), creates untracked `.env` secret archives, and streams incremental deduplicated snapshots of `${DOCKER_DATA_DIR}` to `${BACKUP_RESTIC_REPO}` via native Restic (`--insecure-no-password`) with 30-day retention pruning. If requested, automatically commits repository changes, applies repeatable SemVer, CalVer, and custom git tags, pushes commits and tags to remote `origin`, and forwards the tags into Restic.
 * **`snapshots`** (`./homelab.sh snapshots`):
   Displays all historical Restic backup snapshots, timestamps, snapshot IDs, tags, and summary metrics.
 * **`restore`** (`sudo ./homelab.sh restore [snapshot_id] [service_name] [-f]`):
   Restores persistent volume state from a designated Restic snapshot (defaults to `latest`). Supports restoring the full volume or isolating a single service (e.g. `jellyfin`). Validates that containers mounting the volume are stopped before overwriting data, ensuring database coherence.
 * **`test`** (`./homelab.sh test [suite] [name]`):
-  Modular smoke and regression test suite verifying container runtimes, direct admin interfaces, client-impersonated virtual host routing over NPM, internal service-to-service interconnections, negative security/isolation blocks, and restic backup automation.
+  Modular smoke and regression test suite verifying container runtimes, direct admin interfaces, client-impersonated virtual host routing over Caddy, internal service-to-service interconnections, negative security/isolation blocks, and restic backup automation.
 
 ---
 
@@ -63,8 +63,8 @@ docker compose stop
 # Restore full volume from latest snapshot
 sudo ./homelab.sh restore latest
 
-# Or restore an individual service only (e.g. nginx or jellyfin)
-sudo ./homelab.sh restore latest nginx
+# Or restore an individual service only (e.g. mealie or jellyfin)
+sudo ./homelab.sh restore latest mealie
 
 # Restart stacks
 sudo ./homelab.sh setup

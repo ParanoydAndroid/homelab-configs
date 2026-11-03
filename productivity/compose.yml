@@ -1,11 +1,6 @@
 # ==============================================================================
-# Stack: Productivity Applications (productivity/compose.yml)
-#
-# Purpose:
-#   Productivity suite providing Mealie recipe management with embedded SQLite.
-#
-# Architecture:
-#   - mealie: Recipe and meal planning server with embedded SQLite engine.
+# Stack: Productivity (productivity/compose.yml)
+# Purpose: Mealie recipe and meal planning service.
 # ==============================================================================
 
 services:

@@ -21,28 +21,23 @@ Ingress traffic is strictly segmented into two non-overlapping pillars. Public i
 ```
 
 ### Pillar 1: Public Web Ingress (`*.kamakakai.com`)
-* **Outbound-Only Tunnel (`cloudflared`)**: Connects outbound over QUIC / HTTP/2 to Cloudflare edge data centers. Does not require port forwarding on the residential gateway and operates transparently behind Carrier-Grade NAT (CGNAT).
-* **Tunnel Routing**: Public Hostnames in Cloudflare Zero Trust (`jellyfin.kamakakai.com`, `mealie.kamakakai.com`, `recipes.kamakakai.com`, `mom.kamakakai.com`) forward down the tunnel to `https://caddy:443` with `No TLS Verify` enabled.
+* **Outbound-Only Tunnel (`cloudflared`)**: Connects outbound over QUIC / HTTP/2 to Cloudflare edge data centers without port forwarding on the residential gateway, operating behind Carrier-Grade NAT (CGNAT).
+* **Tunnel Routing**: Public hostnames in Cloudflare Zero Trust (`jellyfin.kamakakai.com`, `recipes.kamakakai.com`, `mom.kamakakai.com`) forward down the tunnel to `https://caddy:443` with `No TLS Verify` enabled.
 * **Caddy Reverse Proxy**: Caddy Docker Proxy inspects the incoming SNI / Host header, matches container labels, and reverse proxies over the internal `homelab` bridge network (`192.168.255.0/24`).
-* **Cloudflare CDN Cache Bypass (Streaming Optimization)**:
-  Media streaming through Cloudflare Tunnel should bypass edge caching to prevent stream buffering, latency, and compliance issues with large video chunk caching:
-  1. Cloudflare Dashboard -> `kamakakai.com` -> **Caching -> Cache Rules -> Create Rule**.
-  2. Rule Name: `Bypass Jellyfin Video Cache`.
-  3. Match: `Hostname equals jellyfin.kamakakai.com`.
-  4. Action: **Bypass cache**.
+* **Edge Cache Bypass**: Streaming video paths bypass Cloudflare edge caching via dashboard cache rules to prevent buffering and compliance limits.
 
 ### Pillar 2: Private Homelab Ingress (`*.kamaka.tech`)
 * **Pi-hole v6 Wildcard DNS**: Local DNS resolver injects `address=/kamaka.tech/192.168.0.4` directly into Pi-hole FTL, resolving all internal subdomains to Caddy without manual per-host record management.
 * **Dedicated Macvlan LAN IP (`192.168.0.4`)**: Caddy binds to `192.168.0.4` on `eth0` via Docker macvlan (`external_npm`), isolating reverse-proxied traffic from the host OS portal on `192.168.0.3`.
-* **Automated DNS-01 ACME Certificates**: Caddy automatically provisions and renews trusted Let's Encrypt certificates across all subdomains using its Cloudflare DNS module (`caddy-dns/cloudflare`), guaranteeing green browser padlocks without deploying internal root CAs.
+* **Automated DNS-01 ACME Certificates**: Caddy automatically provisions and renews trusted Let's Encrypt certificates across all subdomains using its Cloudflare DNS module (`caddy-dns/cloudflare`).
 * **UGOS Portal Reverse Proxy (`nas.kamaka.tech`)**: Macvlan isolation prevents macvlan children from reaching the host directly. Caddy terminates TLS for `https://nas.kamaka.tech` and routes across the Docker bridge to the host management portal at `http://192.168.255.1:9999`.
-* **Client File Delivery (`download.kamaka.tech`)**: Staged files in `${DOCKER_DATA_DIR}/caddy/downloads` are served over HTTPS with an interactive HTML directory index (`file_server browse`), enabling direct mobile and desktop downloads.
+* **Client File Delivery (`download.kamaka.tech`)**: Staged files in `${DOCKER_DATA_DIR}/caddy/downloads` are served over HTTPS with an interactive directory index (`file_server browse`), enabling direct mobile and desktop downloads.
 
 ### Pillar 3: Secure VPN Bridge Egress (`vpn-bridge`)
-* **Decoupled Privacy Exit Node**: Remote mobile and desktop devices route public internet traffic through the private Tailscale WireGuard mesh node `vpn-bridge`.
+* **Decoupled Privacy Exit Node**: Remote devices route public internet traffic through the private Tailscale WireGuard mesh node `vpn-bridge`.
 * **Network Namespace Sharing**: The Tailscale container (`vpn-bridge-tailscale`) runs inside the network namespace of the PIA container (`vpn-bridge-pia` via `network_mode: "service:vpn"`).
-* **WireGuard NAT Egress**: The PIA container establishes an encrypted WireGuard tunnel (`wg0`) to US server regions (`PIA_REGION: us_east,us_chicago,us_nyc`), enables IP forwarding, sets forward interface `FWD_IFACE: tailscale+`, and applies NAT masquerading (`-o wg0 -j MASQUERADE`).
-* **Traffic Isolation**: Protects mobile clients on untrusted public Wi-Fi networks without exposing the homelab residential ISP IP or interfering with local LAN subnet routing.
+* **WireGuard NAT Egress**: The PIA container establishes an encrypted WireGuard tunnel (`wg0`), applies NAT masquerading (`-o wg0 -j MASQUERADE`), and forwards traffic received from the Tailscale interface.
+* **Traffic Isolation**: Protects mobile clients on untrusted public Wi-Fi networks without exposing the residential ISP IP or interfering with local LAN subnet routing.
 
 ---
 
@@ -92,13 +87,9 @@ Ingress traffic is strictly segmented into two non-overlapping pillars. Public i
 ### Container Hardening
 * All web applications run as non-root (`user: "${PUID}:${PGID}"`), drop all Linux capabilities (`cap_drop: [ALL]`), set `security_opt: [no-new-privileges:true]`, and mount storage volumes read-only (`:ro`) wherever write access is unneeded.
 
-### Caddy Ingress Hardening
-* **Local Subnet Isolation**: Management endpoints (`dockge`, `nas`, *arr services) are restricted to local LAN (`192.168.0.0/16`) and Tailscale (`100.64.0.0/10`) clients.
-* **Jellyfin Hardening**: Diagnostic paths (`/metrics`, `/swagger`, `/api-docs`) return `HTTP 403 Forbidden` via Caddy snippets.
-* **Server UI Settings**:
-  * **Known Proxies**: Add `192.168.255.0/24` (or `caddy`) in Jellyfin networking dashboard.
-  * **Disable Remote Admin**: In user profile, uncheck **Allow remote connections to this server**.
-  * **Lockout**: Set **Invalid login attempts before lockout** to `3` or `5`.
+### Ingress Hardening
+* **Subnet Isolation**: Administrative endpoints (`dockge`, `nas`, *arr applications) are restricted via Caddy snippets to local LAN (`192.168.0.0/16`) and Tailscale (`100.64.0.0/10`) subnets.
+* **Sensitive File & Path Blocking**: Dotfiles (`.env`, `.git`) return HTTP 404, and diagnostic endpoints (`/metrics`, `/swagger`) return HTTP 403 Forbidden.
 
 ---
 

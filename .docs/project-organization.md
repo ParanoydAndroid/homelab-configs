@@ -15,11 +15,11 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 │   ├── ingress/                   # Caddy Docker Proxy + Cloudflare Tunnel
 │   ├── media/                     # Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, FlareSolverr
 │   ├── mesh/                      # Tailscale Subnet Router + PIA WireGuard Exit Node
-│   ├── productivity/              # Mealie Recipes + PostgreSQL
+│   ├── productivity/              # Mealie Recipes
 │   └── torrent/                   # WireGuard PIA + qBittorrent client
 ├── .configs/                      # Bootstrapping assets and systemd service templates
+│   ├── caddy/                     # Base Caddyfile configuration template
 │   ├── dockge/                    # Dockge's own compose.yml and .env.example
-│   ├── nginx/                     # Local fallback certificate generator script
 │   ├── qbittorrentvpn/            # Port-sync callback script (set-qbt-port.sh)
 │   └── systemd/                   # Host systemd unit and timer files
 ├── .scripts/                      # Modular automation library for homelab.sh
@@ -108,7 +108,7 @@ To satisfy Dockge's per-stack working directory model while eliminating configur
 All container application state and persistent volumes under `${DOCKER_DATA_DIR}` (`/volume2/docker`) are protected via Restic snapshots and secret archiving:
 
 * **Zero-Downtime Database Staging**:
-  Prior to snapshotting, `homelab.sh backup` stages non-disruptive online database backups (`pg_dumpall` for PostgreSQL and SQLite `.backup` / WAL checkpoints for NPM, Jellyfin, Sonarr, and Radarr) under `${DOCKER_DATA_DIR}/.backups`.
+  Prior to snapshotting, `homelab.sh backup` stages non-disruptive online database backups (SQLite `.backup` / WAL checkpoints for application databases) under `${DOCKER_DATA_DIR}/.backups`.
 * **Untracked Secret Archiving**:
   All untracked live `.env` files are archived into a timestamped tarball in `${DOCKER_DATA_DIR}/backup/homelab/latest_env_secrets.tar.gz`.
 * **Deduplicated & Compressed Snapshots (`./homelab.sh backup`)**:

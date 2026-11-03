@@ -13,7 +13,7 @@ This document provides a comprehensive runbook of recommended interactive config
 | :--- | :--- | :--- |
 | **1. Performance & Anti-Thrashing** | Eliminate mechanical disk thrashing, absorb random I/O spikes, minimize Btrfs filesystem fragmentation, and remove edge buffering latency. | Linux Kernel VM, Docker Daemon, Btrfs, Jellyfin (`tmpfs`), Cloudflare CDN. |
 | **2. Ergonomics & Usability** | Remove browser security warnings, enable zero-friction remote LAN DNS resolution, configure privacy exit nodes, and enable instant media hardlinking. | Local Root CA, Tailscale Split-DNS, Homepage Dashboard, Radarr/Sonarr. |
-| **3. Maintainability & Reliability** | Enforce bounded disk logging, verify hot database backups, validate disaster recovery restoration, and ensure host OS workaround stability. | Systemd Timers, Restic Backup Engine, PostgreSQL / SQLite, `homelab.sh`. |
+| **3. Maintainability & Reliability** | Enforce bounded disk logging, verify hot database backups, validate disaster recovery restoration, and ensure host OS workaround stability. | Systemd Timers, Restic Backup Engine, SQLite, `homelab.sh`. |
 
 ---
 
@@ -62,21 +62,20 @@ Directing Docker's `data-root` to solid-state storage (e.g. `/volume2/@docker`) 
 
 ## 3. Btrfs Copy-on-Write (No-CoW) Optimization
 
-On Btrfs filesystems, Copy-on-Write (CoW) causes severe file fragmentation and write amplification when modifying databases (PostgreSQL, SQLite) or updating downloading torrent payloads in-place.
+On Btrfs filesystems, Copy-on-Write (CoW) causes file fragmentation and write amplification when modifying databases (SQLite) or updating downloading torrent payloads in-place.
 
 ### Optimization
 Disable Copy-on-Write on active database and temporary download directories before populating data:
 
 ```bash
 # Disable CoW on active database and temporary download directories
-sudo chattr +C /volume2/docker/postgres/data
-sudo chattr +C /volume2/docker/nginx/data
+sudo chattr +C /volume2/docker/mealie/data
 sudo chattr +C /volume2/docker/qbittorrentvpn/data/incomplete
 ```
 
 ### Verification
 ```bash
-lsattr -d /volume2/docker/postgres/data
+lsattr -d /volume2/docker/mealie/data
 # Output must display the 'C' attribute flag: ---------------C------
 ```
 *Note: This optimization is especially valuable on single mechanical RAID Btrfs arrays, where CoW fragmentation degrades read performance significantly over time.*
@@ -162,45 +161,27 @@ This prevents accidental modification, avoids acquiring unnecessary directory wr
 
 # Part 2: Ergonomics & Client Usability
 
-## 8. Local Wildcard TLS Certificate Trust (Eliminating Browser Warnings)
+## 8. Automated Wildcard TLS Certificates
 
-Default self-signed certificates trigger browser warning screens across internal LAN addresses (`*.turing.home`, `nas.home`). Generating a local root Certificate Authority (CA) and wildcard certificate establishes instant HTTPS padlocks across all client devices.
-
-### Interactive Configuration
-1. **Generate Certificates**:
-   ```bash
-   cd ~/services/.configs/nginx
-   ./generate-local-cert.sh
-   ```
-   This generates `turing.key` and `turing.crt` valid for 10 years covering `turing.home`, `*.turing.home`, `nas.home`, and `*.nas.home`.
-2. **Import Root CA into Client OS**:
-   * **macOS**: Drag `turing.crt` into **Keychain Access -> System -> Certificates**, double-click, and select **Always Trust**.
-   * **Windows**: Run `certmgr.msc`, navigate to **Trusted Root Certification Authorities -> Certificates**, right-click, and choose **Import -> turing.crt**.
-   * **Linux**: Copy `turing.crt` to `/usr/local/share/ca-certificates/` and run `sudo update-ca-certificates`.
-   * **Browsers (Firefox)**: Import `turing.crt` under **Settings -> Privacy & Security -> Certificates -> View Certificates -> Authorities -> Import**.
-3. **Import into UGREEN NAS Portal**:
-   * Open **Control Panel -> Security -> Certificate**.
-   * Upload `turing.key` and `turing.crt`, then set as the default host certificate.
-4. **Import into Nginx Proxy Manager**:
-   * Open `https://proxy.turing.home` -> **SSL Certificates -> Add SSL Certificate -> Custom**.
-   * Name: `Local Wildcard (turing.home + nas.home)`, Key: `turing.key`, Certificate: `turing.crt`.
-   * Assign to all `*.turing.home` proxy hosts.
+Caddy Docker Proxy automates Let's Encrypt wildcard TLS provisioning across all internal subdomains (`*.kamaka.tech`) and public hostnames (`*.kamakakai.com`) using Cloudflare DNS-01 ACME challenges:
+* Certificates are renewed automatically without opening port 80/443 on the residential gateway.
+* Client operating systems (macOS, Windows, iOS, Android, Linux) inherently trust Let's Encrypt certificates, eliminating manual root CA installation.
 
 ---
 
-## 9. Tailscale Split-DNS Routing for Mobile & Remote Devices
+## 9. Tailscale DNS Routing for Mobile & Remote Devices
 
-To allow mobile phones and remote laptops to seamlessly access `<service>.turing.home` without modifying Wi-Fi settings or breaking regular internet DNS:
+To allow mobile phones and remote laptops to seamlessly access homelab services:
 
-### Interactive Configuration
+### Configuration
 1. In the **Tailscale Admin Console**, navigate to **DNS -> Nameservers -> Add nameserver -> Custom**.
 2. **Nameserver IP**: Enter `192.168.0.2` (Pi-hole LAN IP).
-3. Check **Restrict to search domain** and enter **`.home`**.
-4. Save the configuration.
+3. Enable **Override local DNS** (or enable for search domain `kamaka.tech`).
+4. Enable **Use with exit node** if routing egress through `vpn-bridge`.
 
-### Ergonomic Result
+### Result
 * When remote devices query `<service>.kamaka.tech`, Tailscale routes the DNS query through the Subnet Router (`192.168.0.5`) to Pi-hole (`192.168.0.2`), resolving to Caddy (`192.168.0.4`).
-* All standard internet queries (e.g. Google, GitHub) continue using local Wi-Fi/cellular DNS, maintaining maximum browsing speed without battery drain or DNS latency.
+* Remote and local devices access the exact same URL with zero certificate warnings.
 
 ---
 
@@ -281,7 +262,7 @@ Traditional container backup methods either stop containers (causing service dow
    ```bash
    sudo ./homelab.sh backup --tag initial-setup
    ```
-   * Automation triggers zero-downtime logical dumps (`pg_dumpall` for PostgreSQL, SQLite `.backup` / WAL checkpoints for application databases) to `${DOCKER_DATA_DIR}/.backups`.
+   * Automation triggers zero-downtime logical dumps (SQLite `.backup` / WAL checkpoints for application databases) to `${DOCKER_DATA_DIR}/.backups`.
    * Restic deduplicates and encrypts snapshots into `${BACKUP_RESTIC_REPO}` (`/volume1/backups/homelab-docker`).
 2. **Verify Scheduled Backup Automation**:
    Confirm the systemd daily backup timer is active:

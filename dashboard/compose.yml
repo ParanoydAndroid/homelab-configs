@@ -2,7 +2,7 @@
 # Stack: Homepage Dashboard (dashboard/compose.yml)
 #
 # Purpose:
-#   Serves the homelab application dashboard at https://homepage.turing.home.
+#   Serves the homelab application dashboard at https://homepage.kamaka.tech.
 #   Queries /var/run/docker.sock to auto-discover container status and reads
 #   'homepage.*' Docker labels defined across all stacks.
 # ==============================================================================
