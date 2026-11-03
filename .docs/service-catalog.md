@@ -25,7 +25,6 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **FlareSolverr** | `media/` | `flaresolverr` | Internal Bridge Only | `8191` | HTTP | `https://flaresolverr.kamaka.tech` | None |
 | **Seerr** | `media/` | `seerr` | Internal Bridge Only | `5055` | HTTP | `https://seerr.kamaka.tech` | None |
 | **Mealie Recipes** | `productivity/` | `mealie` | Internal Bridge Only | `9000` | HTTP | `https://mealie.kamaka.tech` | `https://mealie.kamakakai.com`, `https://mom.kamakakai.com` |
-| **Tandoor Recipes** | `productivity/` | `tandoor` | Internal Bridge Only | `8050` | HTTP | `https://recipes.kamaka.tech` | `https://recipes.kamakakai.com` |
 | **PostgreSQL** | `productivity/` | `postgresql` | Internal Bridge Only | `5432` | TCP | `postgresql:5432` (Internal) | None |
 | **WireGuard PIA VPN** | `torrent/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.kamaka.tech` | None |
 | **qBittorrent** | `torrent/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
@@ -108,7 +107,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 * **Role & Capabilities**: Modern recipe manager and meal planner with automated recipe scraping, interactive meal planning, shopping lists, and REST API.
 * **Network & Access**: Accessible locally at `https://mealie.kamaka.tech` and publicly at `https://mealie.kamakakai.com` / `https://mom.kamakakai.com`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/mealie/data:/app/data` for embedded SQLite database, recipe photos, and migration backups.
-* **Dependencies & Interconnections**: Self-contained SQLite database engine; coexists with Tandoor and PostgreSQL in `productivity/compose.yml`.
+* **Dependencies & Interconnections**: Self-contained SQLite database engine; coexists with PostgreSQL in `productivity/compose.yml`.
 
 ---
 
@@ -292,26 +291,6 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 ---
 
-### Tandoor Recipes
-
-| Attribute | Value |
-| :--- | :--- |
-| **Stack Directory** | `productivity/` |
-| **Container Name** | `tandoor` |
-| **Host / Network Binding** | Internal `homelab` bridge only |
-| **Internal Container Port**| `8050` |
-| **LAN Address** | `https://recipes.kamaka.tech` |
-| **WAN Address** | `https://recipes.kamaka.tech` |
-| **Persistent Data Path** | `${DOCKER_DATA_DIR}/tandoor/data` |
-| **Associated Secrets** | `SECRET_KEY` |
-
-* **Role & Capabilities**: Comprehensive recipe management system, meal planner, and grocery list organizer. Supports web scraping, ingredient scaling, and multi-user recipe sharing.
-* **Network & Access**: Reverse-proxied over the `homelab` bridge at `https://recipes.kamaka.tech` (internal) and `https://recipes.kamaka.tech` (external). Caddy routes user-uploaded media files directly from `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/media:ro`.
-* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/tandoor/data/staticfiles:/opt/recipes/staticfiles` for application static assets, and `${DOCKER_DATA_DIR}/tandoor/data/mediafiles:/opt/recipes/mediafiles` for user recipe photos and attachments (shared read-only with NPM at `/media:ro`).
-* **Dependencies & Interconnections**: Relies on PostgreSQL container (`postgresql:5432`) for data storage.
-
----
-
 ### PostgreSQL
 
 | Attribute | Value |
@@ -325,7 +304,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/postgres/data` |
 | **Associated Secrets** | None (Internal database credentials inline in `compose.yml`) |
 
-* **Role & Capabilities**: Relational database server backing backend applications (currently Tandoor Recipes).
+* **Role & Capabilities**: Relational database server backing backend applications.
 * **Network & Access**: Completely isolated to the internal `homelab` Docker bridge network (`192.168.255.0/24`). Port `5432` is not bound to host interfaces or LAN.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/postgres/data:/var/lib/postgresql/data` (owned by internal PostgreSQL UID `70`).
 * **Dependencies & Interconnections**: Starts first in homelab dependency order; verified by `pg_isready` before dependent services launch.

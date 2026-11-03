@@ -161,7 +161,7 @@ These variables represent external credentials, cryptographic secrets, runtime s
 ---
 
 ### `productivity` Stack
-*See [Tandoor Recipes](./service-catalog.md#tandoor-recipes) and [PostgreSQL](./service-catalog.md#postgresql).*
+*See [Mealie](./service-catalog.md#mealie-recipe-manager) and [PostgreSQL](./service-catalog.md#postgresql).*
 
 * **`SECRET_KEY`**  
   *Default*: None (Required Cryptographic Secret)  

@@ -2,13 +2,12 @@
 # Stack: Productivity Applications & Databases (productivity/compose.yml)
 #
 # Purpose:
-#   Productivity suite combining Tandoor Recipes with a co-located PostgreSQL
-#   database container.
+#   Productivity suite providing Mealie recipe management with embedded SQLite
+#   and a co-located PostgreSQL database container.
 #
 # Architecture:
 #   - postgresql: Database server with healthcheck (pg_isready).
-#   - tandoor: Application server with native depends_on waiting for postgresql
-#     healthy status, eliminating cross-stack boot race conditions.
+#   - mealie: Recipe and meal planning server with embedded SQLite engine.
 # ==============================================================================
 
 services:
@@ -31,37 +30,6 @@ services:
       retries: 5
     networks:
       - homelab
-
-  tandoor:
-    image: vabene1111/recipes
-    container_name: tandoor
-    hostname: tandoor
-    restart: unless-stopped
-    depends_on:
-      postgresql:
-        condition: service_healthy
-    environment:
-      PUID: ${PUID:?See env.example for default.}
-      PGID: ${PGID:?See env.example for default.}
-      TZ: ${TZ:?See env.example for default.}
-      SECRET_KEY: ${SECRET_KEY:?See env.example for default.}
-      ALLOWED_HOSTS: recipes.kamaka.tech,recipes.kamakakai.com,recipes.turing.home,tandoor,localhost,127.0.0.1
-      DATABASE_URL: postgresql://postgres:password@postgresql:5432/recipes
-      TANDOOR_PORT: 8050
-    volumes:
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/tandoor/data/staticfiles:/opt/recipes/staticfiles
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/tandoor/data/mediafiles:/opt/recipes/mediafiles
-    networks:
-      - homelab
-    labels:
-      - caddy=recipes.kamaka.tech, recipes.kamakakai.com
-      - caddy.reverse_proxy={{upstreams 8050}}
-      - caddy.import=cloudflare_tls
-      - homepage.group=Productivity
-      - homepage.name=Tandoor Recipes
-      - homepage.icon=tandoor
-      - homepage.href=https://recipes.kamaka.tech
-      - homepage.description=Recipe Manager
 
   mealie:
     image: ghcr.io/mealie-recipes/mealie:latest

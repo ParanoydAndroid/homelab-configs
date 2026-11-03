@@ -75,12 +75,12 @@ test_interconnect_prowlarr_to_flaresolverr() {
   return 1
 }
 
-test_interconnect_tandoor_to_postgres() {
-  if ! is_service_enabled "tandoor" || ! is_service_enabled "postgresql"; then
-    printf "Service 'tandoor' or 'postgresql' omitted or disabled"
+test_interconnect_bridge_to_postgres() {
+  if ! is_service_enabled "postgresql"; then
+    printf "Service 'postgresql' omitted or disabled"
     return 77
   fi
-  if docker exec tandoor python3 -c "import socket; s = socket.create_connection(('postgresql', 5432), 15); s.close()" >/dev/null 2>&1; then
+  if docker exec mealie python3 -c "import socket; s = socket.create_connection(('postgresql', 5432), 15); s.close()" >/dev/null 2>&1; then
     printf "TCP socket to postgresql:5432 open"
     return 0
   fi
@@ -220,7 +220,7 @@ suite_interconnect() {
   run_test test_interconnect_radarr_to_prowlarr "Check Radarr -> Prowlarr (http://prowlarr:9696/ping)"
   run_test test_interconnect_sonarr_to_qbittorrent "Check Sonarr -> qBittorrent (http://qbittorrentvpn:8081)"
   run_test test_interconnect_prowlarr_to_flaresolverr "Check Prowlarr -> FlareSolverr (http://flaresolverr:8191/health)"
-  run_test test_interconnect_tandoor_to_postgres "Check Tandoor -> PostgreSQL (postgresql:5432)"
+  run_test test_interconnect_bridge_to_postgres "Check Homelab Bridge -> PostgreSQL (postgresql:5432)"
   run_test test_interconnect_pia_to_qbittorrent_port_sync "Check WireGuard PIA port forward sync to qBittorrent"
   run_test test_interconnect_tailscale_backend_state "Check Tailscale Subnet Router status and authentication"
   run_test test_interconnect_vpn_bridge_pia_egress "Verify VPN Bridge PIA WireGuard egress through US endpoint"

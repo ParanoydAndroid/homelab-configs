@@ -109,10 +109,6 @@ test_docker_up_seerr() {
   assert_service_running "seerr"
 }
 
-test_docker_up_tandoor() {
-  assert_service_running "tandoor"
-}
-
 test_docker_up_mealie() {
   assert_service_running "mealie"
 }
@@ -139,7 +135,6 @@ suite_containers() {
   run_test test_docker_up_prowlarr "Verify Prowlarr indexer aggregator is running"
   run_test test_docker_up_flaresolverr "Verify FlareSolverr proxy is running"
   run_test test_docker_up_seerr "Verify Seerr request management is running and healthy"
-  run_test test_docker_up_tandoor "Verify Tandoor Recipes application server is running"
   run_test test_docker_up_mealie "Verify Mealie recipe manager is running"
   run_test test_docker_up_cloudflared "Verify Cloudflare Zero Trust Tunnel is running"
 }

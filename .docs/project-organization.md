@@ -15,7 +15,7 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 │   ├── ingress/                   # Caddy Docker Proxy + Cloudflare Tunnel
 │   ├── media/                     # Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, FlareSolverr
 │   ├── mesh/                      # Tailscale Subnet Router + PIA WireGuard Exit Node
-│   ├── productivity/              # Tandoor Recipes + PostgreSQL
+│   ├── productivity/              # Mealie Recipes + PostgreSQL
 │   └── torrent/                   # WireGuard PIA + qBittorrent client
 ├── .configs/                      # Bootstrapping assets and systemd service templates
 │   ├── dockge/                    # Dockge's own compose.yml and .env.example
