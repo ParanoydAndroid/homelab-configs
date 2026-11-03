@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.1.0] / [2026.11.3.1] - E-Book Automation Stack & Multi-Domain Media Routing (2026-11-03)
+
+### Added
+* Deployed dedicated `books` stack featuring Calibre-Web, Readarr, and FanFicFare background worker.
+* Calibre-Web e-book catalog (`https://books.kamaka.tech`) with `universal-calibre` format converters, authenticated OPDS feed for Onyx Boox and mobile e-ink readers, and Send-to-Kindle outbound email delivery.
+* Readarr automated book acquisition (`https://readarr.kamaka.tech`) integrated with Prowlarr indexers and qBittorrent client over atomic media hardlinks.
+* FanFicFare background web serial sync (`royalroad-sync`) with FlareSolverr anti-bot resolution, polling `stories.txt` and compiling EPUB updates into the auto-import library.
+* Multi-domain reverse proxy routing for Jellyfin streaming on `media.kamaka.tech` (internal) and `media.kamakakai.com` (public Cloudflare tunnel).
+* Automated smoke, routing, interconnect, and security test assertions for all books services and endpoints.
+
+### Changed
+* Configured FlareSolverr proxy routing and polite rate-limiting for FanFicFare to bypass Cloudflare bot challenges on Royal Road web serials.
+* Auto-seeded FlareSolverr proxy defaults in FanFicFare entrypoint for declarative deployments.
+
+---
+
 ## [3.0.0] / [2026.11.3] - Ingress Inversion to Caddy, Mealie Deployment & Stack Modernization (2026-11-03)
 
 ### Added

@@ -185,6 +185,15 @@ The `productivity` stack requires no external secrets; all runtime variables inh
 
 ---
 
+### `books` Stack
+*See [Calibre-Web, Readarr & Royal Road Sync Service Entry](./service-catalog.md#calibre-web).*
+
+* **`READARR_API_KEY`**  
+  *Default*: None (Generated on initial startup)  
+  *Description*: Readarr REST API key for indexer synchronization, download client automation, and automated smoke testing.
+
+---
+
 ## 3. Inlined Architectural Invariants (`compose.yml`)
 
 In accordance with project conventions, configuration parameters representing fixed homelab invariants are inlined directly into `compose.yml` files rather than exposed as clutter in `.env.example` templates:
