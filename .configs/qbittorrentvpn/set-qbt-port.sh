@@ -27,9 +27,11 @@
 #     6. 'upnp' (false) - Disables redundant router-level UPnP/NAT-PMP requests.
 #     7. 'temp_path' ("/incomplete") & 'temp_path_enabled' (true) - Routes active
 #        downloads to high-IOPS NVMe scratch storage.
-#     8. 'queueing_enabled' (false), 'max_active_downloads' (50), 'max_active_torrents' (100),
-#        and 'dont_count_slow_torrents' (true) - Completely eliminates queue starvation
-#        where stalled magnet metadata downloads (metaDL) lock active download slots.
+#     8. 'queueing_enabled' (true), 'max_active_downloads' (15), 'max_active_torrents' (50),
+#        'dont_count_slow_torrents' (true), 'slow_torrent_dl_rate_threshold' (10 KiB/s),
+#        and 'slow_torrent_inactive_timer' (60s) - Enforces balanced queue boundaries
+#        preventing single-threaded WebAPI lockups from hundreds of concurrent swarms
+#        while dynamically exempting stalled/slow torrents to prevent queue starvation.
 #
 #   Because 'WebUI\LocalHostAuth=false' is enabled in 'qBittorrent.conf',
 #   localhost API calls inside the isolated container namespace do not require
@@ -52,10 +54,13 @@ PREFS_JSON=$(cat <<EOF
   "upnp": false,
   "temp_path": "/incomplete",
   "temp_path_enabled": true,
-  "queueing_enabled": false,
-  "max_active_downloads": 50,
-  "max_active_torrents": 100,
-  "dont_count_slow_torrents": true
+  "queueing_enabled": true,
+  "max_active_downloads": 15,
+  "max_active_torrents": 50,
+  "dont_count_slow_torrents": true,
+  "slow_torrent_dl_rate_threshold": 10,
+  "slow_torrent_ul_rate_threshold": 2,
+  "slow_torrent_inactive_timer": 60
 }
 EOF
 )
