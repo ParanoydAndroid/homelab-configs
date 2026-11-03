@@ -5,6 +5,7 @@
 This plan coordinates the deployment of **Mealie** and an overhaul of homelab **Ingress from Nginx Proxy Manager to Caddy Docker Proxy**, establishing a clean two-domain architecture with 100% automated public Let's Encrypt wildcard certificates via Cloudflare DNS-01:
 * **Internal Homelab Domain (`*.kamaka.tech`)**: All private internal services (`jellyfin`, `mealie`, `recipes`, `radarr`, `sonarr`, `prowlarr`, `torrent`, `dockge`, `homepage`, `flaresolverr`, `nas`). Resolves strictly to `192.168.0.4` on LAN/Tailscale with zero public routing.
 * **Public Ingress Domain (`*.kamakakai.com`)**: Strictly public-facing services (`jellyfin.kamakakai.com`, `recipes.kamakakai.com` / `mealie.kamakakai.com`) routed through Cloudflare Tunnel.
+* **ACME Admin Email Alignment**: ACME account registration and alerts updated to use `admin@kamakakai.com` (under the public domain), forwarded to `bkamaka@gmail.com` via Cloudflare Email Routing.
 * **Automated Pi-hole v6 Orchestration**: Leverages verified passwordless SSH access to `brandon@192.168.0.2` to natively configure Pi-hole FTL v6 wildcard resolution and clean up stale `.turing.home` records with zero manual DNS editing.
 * **Preserved Invariants**:
   - `postgresql` remains `postgres:16-alpine` (no modifications).
@@ -66,10 +67,10 @@ This plan coordinates the deployment of **Mealie** and an overhaul of homelab **
     ```
   - In [ingress/compose.yml](file:///opt/brandon/dockge/stacks/ingress/compose.yml): build context `.configs/caddy`.
 - **Base Caddyfile (`.configs/caddy/Caddyfile`)**:
-  Defines global settings and external non-container host routes:
+  Defines global settings with the public admin email and external non-container host routes:
   ```caddy
   {
-      email admin@kamaka.tech
+      email admin@kamakakai.com
   }
 
   (cloudflare_tls) {
@@ -131,19 +132,22 @@ This plan coordinates the deployment of **Mealie** and an overhaul of homelab **
 
 ## 3. Phased Manual Administrator Checklist
 
-With Pi-hole DNS automated over SSH, manual steps are strictly limited to external cloud dashboards and initial application registration:
-
 ### Phase 1: Pre-Cutover External Preparation (Cloudflare & Tailscale)
 1. **Cloudflare Dashboard (`kamaka.tech`)**:
    - Navigate to **DNS $\rightarrow$ Records**.
    - **Delete or disable the wildcard tunnel record**: If you have a CNAME `*.kamaka.tech` pointing to your tunnel (`<uuid>.cfargotunnel.com`), delete it. This guarantees internal-only services (`radarr`, `dockge`, etc.) cannot be reached from the public internet.
-2. **Cloudflare Zero Trust Dashboard (`kamakakai.com`)**:
+2. **Cloudflare Email Routing (`kamakakai.com`)**:
+   - In Cloudflare Dashboard $\rightarrow$ `kamakakai.com` $\rightarrow$ **Email $\rightarrow$ Email Routing**:
+   - Ensure destination address `bkamaka@gmail.com` is verified.
+   - Configure custom routing rule: `admin@kamakakai.com` $\rightarrow$ forwards to `bkamaka@gmail.com`.
+   - (Ensures all ACME certificate renewal alerts and service notifications reach your inbox).
+3. **Cloudflare Zero Trust Dashboard (`kamakakai.com`)**:
    - Under **Access $\rightarrow$ Tunnels $\rightarrow$ Your Tunnel $\rightarrow$ Public Hostnames**:
    - Ensure the specific public services you want exposed are declared:
      - `jellyfin.kamakakai.com` $\rightarrow$ `https://192.168.0.4:443` (or `http://jellyfin:8096`)
      - `recipes.kamakakai.com` $\rightarrow$ `https://192.168.0.4:443` (or `http://tandoor:8050`)
      - Optional: `mealie.kamakakai.com` $\rightarrow$ `https://192.168.0.4:443`
-3. **Tailscale Admin Console**:
+4. **Tailscale Admin Console**:
    - Navigate to **DNS $\rightarrow$ Nameservers**.
    - Verify `192.168.0.2` (Pi-hole) is configured as the **Global Nameserver**.
    - Check **Override local DNS** (ensures all mobile queries flow to Pi-hole, eliminating DNS leaks when using your VPN exit node).
