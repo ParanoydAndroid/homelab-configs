@@ -6,6 +6,7 @@ This plan coordinates the deployment of **Mealie** and an overhaul of homelab **
 * **Internal Homelab Domain (`*.kamaka.tech`)**: All private internal services (`jellyfin`, `mealie`, `recipes`, `radarr`, `sonarr`, `prowlarr`, `torrent`, `dockge`, `homepage`, `flaresolverr`, `nas`). Resolves strictly to `192.168.0.4` on LAN/Tailscale with zero public routing.
 * **Public Ingress Domain (`*.kamakakai.com`)**: Strictly public-facing services (`jellyfin.kamakakai.com`, `recipes.kamakakai.com` / `mealie.kamakakai.com`) routed through Cloudflare Tunnel.
 * **ACME Admin Email Alignment**: ACME account registration and alerts updated to use `admin@kamakakai.com` (under the public domain), forwarded to `bkamaka@gmail.com` via Cloudflare Email Routing.
+* **Co-Located Docker Build Context**: Caddy multi-stage `Dockerfile` is placed directly alongside `compose.yml` at `ingress/Dockerfile` for idiomatic `build: .` ergonomics in both CLI and Dockge UI.
 * **Automated Pi-hole v6 Orchestration**: Leverages verified passwordless SSH access to `brandon@192.168.0.2` to natively configure Pi-hole FTL v6 wildcard resolution and clean up stale `.turing.home` records with zero manual DNS editing.
 * **Preserved Invariants**:
   - `postgresql` remains `postgres:16-alpine` (no modifications).
@@ -54,8 +55,8 @@ This plan coordinates the deployment of **Mealie** and an overhaul of homelab **
   - Verify all 9 recipes, ingredient lists, steps, and photos appear intact in Mealie.
 
 ### 2.3 Scope C: Ingress Migration (NPM $\rightarrow$ Caddy Docker Proxy)
-- **Image & Build**:
-  - Author `.configs/caddy/Dockerfile` using multi-stage `caddy:2-builder`:
+- **Image & Build (`ingress/Dockerfile`)**:
+  - Author `ingress/Dockerfile` using multi-stage `caddy:2-builder`:
     ```dockerfile
     FROM caddy:2-builder AS builder
     RUN xcaddy build \
@@ -65,9 +66,19 @@ This plan coordinates the deployment of **Mealie** and an overhaul of homelab **
     COPY --from=builder /usr/bin/caddy /usr/bin/caddy
     CMD ["caddy", "docker-proxy"]
     ```
-  - In [ingress/compose.yml](file:///opt/brandon/dockge/stacks/ingress/compose.yml): build context `.configs/caddy`.
-- **Base Caddyfile (`.configs/caddy/Caddyfile`)**:
-  Defines global settings with the public admin email and external non-container host routes:
+  - In [ingress/compose.yml](file:///opt/brandon/dockge/stacks/ingress/compose.yml):
+    ```yaml
+    services:
+      caddy:
+        build: .
+        image: homelab-caddy:latest
+        container_name: caddy
+        hostname: caddy
+        restart: unless-stopped
+        ...
+    ```
+- **Base Caddyfile (`.configs/caddy/Caddyfile` deployed to `${DOCKER_DATA_DIR}/caddy/Caddyfile`)**:
+  Defines global settings with public admin email and external non-container host routes:
   ```caddy
   {
       email admin@kamakakai.com
@@ -93,7 +104,10 @@ This plan coordinates the deployment of **Mealie** and an overhaul of homelab **
   - Caddy attaches to `external_npm` (macvlan) with static IP `${NPM_IPV4_ADDRESS}` (`192.168.0.4`) and MAC `2E:50:8F:7A:C4:12`.
   - Caddy attaches to `homelab` (`192.168.255.0/24`) with alias `services`.
   - Mounts `/var/run/docker.sock:ro` to discover Compose service labels.
-  - Persistent volume: `${DOCKER_DATA_DIR}/caddy/data:/data` and `${DOCKER_DATA_DIR}/caddy/config:/config`.
+  - Persistent volumes:
+    - `${DOCKER_DATA_DIR}/caddy/data:/data`
+    - `${DOCKER_DATA_DIR}/caddy/config:/config`
+    - `${DOCKER_DATA_DIR}/caddy/Caddyfile:/etc/caddy/Caddyfile:ro`
 - **Automated TLS Lifecycle via Cloudflare DNS-01**:
   - Uses `CLOUDFLARE_API_TOKEN` to automatically provision and renew genuine Let's Encrypt wildcard certificates for:
     1. `*.kamaka.tech` (internal homelab services)
