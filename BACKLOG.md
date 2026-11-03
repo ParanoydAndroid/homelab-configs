@@ -48,37 +48,54 @@ Many initial homelab installations start with a single filesystem pool (e.g., `/
 
 ---
 
-### [BACKLOG-003] E-Book & Web Serial Automation Stack (Kindle, Boox, Calibre-Web & Royal Road)
+### [BACKLOG-003] E-Book & Web Serial Automation Stack (`books/compose.yml`)
 * **Priority**: Medium
 * **Category**: Service Stacks / Media & Productivity
-* **Component**: `books/compose.yml` (or `media/compose.yml`)
-* **Trigger**: On demand when architecting wireless reading workflows for Kindle and Android-based e-ink (Boox) devices.
+* **Component**: `books/compose.yml`
+* **Trigger**: On demand when provisioning reading automation for Kindle and Boox hardware.
 
 #### Description
-Design and deploy a containerized e-book management, metadata enrichment, and wireless distribution stack supporting automated syncing to e-ink hardware (Amazon Kindle and Onyx Boox) alongside automated chapter tracking and compilation for web serials (Royal Road).
+Design and deploy a dedicated, modular Dockge stack (`books/compose.yml`) providing an e-book catalog, commercial book acquisition, wireless e-ink delivery (Amazon Kindle and Onyx Boox), and automated background compiling and chapter updates for ongoing Royal Road web serials.
 
-#### Motivation & Context
-Current homelab media automation covers video (Jellyfin, *arr suite) and audio, but lacks dedicated handling for digital books and ongoing serialized literature. Reading workflows require seamless wireless delivery without physical tethering:
-- **Amazon Kindle Delivery**: Requires Send-to-Kindle email integration (via authenticated outbound SMTP) to push EPUB documents directly to Amazon Whispernet over Wi-Fi.
-- **Onyx Boox / Android E-Ink Sync**: Runs full Android and modern readers (e.g., KOReader, Moon+ Reader, NeoReader), enabling direct OPDS catalog browsing over local LAN/Tailscale, bidirectional reading progress sync (Kosync), and optional Syncthing folder synchronization.
-- **Royal Road / Web Serial Automation**: Ongoing serials publish incremental chapters. Tracking and building EPUBs manually is tedious; an automated background worker (such as FanFicFare CLI or a containerized serial downloader) is required to periodically poll Royal Road, append new chapters to existing EPUBs, update metadata/covers, and trigger library re-scans and wireless delivery.
+#### Architectural Decisions & Component Selection
+1. **Core Catalog & Reader Portal**:
+   - **Service**: Calibre-Web (`lscr.io/linuxserver/calibre-web:latest`).
+   - **Role**: Lightweight web UI, metadata editor, in-browser reader, and OPDS server. Integrated with Calibre's CLI tools for format conversions (EPUB/MOBI/AZW3).
+   - **Wireless Delivery**: Native "Send to Kindle" integration using outbound SMTP (via stack `.env` credentials) to deliver EPUBs wirelessly over Amazon Whispernet Wi-Fi.
+2. **Commercial Book Acquisition**:
+   - **Service**: Readarr (`lscr.io/linuxserver/readarr:develop`).
+   - **Role**: *arr pipeline for author monitoring, automated book search via Prowlarr indexers, and download delegation to `qbittorrentvpn`.
+   - **Storage Mechanics**: Uses atomic hardlinks across `/volume1/media` from `/media/downloads/books` to `/media/books/library`, eliminating redundant disk copies.
+3. **Royal Road Web Serial Automation**:
+   - **Service**: Scheduled FanFicFare worker container (`royalroad-sync`).
+   - **Role**: Mature, battle-tested Python CLI engine (maintained since 2011) tracking a declarative list of story URLs (`stories.txt`).
+   - **Cadence**: Automatically checks for newly published chapters every 4–6 hours.
+   - **Mechanics**: Incrementally fetches new chapters, appends them to existing EPUBs in-place without re-downloading prior content, updates the table of contents and cover art, and drops completed EPUBs into the library auto-import directory (`/media/books/import`).
+4. **Device Sync & Reading Progress Integration**:
+   - **Amazon Kindle**: Wireless push delivery via Calibre-Web Send-to-Kindle SMTP; Whispersync manages position tracking across Kindle devices and apps.
+   - **Onyx Boox (Android E-Ink)**: Connects directly to Calibre-Web's authenticated OPDS feed (`https://books.kamaka.tech/opds`) in KOReader or native NeoReader over local Wi-Fi or Tailscale. Cross-device reading position sync is managed via Kosync (community server or self-hosted micro-daemon).
 
-#### Architecture & Candidate Components
-1. **Catalog, Metadata & Library Management**:
-   - **Calibre-Web**: Lightweight web frontend consuming a central Calibre database (`metadata.db`). Provides rich metadata editing, OPDS catalog feeds, user access controls, in-browser reader, and native "Send to Kindle" SMTP dispatch.
-   - **Readarr** *(Optional)*: *arr-style book monitoring, search, and acquisition aggregator interfacing with Prowlarr indexers and qBittorrent.
-2. **Web Serial Ingestion**:
-   - **FanFicFare**: Open-source scraper and EPUB compiler supporting Royal Road, AO3, and other web serial platforms. Capable of incremental updates (appending only newly published chapters).
-   - Can run as a scheduled cron service or automated watcher container placing compiled EPUBs into Calibre's auto-add directory (`/media/books/import`).
-3. **Network & Ingress Integration**:
-   - Ingress via Caddy Docker Proxy labels on `homelab` bridge (`books.kamaka.tech` with wildcard TLS and LAN/Tailscale restriction).
-   - OPDS endpoint accessible over Tailscale for remote Boox syncing away from home.
-   - Outbound SMTP credentials provisioned via stack `.env` for Send-to-Kindle forwarding.
+#### Storage Tiering & Volume Architecture
+- **NVMe Storage (`${DOCKER_DATA_DIR}` / `/volume2/docker`)**:
+  - `${DOCKER_DATA_DIR}/calibre-web/data`: Application settings, user accounts, and `app.db`.
+  - `${DOCKER_DATA_DIR}/readarr/data`: Application databases (`readarr.db`), logs, and indexer caches.
+  - `${DOCKER_DATA_DIR}/royalroad/data`: `stories.txt` URL list and FanFicFare `personal.ini` configuration.
+- **Mechanical RAID Storage (`${MEDIA_DIR}` / `/volume1/media`)**:
+  - `${MEDIA_DIR}/books/library`: Canonical Calibre library containing organized author/book directories and `metadata.db`.
+  - `${MEDIA_DIR}/books/import`: Auto-add drop directory watched by Calibre-Web for newly built Royal Road EPUBs.
+  - `${MEDIA_DIR}/downloads/books`: Staging directory for qBittorrent downloads enabling zero-copy atomic hardlinks into `library`.
+
+#### Ingress & Network Architecture
+- Backend containers run on the isolated `homelab` Docker bridge network (`192.168.255.0/24`).
+- Reverse proxy routing declared via Caddy Docker Proxy labels on the `homelab` bridge:
+  - `https://books.kamaka.tech`: Calibre-Web frontend and OPDS feed, secured with Let's Encrypt wildcard TLS and `lan_only` access control.
+  - `https://readarr.kamaka.tech`: Readarr administration dashboard, secured with Let's Encrypt wildcard TLS and `lan_only` access control.
+- Dashboard integration via Homepage widget labels (`homepage.group=Media`, `homepage.name=Books`).
 
 #### Verification Criteria
-1. Compose definition for the book stack adheres to project conventions (non-root `PUID:PGID`, explicit network attachment, Caddy labels, resource logging limits).
-2. Calibre-Web serves an authenticated OPDS feed verified via curl and reader clients.
-3. Test delivery to Kindle via Send-to-Kindle SMTP successfully receives and renders formatted EPUBs.
-4. FanFicFare or equivalent automated runner successfully downloads and updates a multi-chapter Royal Road story into the library with valid cover and table of contents.
-5. Persistent book library storage resides cleanly on mechanical RAID (`${MEDIA_DIR}/books`) with application metadata on NVMe (`${DOCKER_DATA_DIR}/calibre-web`).
-6. Automated smoke test assertions added to `homelab.sh test`.
+1. `books/compose.yml` strictly adheres to project standards (canonical key ordering, non-root `PUID:PGID`, `${VAR:?}` assertion syntax, logging capped at 10m/3 files).
+2. Calibre-Web deploys with an initialized `metadata.db` and exposes a valid, authenticated OPDS feed accessible by e-ink reader apps.
+3. Test delivery to Kindle via Send-to-Kindle SMTP sends formatted EPUBs that render properly on Kindle hardware.
+4. FanFicFare background runner successfully parses `stories.txt`, fetches a multi-chapter Royal Road fiction, builds a valid EPUB with metadata/covers, and drops it into `import/`.
+5. Readarr successfully communicates with Prowlarr (`http://prowlarr:9696`) and qBittorrent (`http://qbittorrentvpn:8081`).
+6. Automated smoke test assertions added to `homelab.sh test` verifying container runtimes, Caddy virtual host routing, and inter-container API endpoints.
