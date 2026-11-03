@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.9.0] / [2026.11.2.3] - Service-First Discovery Engine, Derived Stack Enablement & Script Audit (2026-11-02)
+
+### Added
+* Service-first discovery engine in `.scripts/common.sh` (`discover_services`, `is_service_enabled`) using lightweight, edge-case-hardened stream parsing to index active services and container names directly from `compose.yml`.
+
+### Changed
+* Refactored stack discovery (`discover_stacks`, `is_stack_enabled`) so stack enablement is derived purely from containing $\ge 1$ enabled services, eliminating manual `.disabled` stack directory markers.
+* Modernized `.tests/suites/test_containers.sh` with a unified `assert_service_running` helper, eliminating over 100 lines of repetitive boilerplate across 17 test cases.
+* Modernized `.tests/suites/test_routing.sh`, eliminating the legacy 20-line `case "${stack}" in` mapping block in favor of direct service-level verification (`is_service_enabled "${service}"`).
+* Streamlined `.tests/suites/test_interconnect.sh` and `.tests/suites/test_negative_security.sh`, removing compound Boolean stack/service fallback trees.
+* Purged lingering legacy stack identifiers (`postgres`, `nginx`, `tailscale`, `vpn-bridge`) from `priority_order` in `.scripts/common.sh`.
+* Gated qBittorrent preference hooks and scratch folder provisioning in `homelab.sh` on active service enablement (`wireguard-pia` / `qbittorrent`).
+* Expanded optional pre-auth secret whitelist in `.scripts/env-tools.sh` to include `EXIT_NODE_TS_AUTHKEY` alongside `TS_AUTHKEY`.
+
+---
+
 ## [2.8.0] / [2026.11.2.2] - Homelab Stack Consolidation & Semantic Rebalancing (2026-11-02)
 
 ### Changed
