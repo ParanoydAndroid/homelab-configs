@@ -65,6 +65,13 @@ When interacting with a user on a freshly cloned repository, or when establishin
   - Standardize persistent service data and configuration paths by container/service name under `${DOCKER_DATA_DIR}/<service>/data/...` and shared media under `${MEDIA_DIR}` (avoiding redundant `/data/data` nesting or cross-service nesting).
   - Protect persistent container volumes (`${DOCKER_DATA_DIR}`) via Restic snapshots to primary RAID storage (`${BACKUP_RESTIC_REPO}`) using `homelab.sh backup` with online database staging (zero container downtime) and 30-day retention pruning. Use `homelab.sh restore` for full-volume or granular service disaster recovery (see [`backup-recovery`](../skills/backup-recovery/SKILL.md)).
   - Maintain `1000:100` ownership on non-root service data directories, explicitly excluding containers with fixed internal UIDs (`postgres` UID `70`) or root privileges (`nginx`, `homepage`, `dockge`).
+- **TRaSH Guides Adherence as Default Media Architecture**:
+  - Adhere to TRaSH Guides (https://trash-guides.info/) as the baseline standard across all media management (*arr stacks, indexers, categories, quality definitions) and download clients (qBittorrent).
+  - Follow TRaSH architectural best practices by default:
+    - Dedicated NVMe scratch buffering (`/incomplete`) with sequential transfers to mechanical RAID storage to prevent drive thrashing.
+    - Memory write cache allocation (`disk_cache`), Btrfs No-CoW flags (`chattr +C`), and piece extent affinity to eliminate filesystem fragmentation.
+    - Anti-starvation BitTorrent queue policies (unconstrained concurrent active transfers with RAM/SSD caching, avoiding artificial slot deadlocks from stalled magnet metadata fetches).
+  - **Precedence Rule**: Stack-specific configuration priorities, hardware constraints, or explicit user design decisions may override TRaSH guidelines, but adherence is mandatory as the default starting position unless an explicit architectural justification is documented.
 
 ## 4. Code Style and Documentation Standards
 
