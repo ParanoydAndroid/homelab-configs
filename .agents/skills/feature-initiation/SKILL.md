@@ -59,4 +59,15 @@ Adopt the persona of an **experienced, opinionated homelab infrastructure engine
    git add .agents/artifacts/plan_<feature-name>.md
    git commit -m "docs(plan): add architectural plan for <feature-name>"
    ```
-3. Begin execution following the approved plan using relevant implementation skills (`stack-authoring`, `test-authoring`, `backup-recovery`).
+
+### Step 6: Plan Execution, Intermediate Commit, and User Review Checkpoint (MANDATORY)
+1. Execute the implementation steps according to the approved plan using relevant implementation skills (`stack-authoring`, `test-authoring`, `backup-recovery`).
+2. Verify runtime health and execute automated tests (`./homelab.sh test all`).
+3. Commit all implementation changes to the feature branch:
+   ```bash
+   git add -A
+   git commit -m "feat(<feature-name>): implement <feature-name> changes"
+   ```
+4. **CRITICAL MANDATORY PAUSE**: Stop immediately. Do NOT run `feature-completion`.
+5. **Report & Solicit User Input**: Present a concise operational summary of the current state, runtime behavior, and test verification results to the user.
+6. **Wait for User Input**: Explicitly ask the user to inspect, test, and approve the state before proceeding. NEVER proceed autonomously to release notes, changelog updates, artifact cleanup, mainline merge, or tagging until the user provides explicit confirmation.

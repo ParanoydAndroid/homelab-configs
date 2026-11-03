@@ -12,6 +12,8 @@ This skill automates the safe, verified graduation of a feature branch into `mai
 
 ## Prerequisites
 - Currently on an active feature branch (`git branch --show-current` != `main`).
+- Plan execution and intermediate implementation changes have been committed to the feature branch.
+- **MANDATORY USER SIGN-OFF**: The agent has paused, presented the implementation state and test results to the user, and received explicit user approval to proceed with feature completion, changelog drafting, artifact cleanup, and merging. Never auto-trigger this skill without user confirmation.
 - Working tree has all feature changes staged or ready to commit.
 
 ## Execution Procedure
