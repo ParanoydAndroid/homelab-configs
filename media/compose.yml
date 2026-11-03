@@ -42,7 +42,7 @@ services:
     networks:
       - homelab
     labels:
-      - caddy=jellyfin.kamaka.tech, jellyfin.kamakakai.com
+      - caddy=jellyfin.kamaka.tech, jellyfin.kamakakai.com, media.kamaka.tech, media.kamakakai.com
       - caddy.reverse_proxy={{upstreams 8096}}
       - caddy.import=cloudflare_tls jellyfin_hardening
       - homepage.group=Players

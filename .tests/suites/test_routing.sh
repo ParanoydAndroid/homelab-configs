@@ -120,6 +120,14 @@ test_vhost_jellyfin_external() {
   _curl_vhost "jellyfin.kamakakai.com" "/web/index.html" "^200$" "jellyfin"
 }
 
+test_vhost_media_external() {
+  _curl_vhost "media.kamakakai.com" "/web/index.html" "^200$" "jellyfin"
+}
+
+test_vhost_media_internal() {
+  _curl_vhost "media.kamaka.tech" "/web/index.html" "^200$" "jellyfin"
+}
+
 test_vhost_mealie_external() {
   _curl_vhost "recipes.kamakakai.com" "/" "^200$" "mealie"
 }
@@ -142,6 +150,7 @@ suite_routing() {
   run_test test_vhost_homepage_internal "Route https://homepage.kamaka.tech/"
   run_test test_vhost_dockge_internal "Route https://dockge.kamaka.tech/"
   run_test test_vhost_jellyfin_internal "Route https://jellyfin.kamaka.tech/web/index.html"
+  run_test test_vhost_media_internal "Route https://media.kamaka.tech/web/index.html (Jellyfin Alias)"
   run_test test_vhost_radarr_internal "Route https://radarr.kamaka.tech/ping"
   run_test test_vhost_sonarr_internal "Route https://sonarr.kamaka.tech/ping"
   run_test test_vhost_prowlarr_internal "Route https://prowlarr.kamaka.tech/ping"
@@ -154,6 +163,7 @@ suite_routing() {
   run_test test_vhost_nas_internal "Route https://nas.kamaka.tech/ (UGOS OS Portal)"
   run_test test_vhost_download_internal "Route https://download.kamaka.tech/ (File Delivery)"
   run_test test_vhost_jellyfin_external "Route https://jellyfin.kamakakai.com/web/index.html (External)"
+  run_test test_vhost_media_external "Route https://media.kamakakai.com/web/index.html (External Alias)"
   run_test test_vhost_mealie_external "Route https://recipes.kamakakai.com/ (External)"
   run_test test_vhost_mom_external "Route https://mom.kamakakai.com/ (External)"
 }

@@ -16,7 +16,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **File Delivery** | `ingress/` | `caddy` | Internal / Macvlan | `443` | HTTPS | `https://download.kamaka.tech` | None |
 | **Tailscale Router** | `mesh/` | `tailscale` | Macvlan `192.168.0.5` | N/A | WireGuard | Node `homelab` on Mesh | None |
 | **Cloudflare Tunnel** | `ingress/` | `cloudflared` | Outbound Egress Tunnel | N/A | QUIC / HTTP/2 | None | Public Ingress for `*.kamakakai.com` |
-| **Jellyfin** | `media/` | `jellyfin` | Internal Bridge Only | `8096` | HTTP | `https://jellyfin.kamaka.tech` | `https://jellyfin.kamakakai.com` |
+| **Jellyfin** | `media/` | `jellyfin` | Internal Bridge Only | `8096` | HTTP | `https://jellyfin.kamaka.tech`, `https://media.kamaka.tech` | `https://jellyfin.kamakakai.com`, `https://media.kamakakai.com` |
 | **Jellyfin Discovery** | `media/` | `jellyfin` | `0.0.0.0:8022:7359/udp` | `7359` | UDP | LAN Broadcast | None |
 | **Homepage** | `dashboard/` | `homepage` | Internal Bridge Only | `3000` | HTTP | `https://homepage.kamaka.tech` | None |
 | **Radarr** | `media/` | `radarr` | Internal Bridge Only | `7878` | HTTP | `https://radarr.kamaka.tech` | None |
@@ -161,8 +161,8 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Container Name** | `jellyfin` |
 | **Host / Network Binding** | `8022:7359/udp` (LAN Discovery) + `homelab` bridge |
 | **Internal Container Port**| `8096` (HTTP), `8920` (HTTPS), `7359` (UDP Discovery) |
-| **LAN Address** | `https://jellyfin.kamaka.tech` |
-| **WAN Address** | `https://jellyfin.kamakakai.com` |
+| **LAN Address** | `https://jellyfin.kamaka.tech`, `https://media.kamaka.tech` |
+| **WAN Address** | `https://jellyfin.kamakakai.com`, `https://media.kamakakai.com` |
 | **Persistent Data Path** | `${DOCKER_DATA_DIR}/jellyfin/data/config` |
 | **Associated Secrets** | `JELLYFIN_API_KEY` |
 
