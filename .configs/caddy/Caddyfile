@@ -24,3 +24,10 @@ nas.kamaka.tech {
         }
     }
 }
+
+# Direct Client File Delivery Endpoint:
+download.kamaka.tech {
+    import cloudflare_tls
+    root * /downloads
+    file_server browse
+}
