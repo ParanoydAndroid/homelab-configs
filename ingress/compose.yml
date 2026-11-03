@@ -2,30 +2,33 @@
 # Stack: Ingress & Reverse Proxy (ingress/compose.yml)
 #
 # Purpose:
-#   Ingress reverse proxy and SSL termination point for internal LAN subdomains
-#   (*.turing.home) and external internet subdomains (*.kamaka.tech) via Cloudflare
-#   Zero Trust Tunnel.
+#   Ingress reverse proxy and automated Let's Encrypt wildcard SSL termination
+#   for internal LAN subdomains (*.kamaka.tech) and public internet subdomains
+#   (*.kamakakai.com) via Caddy Docker Proxy and Cloudflare Zero Trust Tunnel.
 #
 # Services:
-#   - nginx: Dual-homed on 'external_npm' macvlan (192.168.0.4) and 'homelab' bridge.
+#   - caddy: Dual-homed on 'external_npm' macvlan (192.168.0.4) and 'homelab' bridge.
 #   - cloudflared: Outbound encrypted CGNAT ingress tunnel on 'homelab' bridge.
 # ==============================================================================
 
 services:
-  nginx:
-    image: jc21/nginx-proxy-manager:latest
-    container_name: nginx
-    hostname: nginx
+  caddy:
+    build: .
+    image: homelab-caddy:latest
+    container_name: caddy
+    hostname: caddy
     restart: unless-stopped
+    command: caddy docker-proxy --caddyfile-path /etc/caddy/Caddyfile
     mac_address: 2E:50:8F:7A:C4:12
     environment:
-      DISABLE_IPV6: "true"
-      DB_SQLITE_FILE: /data/db.sqlite
       TZ: ${TZ:?See env.example for default.}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?See env.example for default.}
+      CADDY_INGRESS_NETWORKS: homelab
     volumes:
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/nginx/data:/data
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/nginx/data/letsencrypt:/etc/letsencrypt
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/tandoor/data/mediafiles:/media:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/data:/data
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/config:/config
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     networks:
       homelab:
         aliases:
@@ -34,10 +37,10 @@ services:
         ipv4_address: ${NPM_IPV4_ADDRESS:?See env.example for default.}
     labels:
       - homepage.group=Administration
-      - homepage.name=Proxy Manager
-      - homepage.icon=nginx-proxy-manager
-      - homepage.href=https://proxy.turing.home
-      - homepage.description=Reverse Proxy & SSL
+      - homepage.name=Caddy Proxy
+      - homepage.icon=caddy
+      - homepage.href=https://nas.kamaka.tech
+      - homepage.description=Reverse Proxy & Automated SSL
 
   cloudflared:
     image: cloudflare/cloudflared:latest

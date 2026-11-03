@@ -36,10 +36,13 @@ services:
     networks:
       - homelab
     labels:
+      - caddy=dockge.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 5001}}
+      - caddy.import=cloudflare_tls
       - homepage.group=Administration
       - homepage.name=Dockge
       - homepage.icon=dockge
-      - homepage.href=https://dockge.turing.home
+      - homepage.href=https://dockge.kamaka.tech
       - homepage.description=Stack Manager
 
 networks:

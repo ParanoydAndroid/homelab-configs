@@ -45,7 +45,7 @@ services:
       PGID: ${PGID:?See env.example for default.}
       TZ: ${TZ:?See env.example for default.}
       SECRET_KEY: ${SECRET_KEY:?See env.example for default.}
-      ALLOWED_HOSTS: recipes.kamaka.tech,recipes.turing.home,tandoor,localhost,127.0.0.1
+      ALLOWED_HOSTS: recipes.kamaka.tech,recipes.kamakakai.com,recipes.turing.home,tandoor,localhost,127.0.0.1
       DATABASE_URL: postgresql://postgres:password@postgresql:5432/recipes
       TANDOOR_PORT: 8050
     volumes:
@@ -54,11 +54,41 @@ services:
     networks:
       - homelab
     labels:
+      - caddy=recipes.kamaka.tech, recipes.kamakakai.com
+      - caddy.reverse_proxy={{upstreams 8050}}
+      - caddy.import=cloudflare_tls
       - homepage.group=Productivity
       - homepage.name=Tandoor Recipes
       - homepage.icon=tandoor
-      - homepage.href=https://recipes.turing.home
+      - homepage.href=https://recipes.kamaka.tech
       - homepage.description=Recipe Manager
+
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:latest
+    container_name: mealie
+    hostname: mealie
+    restart: unless-stopped
+    environment:
+      ALLOW_SIGNUP: "true"
+      BASE_URL: https://mealie.kamaka.tech
+      PUID: ${PUID:?See env.example for default.}
+      PGID: ${PGID:?See env.example for default.}
+      TZ: ${TZ:?See env.example for default.}
+      MAX_WORKERS: 1
+      WEB_CONCURRENCY: 1
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/mealie/data:/app/data
+    networks:
+      - homelab
+    labels:
+      - caddy=mealie.kamaka.tech, mealie.kamakakai.com, mom.kamakakai.com
+      - caddy.reverse_proxy={{upstreams 9000}}
+      - caddy.import=cloudflare_tls
+      - homepage.group=Productivity
+      - homepage.name=Mealie
+      - homepage.icon=mealie
+      - homepage.href=https://mealie.kamaka.tech
+      - homepage.description=Modern Recipe & Meal Planning
 
 networks:
   homelab:
