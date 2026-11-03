@@ -2,8 +2,8 @@
 name: feature-completion
 description: >-
   Standardized workflow for completing a feature branch: verify full test suite,
-  stop on failure, update CHANGELOG.md, purge temporary planning artifacts, commit,
-  push, merge to main, and apply dual SemVer/CalVer tags.
+  stop on failure, execute systematic documentation and runbook audit, update CHANGELOG.md,
+  purge temporary planning artifacts, commit, push, merge to main, and apply dual SemVer/CalVer tags.
 ---
 
 # Feature Completion Runbook
@@ -31,7 +31,36 @@ Execute the entire test suite against the live environment:
   4. Do NOT commit, merge, or tag.
   5. Report the exact test failure and logs to the user and wait for instructions.
 
-### Step 2: Update Changelog (SemVer Minor/Major Releases)
+### Step 2: Systematic Documentation and Runbook Audit
+Before writing release notes or committing, conduct a comprehensive audit across all documentation, runbooks, and skills to ensure they accurately reflect the feature's changes:
+
+1. **Branch Diff Inspection**:
+   Inspect all modified files on the feature branch relative to `main`:
+   ```bash
+   git diff --stat main...HEAD
+   ```
+   Identify every touched service, network configuration, port mapping, environment variable, or volume mount.
+
+2. **Core Operational Documentation (`README.md`, `.docs/`)**:
+   - **Service Catalog & Ports**: If services, container names, exposed ports, internal URLs, or external routes were added, modified, or retired, update the catalog tables in `README.md` and `.docs/service-catalog.md`.
+   - **Network Architecture & Topology**: If networks, subnets, IP assignments, or ingress/egress flows were altered, update `README.md` Section 1 (including the Mermaid topology diagram) and `.docs/routing-topology.md`.
+   - **Environment Variables**: If `.env.example` templates were modified, ensure corresponding additions/removals are documented in `.docs/env-reference.md`.
+
+3. **Operational Skills and Runbooks (`.agents/skills/`)**:
+   - Review skills related to the modified components (e.g., `stack-lifecycle`, `network-diagnostics`, `backup-recovery`, `stack-authoring`, `start-homelab`).
+   - Audit for stale terminology or legacy patterns: Search for deprecated container names, retired reverse proxy platforms, legacy domains, or outdated code snippets:
+     ```bash
+     git grep -i "<deprecated-term>" .agents/skills/
+     ```
+   - Verify that all skill execution runbooks and code block snippets accurately describe active declarative patterns.
+
+4. **Architecture Specifications (`.agents/artifacts/architecture.md`)**:
+   - Verify that `.agents/artifacts/architecture.md` aligns with current architectural invariants, container relationships, and storage mappings.
+
+5. **Style and Brevity Verification**:
+   - Ensure all updated documentation adheres to the project-wide documentation conventions: value brevity, align detail to audience/scope, eliminate redundant fine details, and omit internal development minutiae.
+
+### Step 3: Update Changelog (SemVer Minor/Major Releases)
 Review [SemVer and CalVer Guidelines](./references/semver-calver-guidelines.md) for version tier determination, roll-up synthesis, and format rules.
 * **Tagging & Changelog Scope**:
   - Only features automatically receive `semver.minor` or `semver.major` bumps.
@@ -60,22 +89,22 @@ Review [SemVer and CalVer Guidelines](./references/semver-calver-guidelines.md) 
   - <Bullet points describing security hardening or access control updates>
   ```
 
-### Step 3: Clean Up Temporary Planning Artifacts
+### Step 4: Clean Up Temporary Planning Artifacts
 Remove ephemeral planning and design documents while preserving persistent architectural artifacts:
 ```bash
 rm -f .agents/artifacts/plan_*.md
 ```
 * Note: Keep persistent architectural specifications (such as `.agents/artifacts/architecture.md`) intact.
 
-### Step 4: Final Feature Branch Commit and Push
-Stage all modified files (including `compose.yml`, `CHANGELOG.md`, and rules):
+### Step 5: Final Feature Branch Commit and Push
+Stage all modified files (including `compose.yml`, documentation, `CHANGELOG.md`, and rules):
 ```bash
 git add -A
 git commit -m "feat(<feature-name>): complete <feature-name> implementation and release notes"
 git push origin <feature-branch>
 ```
 
-### Step 5: Merge into Main and Apply Dual Release Tags
+### Step 6: Merge into Main and Apply Dual Release Tags
 Switch to `main`, synchronize with remote, merge the feature branch, apply tags, and push:
 ```bash
 git checkout main

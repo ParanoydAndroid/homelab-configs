@@ -2,7 +2,7 @@
 
 ## 1. Project Purpose and Scope
 
-This repository is the single source of truth for the declarative configuration, container orchestration, and lifecycle automation of the UGREEN NAS homelab environment (`nas.home` / `turing.home`).
+This repository is the single source of truth for the declarative configuration, container orchestration, and lifecycle automation of the UGREEN NAS homelab environment (`nas.home` / `*.kamaka.tech`).
 
 The project encompasses:
 - **Containerized Service Stacks**: Declarative Docker Compose v2+ definitions across 6 domain-aligned stacks: edge routing and tunnels (`ingress`), mesh networking and privacy bridge (`mesh`), media streaming and acquisition (`media`), torrenting and download client (`torrent`), recipe management and database storage (`productivity`), and central dashboard (`dashboard`), with web-based stack orchestration via `dockge`.
@@ -24,7 +24,7 @@ The project encompasses:
 - Persistent volume state and databases on `${DOCKER_DATA_DIR}` (`/volume2/docker`) are protected via automated Restic snapshots streamed to `${BACKUP_RESTIC_REPO}` with zero container downtime and 30-day retention pruning. Full or per-service disaster recovery is performed via `homelab.sh restore`.
 
 ### 2.3 Network Isolation and Reverse Proxy Boundary
-- **Dedicated Reverse Proxy LAN IP (`external_npm` macvlan)**: Nginx Proxy Manager binds to a dedicated LAN IP (`192.168.0.4` / `turing.home`) via a Docker `macvlan` network on `eth0`, cleanly separating reverse-proxied service traffic (`80`, `443`, `81`) from the UGREEN NAS host OS web interface (`192.168.0.3` / `nas.home`).
+- **Dedicated Reverse Proxy LAN IP (`external_npm` macvlan)**: Caddy binds to a dedicated LAN IP (`192.168.0.4`) via a Docker `macvlan` network on `eth0`, cleanly separating reverse-proxied service traffic (`80`, `443`) from the UGREEN NAS host OS web interface (`192.168.0.3` / `nas.home`).
 - **Internal Service Bridge (`homelab`)**: All backend containers communicate over the isolated `homelab` Docker bridge network (`192.168.255.0/24`) using deterministic container hostnames and internal service ports.
 - **Minimal Host Port Exposure**: Host ports on the NAS (`192.168.0.3`) are exposed only where strictly required for non-HTTP broadcast protocols (`jellyfin` UDP discovery on `8022:7359/udp`) or emergency fallback orchestration (`dockge` on `8010:5001/tcp`). All HTTP/HTTPS web UIs are accessed exclusively through Nginx Proxy Manager.
 - **Defense-in-Depth for Externally Routable Services (`*.kamaka.tech`)**: Services exposed to the public internet through Cloudflare/gateway port forwarding (`jellyfin.kamaka.tech`, `recipes.kamaka.tech`) enforce strict container and proxy hardening: non-root execution, dropped Linux capabilities (`cap_drop: [ALL]`), `no-new-privileges:true`, read-only media mounts (`:ro`), and reverse-proxy blocks on diagnostic/API-doc endpoints (`/swagger`, `/api-docs`, `/metrics`).

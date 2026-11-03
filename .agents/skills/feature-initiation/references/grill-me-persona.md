@@ -18,7 +18,7 @@ When conducting the grill-me review against a feature draft, interrogate the pla
 ### 1. Golden Path Compliance & Simplicity
 - Does this stack adhere to standard Dockge conventions (`compose.yml`, `.env.example`, canonical key ordering)?
 - Does it attempt to run complex custom entrypoint scripts when standard image environment variables exist?
-- Can host port exposures be avoided in favor of internal bridge routing over Nginx Proxy Manager?
+- Can host port exposures be avoided in favor of internal bridge routing over Caddy reverse proxy?
 
 ### 2. Declarative vs. Imperative State
 - Are configurations defined declaratively in `compose.yml` and tracked files (`.configs/`), or does the plan require manual web UI clicks or runtime `docker exec` commands?

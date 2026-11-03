@@ -3,7 +3,7 @@
 # Script Name: homelab.sh
 # Description:
 #   Primary lifecycle, configuration synchronization, and backup automation CLI
-#   for the UGREEN NAS homelab environment (nas.home / turing.home).
+#   for the UGREEN NAS homelab environment (nas.home).
 #
 # Architecture:
 #   Serves as the high-level orchestration entrypoint. Specialized subroutines

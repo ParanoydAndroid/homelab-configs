@@ -223,7 +223,7 @@ To avoid duplicating disk space and eliminate file copy delays when torrent down
 
 ## 12. Homepage Dashboard Personalization
 
-The Homepage dashboard at `https://homepage.turing.home` provides a unified pane of glass for all homelab services, monitoring active streams, download rates, and system metrics.
+The Homepage dashboard at `https://homepage.kamaka.tech` provides a unified pane of glass for all homelab services, monitoring active streams, download rates, and system metrics.
 
 ### Interactive Configuration
 1. Edit `.configs/homepage/services.yaml` to adjust service groups, display order, and custom icons.

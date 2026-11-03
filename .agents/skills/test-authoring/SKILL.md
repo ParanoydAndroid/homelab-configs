@@ -37,8 +37,8 @@ test_my_service_health() {
 test_my_service_routing() {
   log_test "Testing my-service reverse proxy routing..."
   local status
-  status=$(curl -sk -o /dev/null -w "%{http_code}" -H "Host: myservice.home" "https://${NPM_IPV4_ADDRESS}/")
-  assert_equals "200" "${status}" "myservice.home returns 200 via NPM"
+  status=$(curl -sk -o /dev/null -w "%{http_code}" -H "Host: myservice.kamaka.tech" "https://${NPM_IPV4_ADDRESS}/")
+  assert_equals "200" "${status}" "myservice.kamaka.tech returns 200 via Caddy"
 }
 ```
 

@@ -91,7 +91,7 @@ ${VARIABLE}
 
 3. **Containers requiring root or internal system UIDs**:
    - `postgres`: Runs under internal `postgres` user (UID `70`). Do not override with host `1000:100`.
-   - `dockge`, `nginx` (NPM): Run as root for orchestration and socket binding.
+   - `dockge`, `caddy`: Run with required privileges for orchestration and socket binding.
 
 ---
 
@@ -107,7 +107,7 @@ ${VARIABLE}
      ```
 
 2. **LAN Macvlan (`external_npm`)**:
-   - Reserved exclusively for Nginx Proxy Manager (`192.168.0.4`) to bridge HTTP/HTTPS traffic to the internal bridge.
+   - Reserved for Caddy (`192.168.0.4`) and Tailscale (`192.168.0.5`) to bridge LAN traffic to the internal bridge.
 
 ---
 

@@ -41,6 +41,10 @@ Each `CHANGELOG.md` entry must provide a high-level overview of **ALL** changes 
 Because multiple routine patches, bug fixes, and CalVer commits may accumulate on `main` between minor feature releases:
 - The changelog entry for a new SemVer release must roll up and synthesize those intermediate commits alongside the new feature.
 - Aggregate changes into curated, meaningful bullet points categorized under `Added`, `Changed`, `Fixed`, and `Security`.
+- **Deployer-Focused Brevity & Scope**:
+  - Write entries strictly from the perspective of stack deployers and maintainers.
+  - Highlight user-facing operational impacts, breaking contracts, service additions/removals, port/URL routing updates, and security postures.
+  - Avoid purely internal development minutiae: omit lines-of-code metrics, internal test assertion counts/pass rates, internal script control-flow constructs (`case` statements, regex pipelines, helper functions), and internal issue tracker IDs.
 - Omit trivial commits, typos, or negligible micro-edits.
 
 ---

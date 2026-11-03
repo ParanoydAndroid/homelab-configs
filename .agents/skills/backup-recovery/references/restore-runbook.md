@@ -61,7 +61,7 @@ To avoid stopping containers during regular backups, `backup.sh` uses online log
    - `pg_dumpall -U postgres` is executed inside the running `postgres` container.
    - The logical dump is staged to `${DOCKER_DATA_DIR}/postgres/staged_backup/postgres_dumpall.sql`.
 2. **SQLite**:
-   - For SQLite databases (e.g. Nginx Proxy Manager, Sonarr, Radarr), SQLite `.backup` API is used or read-consistent snapshots are taken.
+   - For SQLite databases (e.g. Mealie, Sonarr, Radarr), SQLite `.backup` API is used or read-consistent snapshots are taken.
 3. Restic backs up both the live data directories and the staged logical dumps into the repository.
 
 ---

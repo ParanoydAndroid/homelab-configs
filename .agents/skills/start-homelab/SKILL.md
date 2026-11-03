@@ -33,7 +33,7 @@ Orient the developer to the core architectural invariants of this repository:
 1. **Dockge Stack Layout**: Exactly one directory per stack at the repository root containing `compose.yml` and an optional `.env`. Orchestrator and service configurations live in `.configs/<service>/`.
 2. **Network Model**:
    - Backend services run isolated on the `homelab` bridge network (`192.168.255.0/24`).
-   - Nginx Proxy Manager (NPM) bridges the LAN (`external_npm` macvlan) and `homelab` network to terminate SSL and route subdomains (`*.home`).
+   - Caddy bridges the LAN (`external_npm` macvlan) and `homelab` network to terminate wildcard TLS and route subdomains (`*.kamaka.tech`).
    - Host ports are commented out by default, preserving emergency direct fallbacks (`dockge` `8010:5001`, `jellyfin` `8022:7359/udp`).
 3. **Environment & Secrets Architecture**:
    - Single Source of Truth: All runtime defaults are declared once in root and stack `.env.example` templates.
@@ -62,7 +62,7 @@ Engage the user interactively (e.g. via `ask_question`) to establish what worklo
 Classify all services into:
 - **Keep (Immediate)**: Included in the initial deployment.
 - **Defer**: Retain configuration files, but tag directory with `.disabled` to omit from boot orchestration and smoke test assertions.
-- **Remove**: Completely purge stack directory, remove associated NPM proxy hosts, and remove Homepage widgets.
+- **Remove**: Completely purge stack directory, remove associated Caddy proxy labels, and remove Homepage widgets.
 
 ---
 
@@ -103,7 +103,7 @@ Detect host environment:
 - **Ingress Selection**:
   - *Cloudflare Zero Trust Tunnel*: Standard outbound tunnel with token.
   - *Tailscale Only*: Disable `cloudflared` stack, rely on private tailnet access.
-  - *Direct Port Forwarding*: Expose NPM ports 80/443 on host router.
+  - *Direct Port Forwarding*: Expose Caddy ports 80/443 on host router.
 
 ---
 
@@ -161,5 +161,5 @@ Before executing destructive file deletions or provisioning secrets, document th
    * Assert 100% PASS across all active services.
 3. **Post-Deployment Verification**:
    - Access Homepage dashboard at `https://homepage.<domain>`.
-   - Access Nginx Proxy Manager at `https://proxy.<domain>` (`81`).
+   - Access services over HTTPS at `https://<service>.<domain>`.
    - Confirm active torrent connections and WireGuard IP egress.

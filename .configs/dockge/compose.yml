@@ -31,7 +31,7 @@ services:
       - ${DOCKGE_STACKS_DIR:?See env.example for default.}:${DOCKGE_STACKS_DIR:?See env.example for default.}
     ports:
       # Exposed directly on the NAS host (nas.home:8010) for emergency orchestrator
-      # access if Nginx Proxy Manager is down, in addition to https://dockge.turing.home.
+      # access if Caddy is down, in addition to https://dockge.kamaka.tech.
       - 8010:5001
     networks:
       - homelab

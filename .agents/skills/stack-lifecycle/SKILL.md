@@ -16,7 +16,7 @@ This skill coordinates adding a new service or decommissioning an existing servi
              |
        2. Environment (.env.example & .env)
              |
-       3. Reverse Proxy (NPM Virtual Host & SSL)
+       3. Reverse Proxy (Caddy Docker Proxy Labels & Wildcard TLS)
              |
        4. Dashboard (.configs/homepage/services.yaml)
              |
@@ -44,12 +44,32 @@ This skill coordinates adding a new service or decommissioning an existing servi
    - Do NOT include root globals (`DOCKER_DATA_DIR`, `PUID`, `PGID`, `TZ`).
 2. Run `./homelab.sh setup` to generate `<stack-name>/.env` and sync globals.
 
-### Touchpoint 3: Reverse Proxy Host (Nginx Proxy Manager)
-1. Add an internal proxy host in NPM:
-   - Domain: `<service>.turing.home` (and optional external `<service>.kamaka.tech`).
-   - Scheme: `http`, Forward Hostname: `<container_name>`, Forward Port: `<port>`.
-   - Enable: **Block Common Exploits**, **Websockets Support**.
-   - SSL: Select local wildcard certificate, enable **Force SSL** and **HTTP/2**.
+### Touchpoint 3: Reverse Proxy Routing (Caddy Docker Proxy)
+1. Add declarative Caddy labels to the service in `<stack-name>/compose.yml`:
+   ```yaml
+   labels:
+     - caddy=<service>.kamaka.tech
+     - caddy.reverse_proxy={{upstreams <port>}}
+     - caddy.import=cloudflare_tls
+   ```
+2. For services requiring external access over Cloudflare Zero Trust (`*.kamakakai.com`):
+   ```yaml
+   labels:
+     - caddy=<service>.kamaka.tech, <service>.kamakakai.com
+     - caddy.reverse_proxy={{upstreams <port>}}
+     - caddy.import=cloudflare_tls
+   ```
+   *Note*: When both internal and external hostnames share the same upstream, list them comma-separated so both inherit the `cloudflare_tls` security headers (HSTS, nosniff, SAMEORIGIN) and dotfile blocking. If distinct label blocks are required (e.g. to apply external-only endpoint filters), ensure every block imports `cloudflare_tls`:
+   ```yaml
+   labels:
+     - caddy_0=<service>.kamaka.tech
+     - caddy_0.reverse_proxy={{upstreams <port>}}
+     - caddy_0.import=cloudflare_tls
+     - caddy_1=<service>.kamakakai.com
+     - caddy_1.reverse_proxy={{upstreams <port>}}
+     - caddy_1.import=cloudflare_tls
+   ```
+3. Caddy Docker Proxy automatically discovers container labels over `/var/run/docker.sock` and requests/renews the Let's Encrypt wildcard certificate via Cloudflare DNS-01. No manual UI configuration or database updates required.
 
 ### Touchpoint 4: Homepage Dashboard
 1. Add service widget labels in `<stack>/compose.yml` or edit `.configs/homepage/services.yaml`:
@@ -58,7 +78,7 @@ This skill coordinates adding a new service or decommissioning an existing servi
      - homepage.group=Utilities
      - homepage.name=MyService
      - homepage.icon=myservice
-     - homepage.href=https://myservice.turing.home
+     - homepage.href=https://myservice.kamaka.tech
      - homepage.description=Service description
    ```
 
@@ -80,7 +100,7 @@ This skill coordinates adding a new service or decommissioning an existing servi
 2. Add routing assertion to `.tests/suites/test_routing.sh`:
    ```bash
    test_vhost_<service>_internal() {
-     _curl_vhost "<service>.turing.home" "/" "^200$" "<stack_name>"
+     _curl_vhost "<service>.kamaka.tech" "/" "^200$" "<stack_name>"
    }
    ```
 3. Run `./homelab.sh test all` to verify complete green pass.
@@ -94,7 +114,7 @@ This skill coordinates adding a new service or decommissioning an existing servi
    docker compose -f <stack-name>/compose.yml down -v
    ```
 2. **Remove Proxy Hosts**:
-   In NPM, delete proxy hosts associated with `<service>.turing.home`.
+   Remove Caddy proxy labels associated with `<service>.kamaka.tech`.
 3. **Remove Dashboard Widget**:
    Remove entry from `.configs/homepage/services.yaml` if manually configured.
 4. **Archive or Prune Persistent Data**:

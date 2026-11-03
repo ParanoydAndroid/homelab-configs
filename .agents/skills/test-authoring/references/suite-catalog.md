@@ -24,7 +24,7 @@ The test framework sources `.tests/lib/assertions.sh` providing standard testing
 assert_equals "expected" "actual" "Test description"
 
 # Assert HTTP status code from curl
-assert_http_status "https://${NPM_IPV4_ADDRESS}/" 200 "Homepage root returns 200 OK" -H "Host: turing.home"
+assert_http_status "https://${NPM_IPV4_ADDRESS}/" 200 "Homepage root returns 200 OK" -H "Host: homepage.kamaka.tech"
 
 # Assert command exits with code 0
 assert_success "docker exec postgres pg_isready -U postgres" "Postgres socket is ready"

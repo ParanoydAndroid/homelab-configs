@@ -4,32 +4,33 @@
 
 | Subnet / Network | Type | Gateway / Host Interface | Allocated IPs / Purpose |
 | :--- | :--- | :--- | :--- |
-| `192.168.0.0/24` | Physical LAN | `192.168.0.1` | - `192.168.0.3`: UGREEN NAS Host OS (`nas.home`)<br>- `192.168.0.4`: NPM Reverse Proxy (`turing.home`) via `external_npm` macvlan<br>- `192.168.0.2`: Pi-hole DNS resolver |
-| `192.168.255.0/24` | Docker Bridge (`homelab`) | `192.168.255.1` (docker bridge) | - All backend containers communicate internally on this bridge.<br>- NPM bridges both `external_npm` and `homelab`. |
+| `192.168.0.0/24` | Physical LAN | `192.168.0.1` | - `192.168.0.3`: UGREEN NAS Host OS (`nas.home`)<br>- `192.168.0.4`: Caddy Reverse Proxy (`*.kamaka.tech`) via `external_npm` macvlan<br>- `192.168.0.2`: Pi-hole DNS resolver |
+| `192.168.255.0/24` | Docker Bridge (`homelab`) | `192.168.255.1` (docker bridge) | - All backend containers communicate internally on this bridge.<br>- Caddy bridges both `external_npm` and `homelab`. |
 | `100.64.0.0/10` | Tailscale CGNAT | Tun device (`tailscale0`) | - Encrypted mesh overlay.<br>- Subnet routing and exit node traffic via `vpn-bridge`. |
 
 ---
 
-## Reverse Proxy (Nginx Proxy Manager) Database Schema
+## Reverse Proxy (Caddy Docker Proxy) Dynamic Routing
 
-NPM stores proxy host forwarding rules in an SQLite database mounted at:
-`${DOCKER_DATA_DIR}/nginx/data/database.sqlite`
+Caddy discovers routing configurations dynamically from container labels over the Docker socket `/var/run/docker.sock`. Wildcard certificates are provisioned automatically via Cloudflare DNS-01 ACME.
 
-### Querying Proxy Hosts:
+### Inspecting Dynamic Routes:
 ```bash
-sqlite3 /volume2/docker/nginx/data/database.sqlite \
-  "SELECT id, domain_names, forward_host, forward_port, advanced_config FROM proxy_host WHERE is_deleted=0;"
+docker exec caddy curl -s http://localhost:2019/config/apps/http/servers/srv0/routes | jq .
 ```
 
-### Key Proxy Host Mappings:
-- `turing.home` -> Homepage (`homepage:3000`)
-- `dockge.home` -> Dockge (`dockge:5001`)
-- `jellyfin.home` -> Jellyfin (`jellyfin:8096`)
-- `recipes.home` -> Tandoor (`recipes_web:80`)
-- `sonarr.home` -> Sonarr (`sonarr:8989`)
-- `radarr.home` -> Radarr (`radarr:7878`)
-- `qbittorrent.home` -> qBittorrent (`qbittorrentvpn:8080`)
-- `vpn-bridge.home` -> Tailscale web UI (`tailscale-pia:8088`)
+### Key Service Mappings:
+- `homepage.kamaka.tech` -> Homepage (`homepage:3000`)
+- `dockge.kamaka.tech` -> Dockge (`dockge:5001`)
+- `jellyfin.kamaka.tech` -> Jellyfin (`jellyfin:8096`)
+- `seerr.kamaka.tech` -> Seerr (`seerr:5055`)
+- `recipes.kamaka.tech` -> Mealie (`mealie:9000`)
+- `sonarr.kamaka.tech` -> Sonarr (`sonarr:8989`)
+- `radarr.kamaka.tech` -> Radarr (`radarr:7878`)
+- `prowlarr.kamaka.tech` -> Prowlarr (`prowlarr:9696`)
+- `torrent.kamaka.tech` -> qBittorrent (`qbittorrentvpn:8081`)
+- `download.kamaka.tech` -> Caddy File Delivery (`/downloads`)
+- `nas.kamaka.tech` -> UGOS Host Portal (`192.168.255.1:9999`)
 
 ---
 
@@ -39,9 +40,9 @@ Under Linux macvlan networking, the host OS kernel explicitly prevents direct co
 
 ### Implications:
 1. Probing `192.168.0.4` directly from the NAS host shell (`curl https://192.168.0.4`) may fail or time out unless a macvlan bridge shim (`macvlan-shim`) is configured on the host.
-2. The automated smoke tests impersonate client requests by probing NPM's container IP directly or routing via bridge adapters:
+2. The automated smoke tests impersonate client requests by probing Caddy's container IP directly or routing via bridge adapters:
    ```bash
-   curl -skL -H "Host: jellyfin.home" "https://${NPM_IPV4_ADDRESS}"
+   curl -skL -H "Host: jellyfin.kamaka.tech" "https://${NPM_IPV4_ADDRESS}"
    ```
 
 ---
