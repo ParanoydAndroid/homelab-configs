@@ -27,6 +27,7 @@ services:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/calibre-web/data:/config
       - ${MEDIA_DIR:?See env.example for default.}/books/library:/books
       - ${MEDIA_DIR:?See env.example for default.}/books/import:/import
+      - ./calibre-web/custom-cont-init.d:/custom-cont-init.d:ro
     networks:
       - homelab
     logging:
