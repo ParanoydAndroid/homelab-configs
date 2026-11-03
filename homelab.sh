@@ -152,7 +152,7 @@ startup_homelab() {
       )
 
       # PostgreSQL readiness probe for dependent services
-      if [[ "${stack}" == "postgres" ]]; then
+      if [[ "${stack}" == "productivity" || "${stack}" == "postgres" ]]; then
         log_info "Waiting for PostgreSQL database readiness..."
         local pg_wait=20
         while ! (docker exec postgresql pg_isready -q 2>/dev/null || docker exec postgres pg_isready -q 2>/dev/null) && (( pg_wait > 0 )); do

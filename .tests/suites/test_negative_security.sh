@@ -19,8 +19,8 @@ _get_security_probe_container() {
 }
 
 test_security_jellyfin_metrics_blocked() {
-  if ! is_stack_enabled "jellyfin" || ! is_stack_enabled "nginx"; then
-    printf "Stack 'jellyfin' or 'nginx' omitted or disabled"
+  if (! is_stack_enabled "media" && ! is_stack_enabled "jellyfin") || (! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"); then
+    printf "Stack 'media' or 'ingress' omitted or disabled"
     return 77
   fi
   local probe_c
@@ -46,8 +46,8 @@ test_security_jellyfin_metrics_blocked() {
 }
 
 test_security_jellyfin_swagger_blocked() {
-  if ! is_stack_enabled "jellyfin" || ! is_stack_enabled "nginx"; then
-    printf "Stack 'jellyfin' or 'nginx' omitted or disabled"
+  if (! is_stack_enabled "media" && ! is_stack_enabled "jellyfin") || (! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"); then
+    printf "Stack 'media' or 'ingress' omitted or disabled"
     return 77
   fi
   local probe_c
@@ -73,8 +73,8 @@ test_security_jellyfin_swagger_blocked() {
 }
 
 test_security_jellyfin_api_docs_blocked() {
-  if ! is_stack_enabled "jellyfin" || ! is_stack_enabled "nginx"; then
-    printf "Stack 'jellyfin' or 'nginx' omitted or disabled"
+  if (! is_stack_enabled "media" && ! is_stack_enabled "jellyfin") || (! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"); then
+    printf "Stack 'media' or 'ingress' omitted or disabled"
     return 77
   fi
   local probe_c
@@ -100,8 +100,8 @@ test_security_jellyfin_api_docs_blocked() {
 }
 
 test_security_postgres_port_isolated_from_host() {
-  if ! is_stack_enabled "postgres"; then
-    printf "Stack 'postgres' omitted or disabled"
+  if ! is_stack_enabled "productivity" && ! is_stack_enabled "postgres"; then
+    printf "Stack 'productivity' omitted or disabled"
     return 77
   fi
   # Port 5432 must NOT be bound to host 0.0.0.0 or 127.0.0.1
@@ -114,8 +114,8 @@ test_security_postgres_port_isolated_from_host() {
 }
 
 test_security_npm_api_unauthenticated_rejected() {
-  if ! is_stack_enabled "nginx"; then
-    printf "Stack 'nginx' omitted or disabled"
+  if ! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"; then
+    printf "Stack 'ingress' omitted or disabled"
     return 77
   fi
   local probe_c
@@ -140,8 +140,8 @@ test_security_npm_api_unauthenticated_rejected() {
 }
 
 test_security_radarr_api_unauthenticated_rejected() {
-  if ! is_stack_enabled "sonarr-radarr"; then
-    printf "Stack 'sonarr-radarr' omitted or disabled"
+  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'media' omitted or disabled"
     return 77
   fi
   # Requesting Radarr movie REST API without an API key must return HTTP 401 Unauthorized
@@ -160,8 +160,8 @@ test_security_radarr_api_unauthenticated_rejected() {
 }
 
 test_security_sonarr_api_unauthenticated_rejected() {
-  if ! is_stack_enabled "sonarr-radarr"; then
-    printf "Stack 'sonarr-radarr' omitted or disabled"
+  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'media' omitted or disabled"
     return 77
   fi
   # Requesting Sonarr series REST API without an API key must return HTTP 401 Unauthorized

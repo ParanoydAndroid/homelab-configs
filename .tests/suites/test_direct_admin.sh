@@ -21,8 +21,8 @@ test_direct_dockge_host_port() {
 }
 
 test_direct_npm_admin_api() {
-  if ! is_stack_enabled "nginx"; then
-    printf "Stack 'nginx' omitted or disabled"
+  if ! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"; then
+    printf "Stack 'ingress' omitted or disabled"
     return 77
   fi
 

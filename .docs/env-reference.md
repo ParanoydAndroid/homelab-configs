@@ -92,12 +92,12 @@ These variables are defined in the repository root `.env` and synced automatical
 
 ---
 
-## 2. Per-Service Variables & Secrets
+## 2. Per-Stack Variables & Secrets
 
 These variables represent external credentials, cryptographic secrets, runtime selections, and API keys. They are declared in each `<stack>/.env.example` template with empty defaults and populated in untracked `<stack>/.env` files.
 
-### `cloudflared` Stack
-*See [Cloudflare Tunnel Service Entry](./service-catalog.md#cloudflare-tunnel-cloudflared).*
+### `ingress` Stack
+*See [Nginx Proxy Manager](./service-catalog.md#nginx-proxy-manager-npm) and [Cloudflare Tunnel](./service-catalog.md#cloudflare-tunnel-cloudflared).*
 
 * **`CLOUDFLARE_TUNNEL_TOKEN`**  
   *Default*: None (Required Secret)  
@@ -105,7 +105,7 @@ These variables represent external credentials, cryptographic secrets, runtime s
 
 ---
 
-### `homepage` Stack
+### `dashboard` Stack
 *See [Homepage Service Entry](./service-catalog.md#homepage).*
 
 * **`HOMEPAGE_VAR_PIHOLE_KEY`**  
@@ -114,42 +114,12 @@ These variables represent external credentials, cryptographic secrets, runtime s
 
 ---
 
-### `jellyfin` Stack
-*See [Jellyfin Service Entry](./service-catalog.md#jellyfin).*
+### `media` Stack
+*See [Jellyfin](./service-catalog.md#jellyfin), [Radarr](./service-catalog.md#radarr), [Sonarr](./service-catalog.md#sonarr), [Prowlarr](./service-catalog.md#prowlarr), and [Seerr](./service-catalog.md#seerr).*
 
 * **`JELLYFIN_API_KEY`**  
   *Default*: None (Optional API Secret)  
   *Description*: API token generated in Jellyfin Dashboard (**Administration -> API Keys**). Used by Homepage to poll live stream metrics.
-
----
-
-### `qbittorrentvpn` Stack
-*See [WireGuard PIA & qBittorrent Service Entry](./service-catalog.md#wireguard-pia-vpn--qbittorrent).*
-
-* **`VPN_USER`**  
-  *Default*: None (Required Secret)  
-  *Description*: Private Internet Access account username (`pXXXXXXX`).
-* **`VPN_PASS`**  
-  *Default*: None (Required Secret)  
-  *Description*: Private Internet Access account password.
-* **`QBITTORRENT_PASSWORD`**  
-  *Default*: None (Required Secret)  
-  *Description*: WebUI administrator password for qBittorrent.
-
----
-
-### `seerr` Stack
-*See [Seerr Service Entry](./service-catalog.md#seerr).*
-
-* **`SEERR_API_KEY`**  
-  *Default*: None (Optional API Secret)  
-  *Description*: 32-character REST API token for Seerr request management and media monitoring.
-
----
-
-### `sonarr-radarr` Stack
-*See [Radarr](./service-catalog.md#radarr), [Sonarr](./service-catalog.md#sonarr), and [Prowlarr](./service-catalog.md#prowlarr).*
-
 * **`RADARR_API_KEY`**  
   *Default*: None (Deterministic API Secret)  
   *Description*: 32-character REST API token for Radarr service integrations and Homepage widgets.
@@ -159,20 +129,35 @@ These variables represent external credentials, cryptographic secrets, runtime s
 * **`PROWLARR_API_KEY`**  
   *Default*: None (Deterministic API Secret)  
   *Description*: 32-character REST API token for Prowlarr indexer synchronization.
+* **`SEERR_API_KEY`**  
+  *Default*: None (Optional API Secret)  
+  *Description*: 32-character REST API token for Seerr request management and media monitoring.
 
 ---
 
-### `tailscale` Stack
-*See [Tailscale Router Service Entry](./service-catalog.md#tailscale-router).*
+### `mesh` Stack
+*See [Tailscale Router](./service-catalog.md#tailscale-router) and [VPN Bridge](./service-catalog.md#vpn-bridge-tailscale-exit-node-via-pia-wireguard).*
 
 * **`TS_AUTHKEY`**  
   *Default*: None (Optional One-Time Secret)  
-  *Description*: Reusable pre-authentication key generated in Tailscale Admin Console (**Settings -> Keys**). Optional after initial node registration.
+  *Description*: Reusable pre-authentication key generated in Tailscale Admin Console (**Settings -> Keys**) for the primary subnet router node (`homelab`). Optional after initial node registration.
+* **`VPN_USER`**  
+  *Default*: None (Required Secret)  
+  *Description*: Private Internet Access account username (`pXXXXXXX`) for the exit node privacy bridge.
+* **`VPN_PASS`**  
+  *Default*: None (Required Secret)  
+  *Description*: Private Internet Access account password for the exit node privacy bridge.
+* **`PIA_REGION`**  
+  *Default*: `us_east,us_chicago,us_nyc`  
+  *Description*: Comma-separated list of PIA US server regions for exit node egress.
+* **`EXIT_NODE_TS_AUTHKEY`**  
+  *Default*: None (Optional One-Time Secret)  
+  *Description*: Pre-authentication key generated in Tailscale Admin Console (**Settings -> Keys**) with Exit Node permissions for the privacy bridge node (`vpn-bridge`). Optional after initial node registration.
 
 ---
 
-### `tandoor` Stack
-*See [Tandoor Recipes Service Entry](./service-catalog.md#tandoor-recipes).*
+### `productivity` Stack
+*See [Tandoor Recipes](./service-catalog.md#tandoor-recipes) and [PostgreSQL](./service-catalog.md#postgresql).*
 
 * **`SECRET_KEY`**  
   *Default*: None (Required Cryptographic Secret)  
@@ -180,21 +165,21 @@ These variables represent external credentials, cryptographic secrets, runtime s
 
 ---
 
-### `vpn-bridge` Stack
-*See [VPN Bridge Service Entry](./service-catalog.md#vpn-bridge-tailscale-exit-node-via-pia-wireguard).*
+### `torrent` Stack
+*See [WireGuard PIA & qBittorrent Service Entry](./service-catalog.md#wireguard-pia-vpn--qbittorrent).*
 
 * **`VPN_USER`**  
   *Default*: None (Required Secret)  
-  *Description*: Private Internet Access account username (`pXXXXXXX`).
+  *Description*: Private Internet Access account username (`pXXXXXXX`) for torrent client egress.
 * **`VPN_PASS`**  
   *Default*: None (Required Secret)  
-  *Description*: Private Internet Access account password.
+  *Description*: Private Internet Access account password for torrent client egress.
 * **`PIA_REGION`**  
-  *Default*: `us_east,us_chicago,us_nyc`  
-  *Description*: Comma-separated list of PIA US server regions for exit node egress.
-* **`TS_AUTHKEY`**  
-  *Default*: None (Optional One-Time Secret)  
-  *Description*: One-time pre-authentication key generated in Tailscale Admin Console (**Settings -> Keys**) with Exit Node permissions.
+  *Default*: `ca_ontario,ca_toronto,ca_montreal`  
+  *Description*: Comma-separated list of PIA regions supporting NextGen dynamic port forwarding.
+* **`QBITTORRENT_PASSWORD`**  
+  *Default*: None (Required Secret)  
+  *Description*: WebUI administrator password for qBittorrent.
 
 ---
 
@@ -202,20 +187,19 @@ These variables represent external credentials, cryptographic secrets, runtime s
 
 In accordance with project conventions, configuration parameters representing fixed homelab invariants are inlined directly into `compose.yml` files rather than exposed as clutter in `.env.example` templates:
 
-| Service | Inlined Parameter | Static Value | Architectural Rationale |
+| Stack / Service | Inlined Parameter | Static Value | Architectural Rationale |
 | :--- | :--- | :--- | :--- |
-| **`homepage`** | `HOMEPAGE_ALLOWED_HOSTS` | `homepage.turing.home,www.turing.home,turing.home,192.168.0.4` | Enforces reverse proxy host header validation required by Homepage v0.8+. |
-| **`nginx`** | `DISABLE_IPV6` | `"true"` | Standardizes single-stack IPv4 routing across internal Docker networks. |
-| **`nginx`** | `DB_SQLITE_FILE` | `/data/db.sqlite` | Internal SQLite database location inside the NPM container. |
-| **`postgres`** | `POSTGRES_DB` / `USER` / `PASSWORD` | `recipes` / `postgres` / `password` | Internal container-to-container credentials isolated to the private `homelab` bridge network. |
-| **`qbittorrentvpn`** | `LOC` | `ca_ontario,ca_toronto,ca_montreal` | Regions supporting PIA NextGen dynamic port forwarding. |
-| **`qbittorrentvpn`** | `LOCAL_NETWORK` | `192.168.0.0/16` | Bypasses VPN kill switch for LAN and Docker subnets. |
-| **`qbittorrentvpn`** | `PORT_FORWARDING` / `PORT_FATAL` / `PORT_PERSIST` | `1` / `1` / `1` | Enforces automated port acquisition, fail-closed container exit on port drops, and ~60-day lease token persistence. |
-| **`qbittorrentvpn`** | `PORT_SCRIPT` | `/set-qbt-port.sh` | Automated port and anti-thrashing synchronization hook. |
-| **`seerr`** | `LOG_LEVEL` | `info` | Bounded logging verbosity. |
-| **`tailscale`** | `TS_HOSTNAME` / `TS_ROUTES` | `homelab` / `192.168.0.0/24` | Fixed subnet router identity and LAN advertised routes. |
-| **`tailscale`** | `TS_EXTRA_ARGS` | `--snat-subnet-routes=true --accept-dns=false` | Preserves local container DNS while enabling SNAT masquerading for remote peers. |
-| **`vpn-bridge`** | `FWD_IFACE` / `VPN_PROTOCOL` | `tailscale+` / `wireguard` | Enforces WireGuard NAT forwarding from Tailscale interface into PIA tunnel. |
+| **`dashboard` / `homepage`** | `HOMEPAGE_ALLOWED_HOSTS` | `homepage.turing.home,www.turing.home,turing.home,192.168.0.4` | Enforces reverse proxy host header validation required by Homepage v0.8+. |
+| **`ingress` / `nginx`** | `DISABLE_IPV6` | `"true"` | Standardizes single-stack IPv4 routing across internal Docker networks. |
+| **`ingress` / `nginx`** | `DB_SQLITE_FILE` | `/data/db.sqlite` | Internal SQLite database location inside the NPM container. |
+| **`productivity` / `postgresql`** | `POSTGRES_DB` / `USER` / `PASSWORD` | `recipes` / `postgres` / `password` | Internal container-to-container credentials isolated to the private `homelab` bridge network. |
+| **`torrent` / `wireguard-pia`** | `LOCAL_NETWORK` | `192.168.0.0/16` | Bypasses VPN kill switch for LAN and Docker subnets. |
+| **`torrent` / `wireguard-pia`** | `PORT_FORWARDING` / `PORT_FATAL` / `PORT_PERSIST` | `1` / `1` / `1` | Enforces automated port acquisition, fail-closed container exit on port drops, and ~60-day lease token persistence. |
+| **`torrent` / `wireguard-pia`** | `PORT_SCRIPT` | `/set-qbt-port.sh` | Automated port and anti-thrashing synchronization hook. |
+| **`media` / `seerr`** | `LOG_LEVEL` | `info` | Bounded logging verbosity. |
+| **`mesh` / `tailscale`** | `TS_HOSTNAME` / `TS_ROUTES` | `homelab` / `192.168.0.0/24` | Fixed subnet router identity and LAN advertised routes. |
+| **`mesh` / `tailscale`** | `TS_EXTRA_ARGS` | `--snat-subnet-routes=true --accept-dns=false` | Preserves local container DNS while enabling SNAT masquerading for remote peers. |
+| **`mesh` / `vpn-bridge-pia`** | `FWD_IFACE` / `VPN_PROTOCOL` | `tailscale+` / `wireguard` | Enforces WireGuard NAT forwarding from Tailscale interface into PIA tunnel. |
 
 ---
 
@@ -224,7 +208,7 @@ In accordance with project conventions, configuration parameters representing fi
 Homepage widgets consume service secrets without committing plaintext credentials to version control:
 
 1. **Docker Container Labels (Internal Containers)**:
-   Containers (`jellyfin`, `qbittorrentvpn`, `sonarr-radarr`) declare widget configuration using `${VAR}` syntax in their `compose.yml`:
+   Containers (`jellyfin`, `qbittorrentvpn`, `sonarr`, `radarr`) declare widget configuration using `${VAR}` syntax in their `compose.yml`:
    ```yaml
    labels:
      - homepage.group=Media
@@ -235,4 +219,4 @@ Homepage widgets consume service secrets without committing plaintext credential
    ```
    Docker Compose reads each stack's `.env` and interpolates the API key into container metadata. Homepage reads the resolved key via `/var/run/docker.sock` and polls the service across the `homelab` bridge.
 2. **Static Environment Substitution (`HOMEPAGE_VAR_*` for External Appliances)**:
-   Non-containerized appliances (like Pi-hole on `192.168.0.2`) are declared in `${DOCKER_DATA_DIR}/homepage/data/services.yaml`. Homepage natively interpolates `{{HOMEPAGE_VAR_<NAME>}}` placeholders with matching environment variables declared in `homepage/compose.yml`.
+   Non-containerized appliances (like Pi-hole on `192.168.0.2`) are declared in `${DOCKER_DATA_DIR}/homepage/data/services.yaml`. Homepage natively interpolates `{{HOMEPAGE_VAR_<NAME>}}` placeholders with matching environment variables declared in `dashboard/compose.yml`.

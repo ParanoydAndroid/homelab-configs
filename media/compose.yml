@@ -1,19 +1,84 @@
 # ==============================================================================
-# Stack: Media Automation Suite (sonarr-radarr/compose.yml)
+# Stack: Media Streaming, Automation & Indexing (media/compose.yml)
 #
-# Services:
-#   - radarr:       Movie collection manager (https://radarr.turing.home)
-#   - sonarr:       TV series collection manager (https://sonarr.turing.home)
-#   - prowlarr:     Indexer manager synced with Radarr/Sonarr (https://prowlarr.turing.home)
-#   - flaresolverr: Headless browser proxy for Cloudflare-protected indexers
-#
-# UID/GID & Entrypoint Note:
-#   LinuxServer.io images ('lscr.io/linuxserver/*') use s6-overlay, which starts
-#   as root to initialize container permissions and then drops privileges to
-#   PUID:PGID (1000:100). Do NOT set Compose 'user:' on these services.
+# Purpose:
+#   Integrated media pipeline:
+#     - jellyfin: Local media streaming server with hardware transcoding (QuickSync).
+#     - seerr: User discovery, request management, and media approval portal.
+#     - sonarr: TV series tracking and automated download management.
+#     - radarr: Movie tracking and automated download management.
+#     - prowlarr: Unified indexer manager syncing indexers to Sonarr and Radarr.
+#     - flaresolverr: Proxy for bypassing Cloudflare anti-bot challenges on indexers.
 # ==============================================================================
 
 services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    hostname: jellyfin
+    user: "${PUID:?See env.example for default.}:${PGID:?See env.example for default.}"
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    group_add:
+      - "105"
+    environment:
+      PUID: ${PUID:?See env.example for default.}
+      PGID: ${PGID:?See env.example for default.}
+      UMASK: "022"
+      TZ: ${TZ:?See env.example for default.}
+      JELLYFIN_PublishedServerUrl: http://jellyfin:8096
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/jellyfin/data/config:/config
+      - ${MEDIA_DIR:?See env.example for default.}:/data/media:ro
+    tmpfs:
+      - /transcode:size=4G,mode=1777
+    ports:
+      - 8022:7359/udp
+    networks:
+      - homelab
+    labels:
+      - homepage.group=Players
+      - homepage.name=Jellyfin
+      - homepage.icon=jellyfin
+      - homepage.href=https://jellyfin.turing.home
+      - homepage.description=Media Server
+      - homepage.widget.type=jellyfin
+      - homepage.widget.version=2
+      - homepage.widget.url=http://jellyfin:8096
+      - homepage.widget.key=${JELLYFIN_API_KEY:?See env.example for default.}
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    hostname: seerr
+    restart: unless-stopped
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      LOG_LEVEL: debug
+      TZ: ${TZ:?See env.example for default.}
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/seerr/data:/app/config
+    networks:
+      - homelab
+    labels:
+      - homepage.group=Media Requests
+      - homepage.name=Seerr
+      - homepage.icon=seerr
+      - homepage.href=https://seerr.turing.home
+      - homepage.description=Media Requests
+      - homepage.widget.type=overseerr
+      - homepage.widget.url=http://seerr:5055
+      - homepage.widget.key=${SEERR_API_KEY:?See env.example for default.}
+
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
@@ -27,8 +92,6 @@ services:
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/radarr/data:/config
       - ${MEDIA_DIR:?See env.example for default.}:/media
-    # ports:
-    #   - 8040:7878
     networks:
       - homelab
     labels:
@@ -55,8 +118,6 @@ services:
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/sonarr/data:/config
       - ${MEDIA_DIR:?See env.example for default.}:/media
-    # ports:
-    #   - 8041:8989
     networks:
       - homelab
     labels:
@@ -82,8 +143,6 @@ services:
       PROWLARR__AUTH__APIKEY: ${PROWLARR_API_KEY:?See env.example for default.}
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/prowlarr/data:/config
-    # ports:
-    #   - 8042:9696
     networks:
       - homelab
     labels:
@@ -106,8 +165,6 @@ services:
       LOG_HTML: "false"
       CAPTCHA_SOLVER: none
       TZ: ${TZ:?See env.example for default.}
-    # ports:
-    #   - 8043:8191
     networks:
       - homelab
     labels:

@@ -225,7 +225,7 @@ To avoid duplicating disk space and eliminate file copy delays when torrent down
 
 ### Interactive Configuration
 1. **Verify Unified Media Mounts**:
-   In `sonarr-radarr/compose.yml` and `qbittorrentvpn/compose.yml`, confirm all services mount the unified `${MEDIA_DIR}:/media` parent directory rather than isolated subfolder volumes.
+   In `media/compose.yml` and `torrent/compose.yml`, confirm all services mount the unified `${MEDIA_DIR}:/media` parent directory rather than isolated subfolder volumes.
 2. **Enable Hardlinks in Radarr & Sonarr**:
    * In Radarr: Navigate to **Settings -> Media Management**. Under **Importing**, ensure **Use Hardlinks instead of Copy** is enabled.
    * In Sonarr: Navigate to **Settings -> Media Management**. Under **Importing**, ensure **Use Hardlinks instead of Copy** is enabled.

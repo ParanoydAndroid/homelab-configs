@@ -1,40 +1,56 @@
 # ==============================================================================
-# Stack: Tandoor Recipes (tandoor/compose.yml)
+# Stack: Productivity Applications & Databases (productivity/compose.yml)
 #
 # Purpose:
-#   Recipe management application accessible on the LAN (https://recipes.turing.home)
-#   and externally (https://recipes.kamaka.tech) via Nginx Proxy Manager, backed
-#   by the 'postgresql' container on the 'homelab' bridge network.
+#   Productivity suite combining Tandoor Recipes with a co-located PostgreSQL
+#   database container.
 #
-# UID/GID & Media Serving Note:
-#   - Tandoor's entrypoint ('boot.sh') starts as root and drops privileges to
-#     PUID:PGID (1000:100) via su-exec. Do NOT set Compose 'user:'.
-#   - Uploaded recipe images in '${DOCKER_DATA_DIR}/tandoor/data/mediafiles' are
-#     also bind-mounted read-only into the 'nginx' container at '/media:ro' so
-#     Nginx Proxy Manager serves '/media/' requests directly in production.
+# Architecture:
+#   - postgresql: Database server with healthcheck (pg_isready).
+#   - tandoor: Application server with native depends_on waiting for postgresql
+#     healthy status, eliminating cross-stack boot race conditions.
 # ==============================================================================
 
 services:
+  postgresql:
+    image: postgres:16-alpine
+    container_name: postgresql
+    hostname: postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: recipes
+      TZ: ${TZ:?See env.example for default.}
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/postgres/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d recipes"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - homelab
+
   tandoor:
     image: vabene1111/recipes
     container_name: tandoor
     hostname: tandoor
     restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
     environment:
       PUID: ${PUID:?See env.example for default.}
       PGID: ${PGID:?See env.example for default.}
       TZ: ${TZ:?See env.example for default.}
-      # Random cryptographic secret key (populated in tandoor/.env)
       SECRET_KEY: ${SECRET_KEY:?See env.example for default.}
-      # Restrict allowed HTTP Host headers to configured external, LAN, and internal domains
       ALLOWED_HOSTS: recipes.kamaka.tech,recipes.turing.home,tandoor,localhost,127.0.0.1
       DATABASE_URL: postgresql://postgres:password@postgresql:5432/recipes
       TANDOOR_PORT: 8050
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/tandoor/data/staticfiles:/opt/recipes/staticfiles
       - ${DOCKER_DATA_DIR:?See env.example for default.}/tandoor/data/mediafiles:/opt/recipes/mediafiles
-    # ports:
-    #   - 8050:8050
     networks:
       - homelab
     labels:

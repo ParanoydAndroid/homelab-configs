@@ -41,67 +41,131 @@ test_docker_up_dockge() {
 }
 
 test_docker_up_postgresql() {
-  _assert_container_running "postgresql" "postgres"
+  if ! is_stack_enabled "productivity" && ! is_stack_enabled "postgres"; then
+    printf "Stack 'productivity' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "postgresql"
 }
 
 test_docker_up_nginx() {
-  _assert_container_running "nginx" "nginx"
+  if ! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"; then
+    printf "Stack 'ingress' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "nginx"
 }
 
 test_docker_up_tailscale() {
-  _assert_container_running "tailscale" "tailscale"
+  if ! is_stack_enabled "mesh" && ! is_stack_enabled "tailscale"; then
+    printf "Stack 'mesh' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "tailscale"
 }
 
 test_docker_up_homepage() {
-  _assert_container_running "homepage" "homepage"
+  if ! is_stack_enabled "dashboard" && ! is_stack_enabled "homepage"; then
+    printf "Stack 'dashboard' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "homepage"
 }
 
 test_docker_up_jellyfin() {
-  _assert_container_running "jellyfin" "jellyfin"
+  if ! is_stack_enabled "media" && ! is_stack_enabled "jellyfin"; then
+    printf "Stack 'media' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "jellyfin"
 }
 
 test_docker_up_wireguard_pia() {
-  _assert_container_running "wireguard-pia" "qbittorrentvpn"
+  if ! is_stack_enabled "torrent" && ! is_stack_enabled "qbittorrentvpn"; then
+    printf "Stack 'torrent' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "wireguard-pia"
 }
 
 test_docker_up_qbittorrentvpn() {
-  _assert_container_running "qbittorrentvpn" "qbittorrentvpn"
+  if ! is_stack_enabled "torrent" && ! is_stack_enabled "qbittorrentvpn"; then
+    printf "Stack 'torrent' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "qbittorrentvpn"
 }
 
 test_docker_up_radarr() {
-  _assert_container_running "radarr" "sonarr-radarr"
+  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'media' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "radarr"
 }
 
 test_docker_up_sonarr() {
-  _assert_container_running "sonarr" "sonarr-radarr"
+  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'media' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "sonarr"
 }
 
 test_docker_up_prowlarr() {
-  _assert_container_running "prowlarr" "sonarr-radarr"
+  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'media' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "prowlarr"
 }
 
 test_docker_up_flaresolverr() {
-  _assert_container_running "flaresolverr" "sonarr-radarr"
+  if ! is_stack_enabled "media" && ! is_stack_enabled "sonarr-radarr"; then
+    printf "Stack 'media' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "flaresolverr"
 }
 
 test_docker_up_seerr() {
-  _assert_container_running "seerr" "seerr"
+  if ! is_stack_enabled "media" && ! is_stack_enabled "seerr"; then
+    printf "Stack 'media' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "seerr"
 }
 
 test_docker_up_tandoor() {
-  _assert_container_running "tandoor" "tandoor"
+  if ! is_stack_enabled "productivity" && ! is_stack_enabled "tandoor"; then
+    printf "Stack 'productivity' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "tandoor"
 }
 
 test_docker_up_cloudflared() {
-  _assert_container_running "cloudflared" "cloudflared"
+  if ! is_stack_enabled "ingress" && ! is_stack_enabled "cloudflared"; then
+    printf "Stack 'ingress' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "cloudflared"
 }
 
 test_docker_up_vpn_bridge_pia() {
-  _assert_container_running "vpn-bridge-pia" "vpn-bridge"
+  if ! is_stack_enabled "mesh" && ! is_stack_enabled "vpn-bridge"; then
+    printf "Stack 'mesh' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "vpn-bridge-pia"
 }
 
 test_docker_up_vpn_bridge_tailscale() {
-  _assert_container_running "vpn-bridge-tailscale" "vpn-bridge"
+  if ! is_stack_enabled "mesh" && ! is_stack_enabled "vpn-bridge"; then
+    printf "Stack 'mesh' omitted or disabled"
+    return 77
+  fi
+  _assert_container_running "vpn-bridge-tailscale"
 }
 
 suite_containers() {

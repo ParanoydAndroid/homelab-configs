@@ -1,0 +1,72 @@
+# ==============================================================================
+# Stack: Killswitched Torrent Client (torrent/compose.yml)
+#
+# Purpose:
+#   Secure BitTorrent downloading via Private Internet Access (PIA) WireGuard:
+#     - vpn: WireGuard client with killswitch, port forwarding (PORT_FORWARDING=1),
+#       and dynamic port synchronization hook (/config/set-qbt-port.sh).
+#     - qbittorrent: WebUI BitTorrent client routed entirely through the VPN
+#       container's network namespace (network_mode: "service:vpn").
+# ==============================================================================
+
+services:
+  vpn:
+    image: thrnz/docker-wireguard-pia:latest
+    container_name: wireguard-pia
+    hostname: qbittorrentvpn
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.default.disable_ipv6=1
+      - net.ipv6.conf.all.disable_ipv6=1
+      - net.ipv6.conf.lo.disable_ipv6=1
+    environment:
+      USER: ${VPN_USER:?See env.example for default.}
+      PASS: ${VPN_PASS:?See env.example for default.}
+      LOC: ${PIA_REGION:?See env.example for default.}
+      PORT_FORWARDING: 1
+      LOCAL_NETWORK: 192.168.0.0/16
+      VPNDNS: 9.9.9.9,149.112.112.112
+      PORT_PERSIST: 1
+      PORT_SUCCESS_SCRIPT: /config/set-qbt-port.sh
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/pia:/pia
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data:/config
+    networks:
+      homelab:
+        aliases:
+          - qbittorrentvpn
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrentvpn
+    restart: unless-stopped
+    network_mode: "service:vpn"
+    depends_on:
+      vpn:
+        condition: service_healthy
+    environment:
+      PUID: ${PUID:?See env.example for default.}
+      PGID: ${PGID:?See env.example for default.}
+      TZ: ${TZ:?See env.example for default.}
+      WEBUI_PORT: 8081
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/config:/config
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/incomplete:/incomplete
+      - ${MEDIA_DIR:?See env.example for default.}:/media
+    labels:
+      - homepage.group=Downloads
+      - homepage.name=QBittorrentVPN
+      - homepage.icon=qbittorrent
+      - homepage.href=https://torrent.turing.home
+      - homepage.description=BitTorrent Client
+      - homepage.widget.type=qbittorrent
+      - homepage.widget.url=http://qbittorrentvpn:8081
+      - homepage.widget.username=admin
+      - homepage.widget.password=${QBITTORRENT_PASSWORD:?See env.example for default.}
+
+networks:
+  homelab:
+    external: true

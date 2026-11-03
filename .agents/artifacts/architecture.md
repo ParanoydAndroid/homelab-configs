@@ -5,7 +5,7 @@
 This repository is the single source of truth for the declarative configuration, container orchestration, and lifecycle automation of the UGREEN NAS homelab environment (`nas.home` / `turing.home`).
 
 The project encompasses:
-- **Containerized Service Stacks**: Declarative Docker Compose v2+ definitions for reverse proxy routing (`nginx`), dashboard and service discovery (`homepage`), media streaming (`jellyfin`), automated media acquisition (`sonarr-radarr` and `qbittorrentvpn` over PIA WireGuard), recipe management (`tandoor`), relational database storage (`postgres`), and web-based stack orchestration (`dockge`).
+- **Containerized Service Stacks**: Declarative Docker Compose v2+ definitions across 6 domain-aligned stacks: edge routing and tunnels (`ingress`), mesh networking and privacy bridge (`mesh`), media streaming and acquisition (`media`), torrenting and download client (`torrent`), recipe management and database storage (`productivity`), and central dashboard (`dashboard`), with web-based stack orchestration via `dockge`.
 - **Tracked Application Configurations (`.configs/`)**: Bootstrapping assets and templates—including Dockge orchestrator compose definitions, local certificate scripts, qBittorrent port-forwarding scripts, and systemd units/timers.
 - **Lifecycle, Testing, and Backup Automation (`homelab.sh`)**: Idempotent CLI tooling for host OS workaround convergence, two-tier `.env` initialization and secret propagation, Docker network provisioning, non-disruptive Restic-based volume backups with online database staging, fast end-to-end smoke testing, and disaster recovery restoration.
 
@@ -68,35 +68,22 @@ The project encompasses:
 ├── BACKLOG.md
 ├── README.md
 ├── homelab.sh
-├── cloudflared/
+├── dashboard/
 │   ├── .env.example
 │   └── compose.yml
-├── homepage/
+├── ingress/
 │   ├── .env.example
 │   └── compose.yml
-├── jellyfin/
+├── media/
 │   ├── .env.example
 │   └── compose.yml
-├── nginx/
-│   └── compose.yml
-├── postgres/
-│   └── compose.yml
-├── qbittorrentvpn/
+├── mesh/
 │   ├── .env.example
 │   └── compose.yml
-├── seerr/
+├── productivity/
 │   ├── .env.example
 │   └── compose.yml
-├── sonarr-radarr/
-│   ├── .env.example
-│   └── compose.yml
-├── tailscale/
-│   ├── .env.example
-│   └── compose.yml
-├── tandoor/
-│   ├── .env.example
-│   └── compose.yml
-└── vpn-bridge/
+└── torrent/
     ├── .env.example
     └── compose.yml
 ```

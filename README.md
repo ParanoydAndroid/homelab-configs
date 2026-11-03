@@ -43,7 +43,7 @@ cd "${HOME}/services"
 sudo ./homelab.sh setup
 
 # 3. Populate required per-stack secrets in generated .env files
-#    (cloudflared, tailscale, vpn-bridge, qbittorrentvpn, jellyfin, sonarr-radarr, seerr, tandoor)
+#    (ingress, mesh, torrent, media, productivity, dashboard)
 
 # 4. Re-run setup to sync variables, deploy configs, and launch all stacks
 sudo ./homelab.sh setup

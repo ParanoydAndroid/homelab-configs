@@ -313,9 +313,10 @@ stage_database_dumps() {
   if command -v sqlite3 >/dev/null 2>&1; then
     local sqlite_dbs=(
       "${DOCKER_DATA_DIR}/nginx/data/db.sqlite"
-      "${DOCKER_DATA_DIR}/jellyfin/data/data/jellyfin.db"
-      "${DOCKER_DATA_DIR}/sonarr-radarr/data/sonarr/sonarr.db"
-      "${DOCKER_DATA_DIR}/sonarr-radarr/data/radarr/radarr.db"
+      "${DOCKER_DATA_DIR}/jellyfin/data/config/data/jellyfin.db"
+      "${DOCKER_DATA_DIR}/sonarr/data/sonarr.db"
+      "${DOCKER_DATA_DIR}/radarr/data/radarr.db"
+      "${DOCKER_DATA_DIR}/prowlarr/data/prowlarr.db"
     )
     local db db_name
     for db in "${sqlite_dbs[@]}"; do

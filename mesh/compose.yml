@@ -1,27 +1,49 @@
 # ==============================================================================
-# Stack: Dedicated Tailscale PIA Exit Node (vpn-bridge/compose.yml)
+# Stack: Mesh Networking & Tunnels (mesh/compose.yml)
 #
 # Purpose:
-#   Provides a dedicated, secure exit node on your Tailnet. Remote Tailscale
-#   client devices (phones, laptops) can route their public internet traffic
-#   through Private Internet Access (PIA) to prevent public ISP IP leaks on
-#   untrusted networks, while retaining direct LAN access to homelab services
-#   via the primary 'tailscale' subnet router.
-#
-# Architecture:
-#   Co-locates the PIA WireGuard tunnel client and Tailscale daemon inside
-#   the exact same Docker network namespace ('network_mode: "service:vpn"'):
-#     1. 'vpn' (thrnz/docker-wireguard-pia):
-#        Establishes a WireGuard tunnel (wg0) to a domestic US PIA endpoint,
-#        enforces an iptables kill switch, enables IPv4 transit forwarding, and
-#        masquerades traffic arriving from 'tailscale0' out through 'wg0'.
-#     2. 'tailscale' (tailscale/tailscale):
-#        Attaches to the WireGuard container's network namespace, joins the
-#        Tailnet as 'vpn-bridge', and advertises itself as a Tailscale exit node
-#        ('--advertise-exit-node').
+#   Maintains homelab connectivity on the Tailscale mesh network:
+#     1. 'tailscale': Primary subnet router advertising 192.168.0.0/24 onto the Tailnet.
+#     2. 'vpn': Dedicated WireGuard client connected to PIA for exit node egress.
+#     3. 'tailscale-exit': Tailscale daemon attached to 'vpn' network namespace
+#        advertising itself as an exit node (--advertise-exit-node).
 # ==============================================================================
 
 services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    hostname: homelab
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_HOSTNAME: homelab
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_ROUTES: 192.168.0.0/24
+      TS_EXTRA_ARGS: --snat-subnet-routes=true --accept-dns=false
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/tailscale/data:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      homelab:
+      external_npm:
+        ipv4_address: ${TAILSCALE_IPV4_ADDRESS:?See env.example for default.}
+    labels:
+      - homepage.group=Network
+      - homepage.name=Tailscale Router
+      - homepage.icon=tailscale
+      - homepage.href=https://login.tailscale.com/admin/machines
+      - homepage.description=Mesh Subnet Router
+
   vpn:
     image: thrnz/docker-wireguard-pia:latest
     container_name: vpn-bridge-pia
@@ -44,10 +66,6 @@ services:
       FWD_IFACE: tailscale+
       LOCAL_NETWORK: 192.168.0.0/16
       VPNDNS: 9.9.9.9,149.112.112.112
-      # By default, Tailscale marks daemon packets with fwmark 0x80000 and routes them
-      # to table 'main' (eth0), where PIA's firewall drops non-LAN WAN traffic.
-      # Rule 5200 routes Tailscale's mark to PIA's WireGuard table (51820), allowing
-      # the Tailscale daemon to reach controlplane and DERP servers through PIA.
       POST_UP: ip rule add fwmark 0x80000/0xff0000 table 51820 priority 5200 2>/dev/null || true
       POST_RECONNECT: ip rule add fwmark 0x80000/0xff0000 table 51820 priority 5200 2>/dev/null || true
     volumes:
@@ -55,7 +73,7 @@ services:
     networks:
       - homelab
 
-  tailscale:
+  tailscale-exit:
     image: tailscale/tailscale:latest
     container_name: vpn-bridge-tailscale
     restart: unless-stopped
@@ -88,4 +106,6 @@ services:
 
 networks:
   homelab:
+    external: true
+  external_npm:
     external: true

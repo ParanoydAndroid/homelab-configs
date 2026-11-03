@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.8.0] / [2026.11.2.2] - Homelab Stack Consolidation & Semantic Rebalancing (2026-11-02)
+
+### Changed
+* Rebalanced and consolidated the 11 granular Compose stacks down to 6 domain-aligned stacks matching service lifecycles and operational responsibilities:
+  - `ingress/`: Combined Nginx Proxy Manager and Cloudflare Tunnel for unified ingress edge control.
+  - `mesh/`: Combined Tailscale subnet router and WireGuard PIA exit node privacy bridge.
+  - `media/`: Unified Jellyfin media server and the acquisition suite (Radarr, Sonarr, Prowlarr, FlareSolverr, and Seerr).
+  - `torrent/`: Dedicated VPN network namespace and BitTorrent client (WireGuard PIA + qBittorrent).
+  - `productivity/`: Co-located Tandoor Recipes application server with its isolated PostgreSQL database engine.
+  - `dashboard/`: Dedicated Homepage service portal and dashboard.
+* Maintained separate, independent PIA VPN credential environments between `mesh/.env` (US exit node) and `torrent/.env` (Canada port-forwarding).
+* Updated priority startup ordering in `discover_stacks()` (`.scripts/common.sh`) to ensure deterministic boot sequence (`productivity`, `ingress`, `mesh`, `dashboard`, `media`, `torrent`).
+* Updated PostgreSQL initialization readiness checks in `homelab.sh` to recognize `productivity` stack orchestration.
+* Adapted all automated smoke test suites in `.tests/suites/` (`test_containers.sh`, `test_direct_admin.sh`, `test_routing.sh`, `test_interconnect.sh`, `test_negative_security.sh`) to the 6 rebalanced stacks, achieving 57/57 passed tests.
+* Updated homelab architecture specifications (`.agents/artifacts/architecture.md`), project organization docs (`.docs/project-organization.md`), service catalog (`.docs/service-catalog.md`), environment variable reference (`.docs/env-reference.md`), performance guide (`.docs/performance-optimization.md`), and `README.md`.
+
+### Fixed
+* Corrected SQLite database paths in `.scripts/backup.sh` for Sonarr, Radarr, Prowlarr, and Jellyfin to match persistent disk locations (`${DOCKER_DATA_DIR}/<service>/data/...`), ensuring online checkpoints stage properly during backups.
+
+---
+
 ## [2.7.0] / [2026.11.2.1] - Project Administration Skills Suite, Dynamic Stack Discovery & Adaptive Testing (2026-11-02)
 
 ### Added

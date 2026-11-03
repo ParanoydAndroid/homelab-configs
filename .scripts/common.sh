@@ -54,7 +54,7 @@ discover_stacks() {
   done
 
   # Foundational priority order
-  local priority_order=("postgres" "nginx" "tailscale" "vpn-bridge")
+  local priority_order=("productivity" "ingress" "mesh" "dashboard" "postgres" "nginx" "tailscale" "vpn-bridge")
   local ordered_stacks=()
   local remaining_stacks=()
 

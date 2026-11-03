@@ -11,19 +11,12 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 ```text
 ~/services/
 ├── compose stack directories/     # Each non-hidden directory represents a single Dockge stack
-│   ├── cloudflared/
-│   │   ├── compose.yml            # Docker Compose service definition
-│   │   └── .env.example           # Per-stack secret & variable template
-│   ├── homepage/
-│   ├── jellyfin/
-│   ├── nginx/
-│   ├── postgres/
-│   ├── qbittorrentvpn/
-│   ├── seerr/
-│   ├── sonarr-radarr/
-│   ├── tailscale/
-│   ├── tandoor/
-│   └── vpn-bridge/
+│   ├── dashboard/                 # Homepage dashboard
+│   ├── ingress/                   # Nginx Proxy Manager + Cloudflare Tunnel
+│   ├── media/                     # Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, FlareSolverr
+│   ├── mesh/                      # Tailscale Subnet Router + PIA WireGuard Exit Node
+│   ├── productivity/              # Tandoor Recipes + PostgreSQL
+│   └── torrent/                   # WireGuard PIA + qBittorrent client
 ├── .configs/                      # Bootstrapping assets and systemd service templates
 │   ├── dockge/                    # Dockge's own compose.yml and .env.example
 │   ├── nginx/                     # Local fallback certificate generator script

@@ -14,14 +14,25 @@ _curl_vhost() {
   local expected_regex="${3:-^(200|301|302|307|308)$}"
   local stack="${4:-}"
 
-  if ! is_stack_enabled "nginx"; then
-    printf "Reverse proxy stack 'nginx' omitted or disabled"
+  if ! is_stack_enabled "ingress" && ! is_stack_enabled "nginx"; then
+    printf "Reverse proxy stack 'ingress' omitted or disabled"
     return 77
   fi
 
-  if [[ -n "${stack}" ]] && ! is_stack_enabled "${stack}"; then
-    printf "Stack '%s' omitted or disabled" "${stack}"
-    return 77
+  if [[ -n "${stack}" ]]; then
+    local stack_active=0
+    case "${stack}" in
+      dashboard) is_stack_enabled "dashboard" || is_stack_enabled "homepage" && stack_active=1 ;;
+      ingress) is_stack_enabled "ingress" || is_stack_enabled "nginx" && stack_active=1 ;;
+      media) is_stack_enabled "media" || is_stack_enabled "jellyfin" || is_stack_enabled "sonarr-radarr" || is_stack_enabled "seerr" && stack_active=1 ;;
+      torrent) is_stack_enabled "torrent" || is_stack_enabled "qbittorrentvpn" && stack_active=1 ;;
+      productivity) is_stack_enabled "productivity" || is_stack_enabled "tandoor" && stack_active=1 ;;
+      *) is_stack_enabled "${stack}" && stack_active=1 ;;
+    esac
+    if [[ "${stack_active}" -eq 0 ]]; then
+      printf "Stack '%s' omitted or disabled" "${stack}"
+      return 77
+    fi
   fi
 
   local probe_container=""
@@ -59,11 +70,11 @@ _curl_vhost() {
 }
 
 test_vhost_homepage_internal() {
-  _curl_vhost "homepage.turing.home" "/" "^200$" "homepage"
+  _curl_vhost "homepage.turing.home" "/" "^200$" "dashboard"
 }
 
 test_vhost_proxy_internal() {
-  _curl_vhost "proxy.turing.home" "/" "^200$" "nginx"
+  _curl_vhost "proxy.turing.home" "/" "^200$" "ingress"
 }
 
 test_vhost_dockge_internal() {
@@ -71,35 +82,35 @@ test_vhost_dockge_internal() {
 }
 
 test_vhost_jellyfin_internal() {
-  _curl_vhost "jellyfin.turing.home" "/web/index.html" "^200$" "jellyfin"
+  _curl_vhost "jellyfin.turing.home" "/web/index.html" "^200$" "media"
 }
 
 test_vhost_radarr_internal() {
-  _curl_vhost "radarr.turing.home" "/ping" "^200$" "sonarr-radarr"
+  _curl_vhost "radarr.turing.home" "/ping" "^200$" "media"
 }
 
 test_vhost_sonarr_internal() {
-  _curl_vhost "sonarr.turing.home" "/ping" "^200$" "sonarr-radarr"
+  _curl_vhost "sonarr.turing.home" "/ping" "^200$" "media"
 }
 
 test_vhost_prowlarr_internal() {
-  _curl_vhost "prowlarr.turing.home" "/ping" "^200$" "sonarr-radarr"
+  _curl_vhost "prowlarr.turing.home" "/ping" "^200$" "media"
 }
 
 test_vhost_flaresolverr_internal() {
-  _curl_vhost "flaresolverr.turing.home" "/health" "^200$" "sonarr-radarr"
+  _curl_vhost "flaresolverr.turing.home" "/health" "^200$" "media"
 }
 
 test_vhost_seerr_internal() {
-  _curl_vhost "seerr.turing.home" "/api/v1/status" "^200$" "seerr"
+  _curl_vhost "seerr.turing.home" "/api/v1/status" "^200$" "media"
 }
 
 test_vhost_torrent_internal() {
-  _curl_vhost "torrent.turing.home" "/" "^200$" "qbittorrentvpn"
+  _curl_vhost "torrent.turing.home" "/" "^200$" "torrent"
 }
 
 test_vhost_recipes_internal() {
-  _curl_vhost "recipes.turing.home" "/" "^(200|302)$" "tandoor"
+  _curl_vhost "recipes.turing.home" "/" "^(200|302)$" "productivity"
 }
 
 test_vhost_nas_internal() {
@@ -107,11 +118,11 @@ test_vhost_nas_internal() {
 }
 
 test_vhost_jellyfin_external() {
-  _curl_vhost "jellyfin.kamaka.tech" "/web/index.html" "^200$" "jellyfin"
+  _curl_vhost "jellyfin.kamaka.tech" "/web/index.html" "^200$" "media"
 }
 
 test_vhost_recipes_external() {
-  _curl_vhost "recipes.kamaka.tech" "/" "^(200|302)$" "tandoor"
+  _curl_vhost "recipes.kamaka.tech" "/" "^(200|302)$" "productivity"
 }
 
 suite_routing() {

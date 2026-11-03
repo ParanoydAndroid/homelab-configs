@@ -12,23 +12,23 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **UGREEN NAS (UGOS)** | Host OS | N/A | `192.168.0.3:9443` | `9443` | HTTPS | `https://nas.turing.home` | None |
 | **Dockge** | `.configs/dockge` | `dockge` | `127.0.0.1:8010` / `192.168.0.3:8010` | `5001` | HTTP | `https://dockge.turing.home` | None |
-| **Nginx Proxy Manager** | `nginx/` | `nginx` | Macvlan `192.168.0.4` (`80`, `443`, `81`) | `80`, `443`, `81` | HTTP / HTTPS | `https://proxy.turing.home` | `https://*.kamaka.tech` (via Tunnel) |
-| **Tailscale Router** | `tailscale/` | `tailscale` | Macvlan `192.168.0.5` | N/A | WireGuard | Node `homelab` on Mesh | None |
-| **Cloudflare Tunnel** | `cloudflared/` | `cloudflared` | Outbound Egress Tunnel | N/A | QUIC / HTTP/2 | None | Public Ingress for `*.kamaka.tech` |
-| **Jellyfin** | `jellyfin/` | `jellyfin` | Internal Bridge Only | `8096` | HTTP | `https://jellyfin.turing.home` | `https://jellyfin.kamaka.tech` |
-| **Jellyfin Discovery** | `jellyfin/` | `jellyfin` | `0.0.0.0:8022:7359/udp` | `7359` | UDP | LAN Broadcast | None |
-| **Homepage** | `homepage/` | `homepage` | Internal Bridge Only | `3000` | HTTP | `https://homepage.turing.home` | None |
-| **Radarr** | `sonarr-radarr/` | `radarr` | Internal Bridge Only | `7878` | HTTP | `https://radarr.turing.home` | None |
-| **Sonarr** | `sonarr-radarr/` | `sonarr` | Internal Bridge Only | `8989` | HTTP | `https://sonarr.turing.home` | None |
-| **Prowlarr** | `sonarr-radarr/` | `prowlarr` | Internal Bridge Only | `9696` | HTTP | `https://prowlarr.turing.home` | None |
-| **FlareSolverr** | `sonarr-radarr/` | `flaresolverr` | Internal Bridge Only | `8191` | HTTP | `https://flaresolverr.turing.home` | None |
-| **Seerr** | `seerr/` | `seerr` | Internal Bridge Only | `5055` | HTTP | `https://seerr.turing.home` | None |
-| **Tandoor Recipes** | `tandoor/` | `tandoor` | Internal Bridge Only | `8050` | HTTP | `https://recipes.turing.home` | `https://recipes.kamaka.tech` |
-| **PostgreSQL** | `postgres/` | `postgresql` | Internal Bridge Only | `5432` | TCP | `postgresql:5432` (Internal) | None |
-| **WireGuard PIA VPN** | `qbittorrentvpn/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.turing.home` | None |
-| **qBittorrent** | `qbittorrentvpn/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
-| **VPN Bridge (PIA)** | `vpn-bridge/` | `vpn-bridge-pia` | Internal Bridge Only | N/A | WireGuard | Outbound PIA Tunnel (`wg0`) | Egress via US PIA Regions |
-| **VPN Bridge (Tailscale)** | `vpn-bridge/` | `vpn-bridge-tailscale` | Network Mode: `service:vpn` | N/A | WireGuard | Node `vpn-bridge` on Mesh | Tailscale Exit Node |
+| **Nginx Proxy Manager** | `ingress/` | `nginx` | Macvlan `192.168.0.4` (`80`, `443`, `81`) | `80`, `443`, `81` | HTTP / HTTPS | `https://proxy.turing.home` | `https://*.kamaka.tech` (via Tunnel) |
+| **Tailscale Router** | `mesh/` | `tailscale` | Macvlan `192.168.0.5` | N/A | WireGuard | Node `homelab` on Mesh | None |
+| **Cloudflare Tunnel** | `ingress/` | `cloudflared` | Outbound Egress Tunnel | N/A | QUIC / HTTP/2 | None | Public Ingress for `*.kamaka.tech` |
+| **Jellyfin** | `media/` | `jellyfin` | Internal Bridge Only | `8096` | HTTP | `https://jellyfin.turing.home` | `https://jellyfin.kamaka.tech` |
+| **Jellyfin Discovery** | `media/` | `jellyfin` | `0.0.0.0:8022:7359/udp` | `7359` | UDP | LAN Broadcast | None |
+| **Homepage** | `dashboard/` | `homepage` | Internal Bridge Only | `3000` | HTTP | `https://homepage.turing.home` | None |
+| **Radarr** | `media/` | `radarr` | Internal Bridge Only | `7878` | HTTP | `https://radarr.turing.home` | None |
+| **Sonarr** | `media/` | `sonarr` | Internal Bridge Only | `8989` | HTTP | `https://sonarr.turing.home` | None |
+| **Prowlarr** | `media/` | `prowlarr` | Internal Bridge Only | `9696` | HTTP | `https://prowlarr.turing.home` | None |
+| **FlareSolverr** | `media/` | `flaresolverr` | Internal Bridge Only | `8191` | HTTP | `https://flaresolverr.turing.home` | None |
+| **Seerr** | `media/` | `seerr` | Internal Bridge Only | `5055` | HTTP | `https://seerr.turing.home` | None |
+| **Tandoor Recipes** | `productivity/` | `tandoor` | Internal Bridge Only | `8050` | HTTP | `https://recipes.turing.home` | `https://recipes.kamaka.tech` |
+| **PostgreSQL** | `productivity/` | `postgresql` | Internal Bridge Only | `5432` | TCP | `postgresql:5432` (Internal) | None |
+| **WireGuard PIA VPN** | `torrent/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.turing.home` | None |
+| **qBittorrent** | `torrent/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
+| **VPN Bridge (PIA)** | `mesh/` | `vpn-bridge-pia` | Internal Bridge Only | N/A | WireGuard | Outbound PIA Tunnel (`wg0`) | Egress via US PIA Regions |
+| **VPN Bridge (Tailscale)** | `mesh/` | `vpn-bridge-tailscale` | Network Mode: `service:vpn` | N/A | WireGuard | Node `vpn-bridge` on Mesh | Tailscale Exit Node |
 
 ---
 
@@ -74,7 +74,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `nginx/` |
+| **Stack Directory** | `ingress/` |
 | **Container Name** | `nginx` |
 | **Host / Network Binding** | Macvlan `192.168.0.4` (`80`, `443`, `81`) + `homelab` bridge (`192.168.255.0/24`) |
 | **Internal Container Port**| `80` (HTTP), `443` (HTTPS), `81` (Admin UI) |
@@ -94,7 +94,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `tailscale/` |
+| **Stack Directory** | `mesh/` |
 | **Container Name** | `tailscale` |
 | **Host / Network Binding** | Macvlan `192.168.0.5` (`external_npm`) + `homelab` bridge |
 | **Internal Container Port**| N/A (WireGuard Mesh Daemon) |
@@ -114,7 +114,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `cloudflared/` |
+| **Stack Directory** | `ingress/` |
 | **Container Name** | `cloudflared` |
 | **Host / Network Binding** | Outbound Tunnel (No host ports or LAN IP) |
 | **Internal Container Port**| N/A |
@@ -134,7 +134,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `jellyfin/` |
+| **Stack Directory** | `media/` |
 | **Container Name** | `jellyfin` |
 | **Host / Network Binding** | `8022:7359/udp` (LAN Discovery) + `homelab` bridge |
 | **Internal Container Port**| `8096` (HTTP), `8920` (HTTPS), `7359` (UDP Discovery) |
@@ -154,7 +154,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `homepage/` |
+| **Stack Directory** | `dashboard/` |
 | **Container Name** | `homepage` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `3000` |
@@ -174,7 +174,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `sonarr-radarr/` |
+| **Stack Directory** | `media/` |
 | **Container Name** | `radarr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `7878` |
@@ -194,7 +194,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `sonarr-radarr/` |
+| **Stack Directory** | `media/` |
 | **Container Name** | `sonarr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `8989` |
@@ -214,7 +214,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `sonarr-radarr/` |
+| **Stack Directory** | `media/` |
 | **Container Name** | `prowlarr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `9696` |
@@ -234,7 +234,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `sonarr-radarr/` |
+| **Stack Directory** | `media/` |
 | **Container Name** | `flaresolverr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `8191` |
@@ -254,7 +254,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `seerr/` |
+| **Stack Directory** | `media/` |
 | **Container Name** | `seerr` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `5055` |
@@ -274,7 +274,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `tandoor/` |
+| **Stack Directory** | `productivity/` |
 | **Container Name** | `tandoor` |
 | **Host / Network Binding** | Internal `homelab` bridge only |
 | **Internal Container Port**| `8050` |
@@ -294,7 +294,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `postgres/` |
+| **Stack Directory** | `productivity/` |
 | **Container Name** | `postgresql` |
 | **Host / Network Binding** | Internal `homelab` bridge only (Isolated from host) |
 | **Internal Container Port**| `5432` |
@@ -314,7 +314,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `qbittorrentvpn/` |
+| **Stack Directory** | `torrent/` |
 | **Container Names** | `wireguard-pia` (VPN) & `qbittorrentvpn` (BitTorrent) |
 | **Host / Network Binding** | Internal `homelab` bridge only (`8081` WebUI) |
 | **Internal Container Port**| `8081` (WebUI), Dynamic Forwarded Port (BitTorrent) |
@@ -337,7 +337,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 
 | Attribute | Value |
 | :--- | :--- |
-| **Stack Directory** | `vpn-bridge/` |
+| **Stack Directory** | `mesh/` |
 | **Container Names** | `vpn-bridge-pia` (VPN) & `vpn-bridge-tailscale` (Tailscale Exit Node) |
 | **Host / Network Binding** | Internal `homelab` bridge only (No exposed host ports) |
 | **Internal Container Port**| N/A (WireGuard Tunnel & Mesh Daemon) |
