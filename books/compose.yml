@@ -54,6 +54,8 @@ services:
       BINDERY_PUID: ${PUID:?See env.example for default.}
       BINDERY_PGID: ${PGID:?See env.example for default.}
       BINDERY_LOG_LEVEL: info
+      BINDERY_DOWNLOAD_DIR: /media/downloads
+      BINDERY_LIBRARY_DIR: /media/books/library
       TZ: ${TZ:?See env.example for default.}
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/bindery/data:/config
