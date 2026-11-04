@@ -91,28 +91,28 @@ Cleanuparr offers extensive customization. Below is an audit of each major funct
 
 ### Category 3: Slow Download Management
 
-| Setting | Description | Homelab Operational Impact | Recommendation & Justification | Decision Required |
+| Setting | Description | Homelab Operational Impact | Approved Setting & Justification | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **`Slow Downloads Cleaner`** | Evicts downloads that are progressing, but below a minimum speed or above maximum ETA. | Helpful for weeding out 15 KB/s leech swarms, but risks aborting rare/niche downloads that have few seeds. | **Disabled Initially (or conservative: ETA > 14 days)**: We want to catch dead downloads, but not kill slow, rare Brandon Sanderson books or older seasons. | **[ ] Disabled** (focus strictly on dead/stalled), or **Conservative ETA cap**? |
-| **`Slow Speed Threshold`** | Minimum speed below which a download is flagged as slow (e.g. < 50 KiB/s). | If set too high, throttled or rare torrents get prematurely killed. | **20 KiB/s with 6 Strikes (30m)** (if enabled): Ensures only truly crawling downloads are flagged. | **[ ] Defer to disabled**, or enable with threshold? |
+| **`Slow Downloads Cleaner`** | Evicts downloads that are progressing, but below a minimum speed or above maximum ETA. | Weeding out glacial swarms without aborting rare/niche downloads with few seeds. | **Enabled (ETA > 14 days)**: Catches truly abandoned/stalled transfers while protecting slow, rare torrents. | **Confirmed by User** |
+| **`Slow Speed Threshold`** | Minimum speed below which a download is flagged as slow. | Setting a speed cap risks killing throttled or single-seed torrents. | **None (No minimum speed threshold)**: Only filter on 14-day ETA threshold. | **Confirmed by User** |
 
 ---
 
 ### Category 4: Failed Imports Management
 
-| Setting | Description | Homelab Operational Impact | Recommendation & Justification | Decision Required |
+| Setting | Description | Homelab Operational Impact | Approved Setting & Justification | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **`Failed Import Strikes`** | Max strikes for items reporting "Unable to import" in Sonarr/Radarr queue. | Prevents broken files (e.g., corrupt EBML headers like *Law & Order S25E11*) from clogging the queue forever. | **3 Strikes (Minimum allowed)**: Gives Sonarr time to complete file moves, but cleans out unreadable files after 15m. | **[ ] Agree** with 3 strikes, or adjust? |
-| **`Ignore Recently Aired`** | Exemption window (in minutes) for episodes that just aired on TV. | Fresh releases often have temporary packer/indexer delays where Sonarr retries import before the file settles. | **120 Minutes**: Standard practice to prevent killing brand-new releases during active unpacking. | **[ ] Agree** (120 min window)? |
+| **`Failed Import Strikes`** | Max strikes for items reporting "Unable to import" in Sonarr/Radarr queue. | Prevents broken files (e.g., corrupt EBML headers) from clogging the queue forever. | **3 Strikes (15 Minutes)**: Gives Sonarr time to complete file moves, but cleans out unreadable files after 15m. | **Confirmed by User** |
+| **`Ignore Recently Aired`** | Exemption window (in minutes) for episodes that just aired on TV. | Fresh releases often have temporary packer/indexer delays where Sonarr retries import before the file settles. | **120 Minutes**: Standard practice to prevent killing brand-new releases during active unpacking. | **Confirmed by User** |
 
 ---
 
 ### Category 5: Orphaned Data & Seeding Rules
 
-| Setting | Description | Homelab Operational Impact | Recommendation & Justification | Decision Required |
+| Setting | Description | Homelab Operational Impact | Approved Setting & Justification | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **`Orphaned Data Cleaner`** | Scans storage for files on disk that belong to no active torrent or *Arr item. | Reclaims disk space, but dangerous if path mappings have minor discrepancies (could delete wanted files). | **Disabled (or Dry Run Only)**: Do not allow automated deletion of unlinked files until manual audit is conducted. | **[ ] Disabled** (Recommended)? |
-| **`Seeding Management Cleaner`** | Automatically deletes torrents after hitting ratio or seed time goals. | We already manage share ratio limits in qBittorrent configuration (`max_ratio_act`, `max_ratio = 1.0`). | **Disabled**: Redundant with native qBittorrent share limits. Keep single source of truth in qBittorrent. | **[ ] Disabled** (Recommended)? |
+| **`Orphaned Data Cleaner`** | Scans storage for files on disk that belong to no active torrent or *Arr item. | Reclaims disk space, but dangerous if path mappings have minor discrepancies. | **Disabled**: Protect library data integrity. | **Confirmed by User** |
+| **`Seeding Management Cleaner`** | Automatically deletes torrents after hitting ratio or seed time goals. | We already manage share ratio limits in qBittorrent configuration (`max_ratio_act`, `max_ratio = 1.0`). | **Disabled**: Preserve native qBittorrent share limits as single source of truth. | **Confirmed by User** |
 
 ---
 
