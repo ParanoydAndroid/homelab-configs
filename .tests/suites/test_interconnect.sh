@@ -246,6 +246,21 @@ test_interconnect_calibre_web_opds() {
   return 1
 }
 
+test_interconnect_cleanuparr_socket() {
+  if ! is_service_enabled "cleanuparr"; then
+    printf "Service 'cleanuparr' omitted or disabled"
+    return 77
+  fi
+  local http_code
+  http_code="$(docker exec sonarr curl -s -o /dev/null -w "%{http_code}" --max-time 10 "http://cleanuparr:11011/" 2>/dev/null || true)"
+  if [[ "${http_code}" =~ ^(200|302|403)$ ]]; then
+    printf "Cleanuparr HTTP endpoint responding on bridge network (HTTP %s)" "${http_code}"
+    return 0
+  fi
+  printf "Cleanuparr endpoint unreachable on homelab bridge (HTTP %s)" "${http_code}"
+  return 1
+}
+
 suite_interconnect() {
   init_suite "4. Inter-Container DNS, Sockets & Service Interconnections"
 

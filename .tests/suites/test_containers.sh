@@ -125,6 +125,10 @@ test_docker_up_royalroad_sync() {
   assert_service_running "royalroad-sync"
 }
 
+test_docker_up_cleanuparr() {
+  assert_service_running "cleanuparr"
+}
+
 suite_containers() {
   init_suite "1. Container Runtime & Health Checks"
 
@@ -147,6 +151,7 @@ suite_containers() {
   run_test test_docker_up_calibre_web "Verify Calibre-Web e-book catalog manager is running"
   run_test test_docker_up_bindery "Verify Bindery book manager is running"
   run_test test_docker_up_royalroad_sync "Verify Royal Road sync worker is running"
+  run_test test_docker_up_cleanuparr "Verify Cleanuparr queue manager container is running and healthy"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

@@ -1,5 +1,5 @@
 # ==============================================================================
-# Stack: Killswitched Torrent Client (torrent/compose.yml)
+# Stack: Killswitched Torrent Client & Queue Cleaner (torrent/compose.yml)
 #
 # Purpose:
 #   Secure BitTorrent downloading via Private Internet Access (PIA) WireGuard:
@@ -7,6 +7,8 @@
 #       and dynamic port synchronization hook (/config/set-qbt-port.sh).
 #     - qbittorrent: WebUI BitTorrent client routed entirely through the VPN
 #       container's network namespace (network_mode: "service:vpn").
+#     - cleanuparr: Automated Servarr companion monitoring download queue health,
+#       evicting stalled/dead magnet downloads, and requesting replacements.
 # ==============================================================================
 
 services:
@@ -70,6 +72,37 @@ services:
       - homepage.widget.url=http://qbittorrentvpn:8081
       - homepage.widget.username=admin
       - homepage.widget.password=${QBITTORRENT_PASSWORD:?See env.example for default.}
+
+  cleanuparr:
+    image: ghcr.io/cleanuparr/cleanuparr:latest
+    container_name: cleanuparr
+    hostname: cleanuparr
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:?See env.example for default.}
+      PGID: ${PGID:?See env.example for default.}
+      TZ: ${TZ:?See env.example for default.}
+      PORT: 11011
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/cleanuparr/data:/config
+      - ${MEDIA_DIR:?See env.example for default.}:/media:ro
+    networks:
+      - homelab
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:11011/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - caddy=cleanuparr.kamaka.tech
+      - caddy.reverse_proxy={{upstreams 11011}}
+      - caddy.import=cloudflare_tls lan_only
+      - homepage.group=Downloads
+      - homepage.name=Cleanuparr
+      - homepage.icon=cleanuparr
+      - homepage.href=https://cleanuparr.kamaka.tech
+      - homepage.description=Queue & Stalled Download Manager
 
 networks:
   homelab:
