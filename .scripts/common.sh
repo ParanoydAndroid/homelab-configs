@@ -168,6 +168,14 @@ discover_nocow_storage_paths() {
   local re_service='^[[:space:]]{2}([a-zA-Z0-9_-]+):[[:space:]]*$'
   local re_section='^[[:space:]]{4}(volumes|labels):[[:space:]]*$'
 
+  # Ensure root .env variables are available if unexported in current shell
+  if [[ -f "${REPO_DIR}/.env" && -z "${DOCKER_DATA_DIR:-}" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "${REPO_DIR}/.env"
+    set +a
+  fi
+
   local compose_file
   for compose_file in "${REPO_DIR}"/*/compose.yml; do
     [[ -f "${compose_file}" ]] || continue
@@ -187,8 +195,10 @@ discover_nocow_storage_paths() {
               local cleaned
               cleaned="$(echo "${h}" | sed -E 's/(\$\{[a-zA-Z_0-9]+):[^}]*\}/\1}/g')"
               local resolved
+              set +u
               eval "resolved=\"${cleaned}\""
-              target_paths+=("${resolved}")
+              set -u
+              [[ -n "${resolved}" ]] && target_paths+=("${resolved}")
             fi
           done
         done
@@ -284,6 +294,9 @@ GLOBAL_ENV_VARS=(
   "EXTERNAL_NPM_PARENT"
   "NPM_IPV4_ADDRESS"
   "TAILSCALE_IPV4_ADDRESS"
+  "DOCKER_SOCK"
+  "TORRENT_INCOMPLETE_DIR"
+  "DRI_RENDER_DEVICE"
 )
 
 # ------------------------------------------------------------------------------

@@ -23,7 +23,7 @@ services:
     security_opt:
       - no-new-privileges:true
     devices:
-      - /dev/dri/renderD128:/dev/dri/renderD128
+      - ${DRI_RENDER_DEVICE:?See env.example for default.}:/dev/dri/renderD128
     group_add:
       - "105"
     environment:

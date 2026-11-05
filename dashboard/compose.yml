@@ -23,7 +23,7 @@ services:
       HOMEPAGE_VAR_PIHOLE_KEY: ${HOMEPAGE_VAR_PIHOLE_KEY:?See env.example for default.}
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/homepage/data:/app/config
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK:?See env.example for default.}:/var/run/docker.sock
       - ${MEDIA_DIR:?See env.example for default.}:/volume1:ro
       - ${DOCKER_DATA_DIR:?See env.example for default.}:/volume2:ro
     networks:

@@ -25,7 +25,7 @@ services:
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?See env.example for default.}
       CADDY_INGRESS_NETWORKS: homelab
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DOCKER_SOCK:?See env.example for default.}:/var/run/docker.sock:ro
       - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/data:/data
       - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/config:/config
       - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/downloads:/downloads
