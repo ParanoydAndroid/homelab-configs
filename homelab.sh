@@ -72,15 +72,19 @@ setup_homelab() {
     chown "${TARGET_USER}:${TARGET_GROUP}" "${DOCKGE_DIR}/compose.yml" 2>/dev/null || true
   fi
 
-  # Ensure storage directories with special storage policies (e.g. No-CoW scratch)
+  # Ensure storage directories with declarative storage policies (e.g. No-CoW scratch)
   # are created with standard non-root permissions before container startup.
-  local qbt_incomplete="${DOCKER_DATA_DIR}/qbittorrentvpn/data/incomplete"
-  if [[ ! -d "${qbt_incomplete}" ]]; then
-    mkdir -p "${qbt_incomplete}" 2>/dev/null || true
-    chattr +C "${qbt_incomplete}" 2>/dev/null || true
-  fi
-  chmod 775 "${qbt_incomplete}" 2>/dev/null || true
-  chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_incomplete}" 2>/dev/null || true
+  local nocow_path
+  while IFS= read -r nocow_path; do
+    [[ -z "${nocow_path}" ]] && continue
+    log_info "Ensuring declarative No-CoW storage directory: ${nocow_path}..."
+    if [[ ! -d "${nocow_path}" ]]; then
+      mkdir -p "${nocow_path}" 2>/dev/null || true
+      chattr +C "${nocow_path}" 2>/dev/null || true
+    fi
+    chmod 775 "${nocow_path}" 2>/dev/null || true
+    chown "${TARGET_USER}:${TARGET_GROUP}" "${nocow_path}" 2>/dev/null || true
+  done < <(discover_nocow_storage_paths)
 
   log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."
   docker compose -f "${DOCKGE_DIR}/compose.yml" --env-file "${DOCKGE_DIR}/.env" up -d

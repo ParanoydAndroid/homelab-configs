@@ -151,6 +151,93 @@ discover_stacks() {
 }
 
 # ------------------------------------------------------------------------------
+# Function: discover_nocow_storage_paths
+# Description:
+#   Discovers and resolves host filesystem paths declared with No-CoW storage
+#   policies ('homelab.storage.nocow' or 'homelab.storage.btrfs.nocow') across
+#   all Compose stacks. Matches declared container targets to service volumes
+#   and resolves host environment variables (${DOCKER_DATA_DIR}, ${MEDIA_DIR}).
+# Global Variables:
+#   REPO_DIR, DOCKER_DATA_DIR, MEDIA_DIR
+# Returns:
+#   Outputs resolved absolute host paths to stdout (one per line).
+# ------------------------------------------------------------------------------
+discover_nocow_storage_paths() {
+  local target_paths=()
+  local re_label='homelab\.storage\.(btrfs\.nocow|nocow)=([^"'\''[:space:]]+)'
+  local re_service='^[[:space:]]{2}([a-zA-Z0-9_-]+):[[:space:]]*$'
+  local re_section='^[[:space:]]{4}(volumes|labels):[[:space:]]*$'
+
+  local compose_file
+  for compose_file in "${REPO_DIR}"/*/compose.yml; do
+    [[ -f "${compose_file}" ]] || continue
+
+    local current_section=""
+    local nocow_targets=()
+    local volume_pairs=()
+
+    process_service_storage() {
+      if [[ ${#nocow_targets[@]} -gt 0 && ${#volume_pairs[@]} -gt 0 ]]; then
+        local t pair
+        for t in "${nocow_targets[@]}"; do
+          for pair in "${volume_pairs[@]}"; do
+            local h="${pair%%|*}"
+            local c="${pair#*|}"
+            if [[ "${c}" == "${t}" ]]; then
+              local cleaned
+              cleaned="$(echo "${h}" | sed -E 's/(\$\{[a-zA-Z_0-9]+):[^}]*\}/\1}/g')"
+              local resolved
+              eval "resolved=\"${cleaned}\""
+              target_paths+=("${resolved}")
+            fi
+          done
+        done
+      fi
+    }
+
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+      if [[ "${line}" =~ ${re_service} ]]; then
+        process_service_storage
+        current_section=""
+        nocow_targets=()
+        volume_pairs=()
+      elif [[ "${line}" =~ ${re_section} ]]; then
+        current_section="${BASH_REMATCH[1]}"
+      elif [[ "${line}" =~ ^[[:space:]]{6,}- ]]; then
+        if [[ "${current_section}" == "labels" ]]; then
+          if [[ "${line}" =~ ${re_label} ]]; then
+            local raw_val="${BASH_REMATCH[2]}"
+            local item
+            IFS="," read -ra items <<< "${raw_val}"
+            for item in "${items[@]}"; do
+              [[ -n "${item}" ]] && nocow_targets+=("${item}")
+            done
+          fi
+        elif [[ "${current_section}" == "volumes" ]]; then
+          local v="${line#"${line%%[! -]*}"}"
+          v="${v#\"}"; v="${v%\"}"
+          v="${v#\'}"; v="${v%\'}"
+          if [[ "${v}" =~ :[a-zA-Z0-9_,]+$ ]]; then
+            local opt="${BASH_REMATCH[0]}"
+            if [[ "${opt}" =~ ^:(ro|rw|z|Z) ]]; then
+              v="${v%${opt}}"
+            fi
+          fi
+          if [[ "${v}" == *:* ]]; then
+            local c_path="${v##*:}"
+            local h_path="${v%:*}"
+            volume_pairs+=("${h_path}|${c_path}")
+          fi
+        fi
+      fi
+    done < "${compose_file}"
+    process_service_storage
+  done
+
+  printf "%s\n" "${target_paths[@]}"
+}
+
+# ------------------------------------------------------------------------------
 # Function: is_stack_enabled
 # Description:
 #   Checks whether a given stack is active and contains at least one enabled service.

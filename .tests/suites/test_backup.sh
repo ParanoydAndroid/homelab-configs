@@ -193,18 +193,97 @@ test_backup_declarative_exclusion_discovery() {
 test_backup_declarative_stack_priority() {
   source "${REPO_DIR}/.scripts/common.sh"
 
-  discover_stacks
+  local mock_repo
+  mock_repo="$(mktemp -d)"
 
-  local expected_order=("ingress" "mesh" "torrent" "books" "media" "productivity" "dashboard")
-  local actual="${STACKS[*]}"
-  local expected="${expected_order[*]}"
+  mkdir -p "${mock_repo}/stack_delta" "${mock_repo}/stack_alpha" "${mock_repo}/stack_beta" "${mock_repo}/stack_gamma" "${mock_repo}/stack_unlabeled"
 
-  if [[ "${actual}" != "${expected}" ]]; then
-    printf "Expected priority order '%s', got '%s'" "${expected}" "${actual}"
+  cat <<EOF > "${mock_repo}/stack_delta/compose.yml"
+services:
+  delta:
+    image: test
+    labels:
+      - homelab.stack.priority=10
+EOF
+
+  cat <<EOF > "${mock_repo}/stack_alpha/compose.yml"
+services:
+  alpha:
+    image: test
+    labels:
+      - homelab.stack.priority=10
+EOF
+
+  cat <<EOF > "${mock_repo}/stack_beta/compose.yml"
+services:
+  beta:
+    image: test
+    labels:
+      - homelab.stack.priority=20
+EOF
+
+  cat <<EOF > "${mock_repo}/stack_gamma/compose.yml"
+services:
+  gamma:
+    image: test
+    labels:
+      - homelab.stack.priority=50
+EOF
+
+  cat <<EOF > "${mock_repo}/stack_unlabeled/compose.yml"
+services:
+  unlabeled:
+    image: test
+EOF
+
+  local actual_order
+  actual_order="$(
+    REPO_DIR="${mock_repo}"
+    discover_stacks >/dev/null 2>&1
+    echo "${STACKS[*]}"
+  )"
+  rm -rf "${mock_repo}"
+
+  local expected="stack_alpha stack_delta stack_beta stack_gamma stack_unlabeled"
+  if [[ "${actual_order}" != "${expected}" ]]; then
+    printf "Expected priority order '%s', got '%s'" "${expected}" "${actual_order}"
     return 1
   fi
 
-  printf "Verified decade stack priority order: %s" "${actual}"
+  printf "Inferred priority order from mock containers: %s" "${actual_order}"
+  return 0
+}
+
+test_backup_declarative_storage_nocow_discovery() {
+  source "${REPO_DIR}/.scripts/common.sh"
+
+  local mock_repo
+  mock_repo="$(mktemp -d)"
+
+  mkdir -p "${mock_repo}/mock_torrent"
+  cat <<'EOF' > "${mock_repo}/mock_torrent/compose.yml"
+services:
+  mock_client:
+    volumes:
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/mock_service/scratch:/mock_scratch
+      - ${MEDIA_DIR:?See env.example for default.}/downloads:/downloads
+    labels:
+      - homelab.storage.nocow=/mock_scratch
+EOF
+
+  local resolved_paths=()
+  while IFS= read -r p; do
+    [[ -n "${p}" ]] && resolved_paths+=("${p}")
+  done < <(REPO_DIR="${mock_repo}" DOCKER_DATA_DIR="/tmp/mock_docker" MEDIA_DIR="/tmp/mock_media" discover_nocow_storage_paths)
+  rm -rf "${mock_repo}"
+
+  local expected="/tmp/mock_docker/mock_service/scratch"
+  if [[ "${#resolved_paths[@]}" -ne 1 || "${resolved_paths[0]}" != "${expected}" ]]; then
+    printf "Expected '%s', got '%s'" "${expected}" "${resolved_paths[*]:-empty}"
+    return 1
+  fi
+
+  printf "Inferred No-CoW host path from mock label: %s" "${resolved_paths[0]}"
   return 0
 }
 
@@ -219,6 +298,7 @@ suite_backup() {
   run_test test_backup_declarative_sqlite_discovery "Verify declarative discovery of homelab.backup.sqlite labels"
   run_test test_backup_declarative_exclusion_discovery "Verify declarative resolution of homelab.backup.exclude paths"
   run_test test_backup_declarative_stack_priority "Verify declarative decade stack priority sorting"
+  run_test test_backup_declarative_storage_nocow_discovery "Verify declarative resolution of homelab.storage.nocow paths"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
