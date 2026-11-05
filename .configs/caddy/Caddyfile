@@ -1,7 +1,7 @@
 # ==============================================================================
 # Caddy Base Configuration (.configs/caddy/Caddyfile)
 #
-# Deployed to ${DOCKER_DATA_DIR}/caddy/Caddyfile by 'homelab.sh deploy-configs'.
+# Deployed to ${DOCKER_DATA_DIR}/caddy/Caddyfile by 'manage.sh deploy-configs'.
 # Merged with dynamic Docker container labels by caddy-docker-proxy.
 # ==============================================================================
 

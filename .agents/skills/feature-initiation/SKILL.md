@@ -40,7 +40,8 @@ git checkout -b feature/<feature-name>
    - Network bindings (`homelab` bridge, reverse proxy routing, host ports).
    - Volume persistence paths (`${DOCKER_DATA_DIR}/<service>/data`).
    - Required environment variables and `.env.example` keys.
-   - Automated test checks needed in `.tests/suites/`.
+   - Automated test checks needed in `.harness/suites/`.
+4. Update `.agents/memory/activeContext.md` to document the active feature focus, decisions, and planned steps.
 
 ### Step 4: Interactive "Grill-Me" Review Cycle
 Adopt the persona of an **experienced, opinionated homelab infrastructure engineer**:
@@ -62,7 +63,7 @@ Adopt the persona of an **experienced, opinionated homelab infrastructure engine
 
 ### Step 6: Plan Execution, Intermediate Commit, and User Review Checkpoint (MANDATORY)
 1. Execute the implementation steps according to the approved plan using relevant implementation skills (`stack-authoring`, `test-authoring`, `backup-recovery`).
-2. Verify runtime health and execute automated tests (`./homelab.sh test all`).
+2. Verify runtime health and execute automated tests (`./manage.sh test all`).
 3. Commit all implementation changes to the feature branch:
    ```bash
    git add -A

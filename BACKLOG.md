@@ -24,7 +24,7 @@ Mounting a `tmpfs` on `/tmp` keeps the UNIX domain socket entirely in host memor
 1. `tailscale/compose.yml` defines `tmpfs: [/tmp]`.
 2. Tailscale container starts cleanly without socket startup delays.
 3. `docker exec tailscale tailscale status --json` reports `BackendState: "Running"`.
-4. `./homelab.sh test interconnect` passes with `test_interconnect_tailscale_backend_state` active.
+4. `./manage.sh test interconnect` passes with `test_interconnect_tailscale_backend_state` active.
 
 ---
 

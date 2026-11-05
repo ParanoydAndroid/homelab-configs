@@ -113,13 +113,13 @@ ln -s "${DOCKGE_STACKS_DIR}" "${HOME}/services"
 cd "${HOME}/services"
 
 # 2. Run initial convergence (creates networks, root .env, and stack templates)
-sudo ./homelab.sh setup
+sudo ./manage.sh setup
 
 # 3. Populate required secrets in generated .env files
 #    (ingress, mesh, torrent, media, dashboard)
 
 # 4. Re-run setup to sync variables, deploy configs, and launch all stacks
-sudo ./homelab.sh setup
+sudo ./manage.sh setup
 ```
 
 ### 3.2 Routine Updates
@@ -127,23 +127,25 @@ sudo ./homelab.sh setup
 ```bash
 cd ~/services
 git pull
-sudo ./homelab.sh setup
+sudo ./manage.sh setup
 ```
 
 ---
 
-## 4. Automation CLI (`homelab.sh`)
+## 4. Automation CLI (`manage.sh`)
 
-`homelab.sh` is an idempotent management script synchronizing repository definitions with live host state:
+`manage.sh` is an idempotent management script synchronizing repository definitions with live host state:
 
 | Subcommand | Description |
 | :--- | :--- |
-| `sudo ./homelab.sh setup` | End-to-end host convergence: applies OS fixes, syncs `.env` files, provisions networks, deploys Dockge compose, and starts all stacks. |
-| `./homelab.sh startup` | Non-interactive boot hook designed for systemd execution on host startup. |
-| `sudo ./homelab.sh backup [-t <type|name>] [-m <msg>]` | Stages zero-downtime DB dumps, snapshots volumes with Restic, commits git changes, applies SemVer/CalVer tags, pushes to remote, and archives `.env` secrets. |
-| `./homelab.sh snapshots` | Lists historical Restic backup snapshots with timestamps, snapshot IDs, and repository sizes. |
-| `sudo ./homelab.sh restore [snap] [svc]` | Restores full volume state or an individual service from a Restic snapshot with pre-restore safety checks. |
-| `./homelab.sh test [suite]` | Modular smoke and regression test suite verifying containers, direct admin ports, routing, interconnects, security, and backup automation. |
+| `sudo ./manage.sh setup` | End-to-end host convergence: applies OS fixes, syncs `.env` files, provisions networks, deploys Dockge compose, normalizes permissions, and starts all stacks. |
+| `./manage.sh startup` | Non-interactive boot hook designed for systemd execution on host startup. |
+| `sudo ./manage.sh backup [-t <type|name>] [-m <msg>]` | Stages zero-downtime DB dumps, snapshots volumes with Restic, commits git changes, applies SemVer/CalVer tags, pushes to remote, and archives `.env` secrets. |
+| `./manage.sh snapshots` | Lists historical Restic backup snapshots with timestamps, snapshot IDs, and repository sizes. |
+| `sudo ./manage.sh restore [snap] [svc]` | Restores full volume state or an individual service from a Restic snapshot with pre-restore safety checks. |
+| `./manage.sh test [suite]` | Modular smoke, regression, and conventions test suite verifying containers, direct admin ports, routing, interconnects, security, and harness conventions. |
+| `./manage.sh audit` | Continuous drift, permission, broken symlink, and environment security auditing. |
+| `./manage.sh hook [install|uninstall]` | Git hooks protecting the `main` branch during commits and pushes while leaving feature branches unconstrained. |
 
 ---
 
@@ -177,4 +179,4 @@ Procedural workflows, interactive scaffolding, and diagnostic algorithms are mod
 | **`stack-authoring`** | Compose authoring standards, canonical key ordering, variable assertion syntax, non-root user execution, and network attachment. |
 | **`backup-recovery`** | Restic persistent volume snapshots, online database staging, snapshot inspection, and disaster recovery. |
 | **`network-diagnostics`** | Systematic diagnostic triage flowchart for virtual hosts, container DNS resolution, WireGuard killswitches, and Tailscale routing. |
-| **`test-authoring`** | Systematic recipe and standards for authoring automated smoke, interconnect, and security tests in `.tests/suites/`. |
+| **`test-authoring`** | Systematic recipe and standards for authoring automated smoke, interconnect, and security tests in `.harness/suites/`. |

@@ -23,15 +23,15 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 │   ├── dockge/                    # Dockge's own compose.yml and .env.example
 │   ├── qbittorrent/               # Port-sync callback script (set-qbt-port.sh)
 │   └── systemd/                   # Host systemd unit and timer files
-├── .scripts/                      # Modular automation library for homelab.sh
+├── .scripts/                      # Modular automation library for manage.sh
 │   ├── common.sh                  # Logging, user resolution, and atomic dotenv utilities
 │   ├── env-tools.sh               # Two-tier .env initialization and propagation
 │   ├── system.sh                  # Host OS bug fixes and Docker network creation
 │   └── backup.sh                  # Restic volume backup, retention pruning, and restore automation
-├── .tests/                        # Modular smoke and regression test suite
-│   ├── run.sh                     # Master test runner
+├── .harness/                      # Modular smoke, regression, and conventions test suite
+│   ├── test-runner.sh             # Master test harness
 │   ├── lib/common.sh              # Shared test assertions, timers, and counters
-│   └── suites/                    # Test modules (containers, direct, routing, interconnect, security)
+│   └── suites/                    # Test modules (conventions, containers, direct, routing, interconnect, security, backup)
 ├── .docs/                         # Deep architectural and operational documentation
 │   ├── project-organization.md    # This document
 │   ├── service-catalog.md         # Uniform service entries, ports, and storage volumes
@@ -40,12 +40,18 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 │   ├── networking.md              # Dual-ingress architecture, routing, and TLS certificates
 │   └── operations.md              # CLI runbooks, systemd services, and storage operations
 ├── .agents/                       # Agent personas, instructions, rules, and architecture specs
-│   ├── rules/                     # Project conventions (project-conventions.md)
+│   ├── memory/                    # Persistent session memory bank (activeContext.md, systemPatterns.md, progress.md)
+│   ├── subagents/                 # Invocable subagent persona specifications (architect-critic.md, code-auditor.md)
+│   ├── rules/                     # Scoped rules (containers-and-env.md, shell-scripting.md)
 │   ├── skills/                    # Operational runbooks (start-homelab, stack-lifecycle, etc.)
 │   └── artifacts/                 # Versioned design plans and architecture specifications
 ├── .skills -> .agents/skills      # Convenience symlink for agent workflow skills
-├── AGENTS.md -> .agents/rules/project-conventions.md # Canonical agent instructions symlink
-├── homelab.sh                     # Primary CLI orchestration entrypoint
+├── AGENTS.md                      # Canonical root agent instructions
+├── agent.md -> AGENTS.md          # Multi-agent ecosystem symlink
+├── CLAUDE.md -> AGENTS.md         # Multi-agent ecosystem symlink
+├── GEMINI.md -> AGENTS.md         # Multi-agent ecosystem symlink
+├── .cursorrules -> AGENTS.md      # Multi-agent ecosystem symlink
+├── manage.sh                      # Primary CLI orchestration entrypoint
 ├── CHANGELOG.md                   # Semantic & CalVer release history
 ├── BACKLOG.md                     # Project technical debt and improvement backlog
 ├── README.md                      # Primary landing page and quickstart guide
@@ -61,7 +67,7 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 1. **One Directory per Stack**:
    Each non-hidden folder at the repository root represents a self-contained Compose stack containing a `compose.yml` and an optional `.env` file.
 2. **Dot-Prefixed Infrastructure Directories**:
-   Dockge automatically scans every non-hidden directory in its stacks folder as a manageable Compose project. Non-stack assets (documentation, helper scripts, configuration templates, agent artifacts, and test suites) **must** reside in dot-prefixed directories (`.docs/`, `.scripts/`, `.configs/`, `.tests/`, `.agents/`). Dockge ignores hidden directories completely, preventing ghost or broken stacks from appearing in the UI.
+   Dockge automatically scans every non-hidden directory in its stacks folder as a manageable Compose project. Non-stack assets (documentation, helper scripts, configuration templates, agent artifacts, and test suites) **must** reside in dot-prefixed directories (`.docs/`, `.scripts/`, `.configs/`, `.harness/`, `.agents/`, `.github/`). Dockge ignores hidden directories completely, preventing ghost or broken stacks from appearing in the UI.
 3. **External Dockge Deployment**:
    Dockge cannot cleanly manage or restart its own container if its Compose file resides inside the stacks directory it watches. Dockge's own definition is tracked at [.configs/dockge/compose.yml](../.configs/dockge/compose.yml) and deployed to `${DOCKGE_DIR}/compose.yml` (`/opt/${USER}/dockge/compose.yml`, one level above `stacks/`).
 
@@ -97,8 +103,8 @@ To satisfy Dockge's per-stack working directory model while eliminating configur
    * LAN network parameters: `EXTERNAL_NPM_PARENT`, `EXTERNAL_NPM_SUBNET`, `EXTERNAL_NPM_GATEWAY`, `NPM_IPV4_ADDRESS`, `TAILSCALE_IPV4_ADDRESS`
 2. **Per-Stack `<stack>/.env.example` -> `<stack>/.env`**:
    Defines stack-specific secrets and service API keys (e.g., `VPN_USER`, `SECRET_KEY`, `JELLYFIN_API_KEY`).
-3. **Automated Inheritance (`./homelab.sh setup`)**:
-   `homelab.sh` reads the root `.env` and automatically synchronizes all referenced global variables into each `<stack>/.env` and `${DOCKGE_DIR}/.env`. This allows stacks to run seamlessly inside Dockge while remaining completely functional if launched standalone via `docker compose up -d`.
+3. **Automated Inheritance (`./manage.sh setup`)**:
+   `manage.sh` reads the root `.env` and automatically synchronizes all referenced global variables into each `<stack>/.env` and `${DOCKGE_DIR}/.env`. This allows stacks to run seamlessly inside Dockge while remaining completely functional if launched standalone via `docker compose up -d`.
 4. **Git Isolation**:
    All live `.env` files are ignored by git (`.gitignore`). Templates (`.env.example`) are tracked with placeholder values.
 
@@ -109,10 +115,10 @@ To satisfy Dockge's per-stack working directory model while eliminating configur
 All container application state and persistent volumes under `${DOCKER_DATA_DIR}` (`/volume2/docker`) are protected via Restic snapshots and secret archiving:
 
 * **Zero-Downtime Database Staging**:
-  Prior to snapshotting, `homelab.sh backup` stages non-disruptive online database backups (SQLite `.backup` / WAL checkpoints for application databases) under `${DOCKER_DATA_DIR}/.backups`.
+  Prior to snapshotting, `manage.sh backup` stages non-disruptive online database backups (SQLite `.backup` / WAL checkpoints for application databases) under `${DOCKER_DATA_DIR}/.backups`.
 * **Untracked Secret Archiving**:
   All untracked live `.env` files are archived into a timestamped tarball in `${DOCKER_DATA_DIR}/backup/homelab/latest_env_secrets.tar.gz`.
-* **Deduplicated & Compressed Snapshots (`./homelab.sh backup`)**:
+* **Deduplicated & Compressed Snapshots (`./manage.sh backup`)**:
   Streams deduplicated, compressed snapshots of `${DOCKER_DATA_DIR}` to `${BACKUP_RESTIC_REPO}` using native Restic (`--insecure-no-password`) with automatic cache and log exclusions, enforcing 30-day retention (`--keep-daily 30 --prune`).
-* **Granular & Full Restoration (`./homelab.sh restore`)**:
+* **Granular & Full Restoration (`./manage.sh restore`)**:
   Restores either the full Docker volume or a single targeted service directory from any snapshot, with safety checks to ensure running containers are stopped before active files are modified.

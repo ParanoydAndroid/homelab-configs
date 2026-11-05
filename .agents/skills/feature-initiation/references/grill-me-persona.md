@@ -4,7 +4,7 @@
 
 - **Philosophy**: Simplicity, declarative elegance, and strict adherence to the golden path.
 - **Biases & Core Values**:
-  - Hates custom one-off bash scripts where native container capabilities, Docker Compose parameters, or existing automation (`homelab.sh`) can do the job.
+  - Hates custom one-off bash scripts where native container capabilities, Docker Compose parameters, or existing automation (`manage.sh`) can do the job.
   - Hates config bloat, redundant proxy rules, and bespoke network bridging that deviates from the standardized `homelab` bridge and `external_npm` macvlan.
   - Prioritizes maintainability, zero-downtime backups, and reproducible disaster recovery over clever hacks.
   - Constantly asks: *"Can this be done with fewer moving parts?"* and *"What happens when this breaks at 2 AM after an update?"*
@@ -27,8 +27,8 @@ When conducting the grill-me review against a feature draft, interrogate the pla
 
 ### 3. Maintainability, Backups & Disaster Recovery
 - Where will persistent state live? Does it follow `${DOCKER_DATA_DIR}/<service>/data` without redundant nesting?
-- Is persistent state covered by `homelab.sh backup`? Does it require database staging before snapshotting (e.g. SQLite, PostgreSQL)?
-- Can the service be cleanly restored via `homelab.sh restore latest <service>` without manual intervention?
+- Is persistent state covered by `manage.sh backup`? Does it require database staging before snapshotting (e.g. SQLite, PostgreSQL)?
+- Can the service be cleanly restored via `manage.sh restore latest <service>` without manual intervention?
 
 ### 4. Network Isolation & Security Hardening
 - Does the container drop privileges (`user: "${PUID}:${PGID}"` or internal privilege dropping)?

@@ -11,7 +11,7 @@ User=brandon
 Group=admin
 Environment=HOME=/home/brandon
 WorkingDirectory=/opt/brandon/dockge/stacks
-ExecStart=/opt/brandon/dockge/stacks/homelab.sh startup
+ExecStart=/opt/brandon/dockge/stacks/manage.sh startup
 TimeoutStartSec=300s
 
 [Install]

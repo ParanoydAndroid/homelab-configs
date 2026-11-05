@@ -1,36 +1,40 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Script: .tests/run.sh
+# Script: .harness/test-runner.sh
 # Purpose: Master test runner for the homelab smoke and regression test suite.
-# Usage:   ./.tests/run.sh [suite_name | test_function_name]
+# Usage:   ./.harness/test-runner.sh [suite_name | test_function_name]
 #
 # Examples:
-#   ./.tests/run.sh                 # Run all test suites
-#   ./.tests/run.sh containers      # Run container healthchecks only
-#   ./.tests/run.sh routing         # Run virtual host routing tests only
-#   ./.tests/run.sh security        # Run negative security & auth tests only
-#   ./.tests/run.sh test_docker_up_seerr # Run a single test case
+#   ./.harness/test-runner.sh                 # Run all test suites
+#   ./.harness/test-runner.sh conventions     # Run harness conventions only
+#   ./.harness/test-runner.sh containers      # Run container healthchecks only
+#   ./.harness/test-runner.sh routing         # Run virtual host routing tests only
+#   ./.harness/test-runner.sh security        # Run negative security & auth tests only
+#   ./.harness/test-runner.sh test_docker_up_seerr # Run a single test case
 # ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Source the test harness library
-# shellcheck source=.tests/lib/common.sh
+# shellcheck source=.harness/lib/common.sh
 source "${SCRIPT_DIR}/lib/common.sh"
 
 # Source all test suites
-# shellcheck source=.tests/suites/test_containers.sh
+# shellcheck source=.harness/suites/test_conventions.sh
+source "${SCRIPT_DIR}/suites/test_conventions.sh"
+# shellcheck source=.harness/suites/test_containers.sh
 source "${SCRIPT_DIR}/suites/test_containers.sh"
-# shellcheck source=.tests/suites/test_direct_admin.sh
+# shellcheck source=.harness/suites/test_direct_admin.sh
 source "${SCRIPT_DIR}/suites/test_direct_admin.sh"
-# shellcheck source=.tests/suites/test_routing.sh
+# shellcheck source=.harness/suites/test_routing.sh
 source "${SCRIPT_DIR}/suites/test_routing.sh"
-# shellcheck source=.tests/suites/test_interconnect.sh
+# shellcheck source=.harness/suites/test_interconnect.sh
 source "${SCRIPT_DIR}/suites/test_interconnect.sh"
-# shellcheck source=.tests/suites/test_negative_security.sh
+# shellcheck source=.harness/suites/test_negative_security.sh
 source "${SCRIPT_DIR}/suites/test_negative_security.sh"
-# shellcheck source=.tests/suites/test_backup.sh
+# shellcheck source=.harness/suites/test_backup.sh
 source "${SCRIPT_DIR}/suites/test_backup.sh"
 
 main() {
@@ -39,12 +43,16 @@ main() {
 
   case "${target}" in
     all|"")
+      suite_conventions
       suite_containers
       suite_direct_admin
       suite_routing
       suite_interconnect
       suite_negative_security
       suite_backup
+      ;;
+    conventions|harness)
+      suite_conventions
       ;;
     containers|docker)
       suite_containers
@@ -79,6 +87,7 @@ Usage: $(basename "$0") [target]
 
 Targets:
   all             Run all test suites (default)
+  conventions     Run agentic harness and repository conventions checks
   containers      Run container runtime and health checks
   direct          Run direct host management port checks
   routing         Run reverse proxy virtual host routing checks

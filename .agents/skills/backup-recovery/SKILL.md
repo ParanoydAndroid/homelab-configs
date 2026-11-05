@@ -2,7 +2,7 @@
 name: backup-recovery
 description: >-
   Procedural runbook for executing persistent volume backups, online database staging,
-  snapshot inspection, and full or granular service disaster recovery via homelab.sh.
+  snapshot inspection, and full or granular service disaster recovery via manage.sh.
   Use when backing up containers, verifying restic snapshots, or executing restore operations.
 ---
 
@@ -12,7 +12,7 @@ This skill provides step-by-step procedures for managing Restic volume snapshots
 
 ## Prerequisites
 - Reference [Disaster Recovery and Volume Restoration Reference](./references/restore-runbook.md) for architecture and snapshot pruning details.
-- Root or sudo privileges required for backup and restore executions (`sudo ./homelab.sh ...`).
+- Root or sudo privileges required for backup and restore executions (`sudo ./manage.sh ...`).
 
 ---
 
@@ -22,21 +22,21 @@ This skill provides step-by-step procedures for managing Restic volume snapshots
 Runs online database dumps (PostgreSQL `pg_dumpall`), snapshots `/volume2/docker`, archives `.env` secrets, commits git state, and tags the commit:
 
 ```bash
-sudo ./homelab.sh backup
+sudo ./manage.sh backup
 ```
 
 #### Custom Tagging and Commit Messages:
 - **CalVer Snapshot** (default):
   ```bash
-  sudo ./homelab.sh backup -t calver -m "chore(backup): scheduled volume snapshot"
+  sudo ./manage.sh backup -t calver -m "chore(backup): scheduled volume snapshot"
   ```
 - **SemVer Minor Milestone**:
   ```bash
-  sudo ./homelab.sh backup -t minor -m "feat(storage): upgraded storage configuration"
+  sudo ./manage.sh backup -t minor -m "feat(storage): upgraded storage configuration"
   ```
 - **Custom Named Snapshot**:
   ```bash
-  sudo ./homelab.sh backup -t pre-upgrade -m "chore: snapshot prior to major upgrade"
+  sudo ./manage.sh backup -t pre-upgrade -m "chore: snapshot prior to major upgrade"
   ```
 
 ---
@@ -45,7 +45,7 @@ sudo ./homelab.sh backup
 List all historical Restic snapshots with timestamps, snapshot IDs, and paths:
 
 ```bash
-./homelab.sh snapshots
+./manage.sh snapshots
 ```
 
 ---
@@ -54,19 +54,19 @@ List all historical Restic snapshots with timestamps, snapshot IDs, and paths:
 
 #### 1. Dry-Run Verification (Always recommended):
 ```bash
-sudo ./homelab.sh restore latest --dry-run
+sudo ./manage.sh restore latest --dry-run
 ```
 
 #### 2. Granular Service Restore (Zero disruption to other stacks):
 Restore only a specific service data volume:
 ```bash
-sudo ./homelab.sh restore latest <service_name>
+sudo ./manage.sh restore latest <service_name>
 ```
-*Example*: `sudo ./homelab.sh restore latest tandoor`
+*Example*: `sudo ./manage.sh restore latest mealie`
 
 #### 3. Full Environment Disaster Recovery:
 Restore all container data volumes across `${DOCKER_DATA_DIR}`:
 ```bash
-sudo ./homelab.sh restore latest
+sudo ./manage.sh restore latest
 ```
 *Note: Full restore creates an emergency safety snapshot, stops all running containers, restores volume directories, repairs ownership (`1000:100`), imports PostgreSQL staging dumps, and brings all stacks back up.*

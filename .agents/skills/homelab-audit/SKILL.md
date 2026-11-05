@@ -100,7 +100,7 @@ This skill provides a systematic diagnostic procedure to detect drift between tr
 ### Audit Area 3: Reverse Proxy & Ingress Virtual Hosts
 1. **Run Full Routing Suite**:
    ```bash
-   ./homelab.sh test routing
+   ./manage.sh test routing
    ```
 2. **Verify SSL Expiration**:
    Check expiration date on local root certificate:
@@ -110,7 +110,7 @@ This skill provides a systematic diagnostic procedure to detect drift between tr
 3. **External Endpoint Hardening**:
    Ensure external domains reject diagnostic endpoints:
    ```bash
-   ./homelab.sh test security
+   ./manage.sh test security
    ```
 
 ---

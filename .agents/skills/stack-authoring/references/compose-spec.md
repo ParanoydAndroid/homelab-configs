@@ -74,7 +74,7 @@ ${VARIABLE}
 1. **Never use inline fallback defaults** in `compose.yml` (e.g. `${VAR:-default}`). All default values belong exclusively in `.env.example`.
 2. **Fixed stack invariants** (such as static internal ports, log levels, or allowed hosts) should be hardcoded directly in `compose.yml` rather than cluttering `.env.example`.
 3. **Intentionally optional runtime values** (such as one-time setup keys like `TS_AUTHKEY`) must use `${TS_AUTHKEY:-}` so subsequent container restarts succeed after the token is invalidated.
-4. **Script Boundary**: Shell scripts (`.scripts/*.sh`, `homelab.sh`) must use normal parameter expansion (`${VAR}`) without `:?`.
+4. **Script Boundary**: Shell scripts (`.scripts/*.sh`, `manage.sh`) must use normal parameter expansion (`${VAR}`) without `:?`.
 
 ---
 

@@ -2,7 +2,7 @@
 # Stack: Dockge Container Orchestrator (.configs/dockge/compose.yml)
 #
 # Deployment Location:
-#   Deployed by 'homelab.sh deploy-configs' to ${DOCKGE_DIR}/compose.yml
+#   Deployed by 'manage.sh deploy-configs' to ${DOCKGE_DIR}/compose.yml
 #   (one directory level above ${DOCKGE_STACKS_DIR}) so Dockge does not list
 #   or attempt to restart itself as a self-managed stack.
 # ==============================================================================

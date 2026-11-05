@@ -3,14 +3,14 @@
 This document serves as the central dictionary and reference guide for every environment variable used across the homelab infrastructure.
 
 Configuration follows a two-tier model with explicit runtime assertions:
-1. **Global Root Variables ([`.env.example`](../.env.example))**: Define host paths, network interfaces, runtime IDs, and timezone. Automatically propagated into child stack `.env` files by `./homelab.sh setup`.
+1. **Global Root Variables ([`.env.example`](../.env.example))**: Define host paths, network interfaces, runtime IDs, and timezone. Automatically propagated into child stack `.env` files by `./manage.sh setup`.
 2. **Per-Stack Variables & Secrets ([`<stack>/.env.example`](../))**: Define application secrets, credentials, and API keys.
 
 ### Single Source of Truth & Required Variable Enforcement
 - **Default Value Single Source of Truth**: All runtime variable defaults are defined strictly in `.env.example` templates.
 - **Compose Assertion Syntax**: Docker Compose files (`compose.yml`) treat runtime variables as required using `${VAR}`. This guarantees that missing variables are caught immediately at deploy time without duplicating default values across multiple Compose files.
 - **Fixed Invariants**: Variables representing immutable architectural decisions (such as `HOMEPAGE_ALLOWED_HOSTS`, `LOG_LEVEL`, `TS_EXTRA_ARGS`, and `CAPTCHA_SOLVER`) are inlined directly as literal values in `compose.yml` and omitted from `.env.example`.
-- **Automatic Secret Generation**: Cryptographic secrets like Django `SECRET_KEY` are automatically generated from `/dev/urandom` during `./homelab.sh setup` if left blank.
+- **Automatic Secret Generation**: Cryptographic secrets like Django `SECRET_KEY` are automatically generated from `/dev/urandom` during `./manage.sh setup` if left blank.
 
 ---
 
@@ -88,7 +88,7 @@ These variables are defined in the repository root `.env` and synced automatical
 ### `BACKUP_RETENTION_DAYS`
 * **Default**: `30`
 * **Type**: Integer
-* **Description**: Number of daily backup snapshots retained before automatic pruning during `./homelab.sh backup`.
+* **Description**: Number of daily backup snapshots retained before automatic pruning during `./manage.sh backup`.
 
 ---
 

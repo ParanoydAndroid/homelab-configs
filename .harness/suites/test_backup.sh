@@ -49,8 +49,8 @@ test_backup_systemd_units() {
     return 1
   fi
 
-  if ! grep -q "homelab.sh backup" "${svc}"; then
-    printf "Service does not invoke homelab.sh backup"
+  if ! grep -q "manage.sh backup" "${svc}"; then
+    printf "Service does not invoke manage.sh backup"
     return 1
   fi
 

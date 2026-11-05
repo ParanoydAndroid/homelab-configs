@@ -49,7 +49,7 @@ This skill guides the creation and modification of Dockge-compatible Docker Comp
    - Do NOT include root-level globals (`DOCKER_DATA_DIR`, `PUID`, `PGID`, `TZ`) unless overriding.
 2. Synchronize environment files using the project CLI:
    ```bash
-   ./homelab.sh setup
+   ./manage.sh setup
    ```
    * Or sync `.env` files directly: `source .scripts/env-tools.sh && init_and_sync_env`.
 
@@ -77,4 +77,4 @@ This skill guides the creation and modification of Dockge-compatible Docker Comp
    ```bash
    docker inspect --format='{{.State.Health.Status}}' <container-name>
    ```
-4. Author automated smoke tests in `.tests/suites/` (see `test-authoring` skill).
+4. Author automated smoke tests in `.harness/suites/` (see `test-authoring` skill).

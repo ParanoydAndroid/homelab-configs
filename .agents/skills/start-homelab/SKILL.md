@@ -38,7 +38,7 @@ Orient the developer to the core architectural invariants of this repository:
 3. **Environment & Secrets Architecture**:
    - Single Source of Truth: All runtime defaults are declared once in root and stack `.env.example` templates.
    - Compose files enforce required assertions: `${VAR:?See env.example for default.}`.
-   - `./homelab.sh setup` syncs global variables into child stacks and auto-generates cryptographic keys (`SECRET_KEY`).
+   - `./manage.sh setup` syncs global variables into child stacks and auto-generates cryptographic keys (`SECRET_KEY`).
 
 ---
 
@@ -142,7 +142,7 @@ Before executing destructive file deletions or provisioning secrets, document th
    - Leave `SECRET_KEY` blank to auto-generate.
 5. **Run Setup Automation**:
    ```bash
-   ./homelab.sh setup
+   ./manage.sh setup
    ```
    * Automation propagates global variables, auto-generates keys, applies host OS fixes, and creates external Docker networks.
 
@@ -151,11 +151,11 @@ Before executing destructive file deletions or provisioning secrets, document th
 ### Step 6: Verified Deployment & Adaptive Test Loop
 1. **Start Services in Dependency Order**:
    ```bash
-   ./homelab.sh startup
+   ./manage.sh startup
    ```
 2. **Execute Full Automated Test Suite**:
    ```bash
-   ./homelab.sh test all
+   ./manage.sh test all
    ```
    * Dynamic stack discovery automatically marks omitted or disabled stacks as `[SKIP]` (`exit 77`).
    * Assert 100% PASS across all active services.

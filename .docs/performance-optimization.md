@@ -3,7 +3,7 @@
 This document provides a comprehensive runbook of recommended interactive configurations, optimizations, and ergonomic enhancements for newly deployed homelab stacks. It is designed to guide a stack owner through post-setup steps that maximize runtime performance, reduce hardware storage wear, improve day-to-day client usability, and ensure operational maintainability.
 
 > **Design Philosophy & Single-Volume Scope**:
-> The steps outlined below are **recommended best practices, not mandatory requirements**. The entire homelab architecture, Compose stack definitions, and `homelab.sh` lifecycle tooling are engineered to operate reliably on single-volume storage architectures (such as a single mechanical RAID array on `/volume1`). Apply these recommendations according to your specific hardware capabilities, storage topology, and operational preferences.
+> The steps outlined below are **recommended best practices, not mandatory requirements**. The entire homelab architecture, Compose stack definitions, and `manage.sh` lifecycle tooling are engineered to operate reliably on single-volume storage architectures (such as a single mechanical RAID array on `/volume1`). Apply these recommendations according to your specific hardware capabilities, storage topology, and operational preferences.
 
 ---
 
@@ -13,7 +13,7 @@ This document provides a comprehensive runbook of recommended interactive config
 | :--- | :--- | :--- |
 | **1. Performance & Anti-Thrashing** | Eliminate mechanical disk thrashing, absorb random I/O spikes, minimize Btrfs filesystem fragmentation, and remove edge buffering latency. | Linux Kernel VM, Docker Daemon, Btrfs, Jellyfin (`tmpfs`), Cloudflare CDN. |
 | **2. Ergonomics & Usability** | Remove browser security warnings, enable zero-friction remote LAN DNS resolution, configure privacy exit nodes, and enable instant media hardlinking. | Local Root CA, Tailscale Split-DNS, Homepage Dashboard, Radarr/Sonarr. |
-| **3. Maintainability & Reliability** | Enforce bounded disk logging, verify hot database backups, validate disaster recovery restoration, and ensure host OS workaround stability. | Systemd Timers, Restic Backup Engine, SQLite, `homelab.sh`. |
+| **3. Maintainability & Reliability** | Enforce bounded disk logging, verify hot database backups, validate disaster recovery restoration, and ensure host OS workaround stability. | Systemd Timers, Restic Backup Engine, SQLite, `manage.sh`. |
 
 ---
 
@@ -260,7 +260,7 @@ Traditional container backup methods either stop containers (causing service dow
 1. **Execute On-Demand Backup**:
    Run an online backup with a dedicated tag:
    ```bash
-   sudo ./homelab.sh backup --tag initial-setup
+   sudo ./manage.sh backup --tag initial-setup
    ```
    * Automation triggers zero-downtime logical dumps (SQLite `.backup` / WAL checkpoints for application databases) to `${DOCKER_DATA_DIR}/.backups`.
    * Restic deduplicates and encrypts snapshots into `${BACKUP_RESTIC_REPO}` (`/volume1/backups/homelab-docker`).
@@ -277,7 +277,7 @@ Traditional container backup methods either stop containers (causing service dow
    Verify restoration mechanics without impacting production data:
    ```bash
    # Dry-run or test restore of a specific service
-   sudo ./homelab.sh restore latest jellyfin
+   sudo ./manage.sh restore latest jellyfin
    ```
 
 ---
@@ -290,7 +290,7 @@ On UGREEN NAS appliances running UGOS Pro (Linux kernel 5.15+), Go-based binarie
 Confirm the idempotent workaround is present:
 * Check shell environment: `/etc/profile.d/go.sh` containing `export GODEBUG=tlskyber=0`.
 * Check systemd daemon environment: `/etc/systemd/system.conf.d/godebug.conf` containing `DefaultEnvironment="GODEBUG=tlskyber=0"`.
-* Re-running `./homelab.sh setup` automatically detects and restores these configurations if overwritten by host OS firmware updates.
+* Re-running `./manage.sh setup` automatically detects and restores these configurations if overwritten by host OS firmware updates.
 
 ---
 
@@ -299,7 +299,7 @@ Confirm the idempotent workaround is present:
 Whenever making host configuration adjustments, network edits, or stack updates, validate the entire environment in a single pass:
 
 ```bash
-sudo ./homelab.sh test all
+sudo ./manage.sh test all
 ```
 
 This automated smoke test suite verifies:

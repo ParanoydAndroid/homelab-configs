@@ -17,7 +17,7 @@ Backups are executed with zero downtime using online database staging. Restorati
 ### 1. Identify Target Snapshot
 List available snapshots sorted by timestamp and tagged metadata:
 ```bash
-./homelab.sh snapshots
+./manage.sh snapshots
 ```
 Identify the desired snapshot ID (e.g. `a1b2c3d4` or `latest`).
 
@@ -26,13 +26,13 @@ To restore all container volumes from `latest` or a specific snapshot:
 
 ```bash
 # Dry-run inspection
-sudo ./homelab.sh restore latest --dry-run
+sudo ./manage.sh restore latest --dry-run
 
 # Execute full restore
-sudo ./homelab.sh restore latest
+sudo ./manage.sh restore latest
 ```
 
-**Restoration Sequence Executed by `homelab.sh restore`**:
+**Restoration Sequence Executed by `manage.sh restore`**:
 1. Stops all running container stacks to prevent file lock corruption.
 2. Creates an emergency pre-restore safety snapshot of `/volume2/docker`.
 3. Streams the target Restic snapshot into `/volume2/docker`.
@@ -41,10 +41,10 @@ sudo ./homelab.sh restore latest
 6. Restarts container stacks in dependency order.
 
 ### 3. Granular Single-Service Recovery
-To restore only a specific service (e.g. `tandoor` or `recipes`) without disrupting other services:
+To restore only a specific service (e.g. `mealie` or `recipes`) without disrupting other services:
 
 ```bash
-sudo ./homelab.sh restore latest tandoor
+sudo ./manage.sh restore latest mealie
 ```
 
 **Behavior**:
@@ -68,7 +68,7 @@ To avoid stopping containers during regular backups, `backup.sh` uses online log
 
 ## Restic Repository Maintenance and Pruning
 
-Retention policy is enforced automatically during `homelab.sh backup`:
+Retention policy is enforced automatically during `manage.sh backup`:
 - **Daily retention**: 30 days (`--keep-daily 30`).
 - **Weekly retention**: 4 weeks (`--keep-weekly 4`).
 - **Monthly retention**: 12 months (`--keep-monthly 12`).

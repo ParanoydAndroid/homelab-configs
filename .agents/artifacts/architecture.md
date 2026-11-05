@@ -7,21 +7,21 @@ This repository is the single source of truth for the declarative configuration,
 The project encompasses:
 - **Containerized Service Stacks**: Declarative Docker Compose v2+ definitions across 6 domain-aligned stacks: edge routing and tunnels (`ingress`), mesh networking and privacy bridge (`mesh`), media streaming and acquisition (`media`), torrenting and download client (`torrent`), recipe management and database storage (`productivity`), and central dashboard (`dashboard`), with web-based stack orchestration via `dockge`.
 - **Tracked Application Configurations (`.configs/`)**: Bootstrapping assets and templates—including Dockge orchestrator compose definitions, local certificate scripts, qBittorrent port-forwarding scripts, and systemd units/timers.
-- **Lifecycle, Testing, and Backup Automation (`homelab.sh`)**: Idempotent CLI tooling for host OS workaround convergence, two-tier `.env` initialization and secret propagation, Docker network provisioning, non-disruptive Restic-based volume backups with online database staging, fast end-to-end smoke testing, and disaster recovery restoration.
+- **Lifecycle, Testing, and Backup Automation (`manage.sh`)**: Idempotent CLI tooling for host OS workaround convergence, two-tier `.env` initialization and secret propagation, Docker network provisioning, non-disruptive Restic-based volume backups with online database staging, fast end-to-end smoke testing via `.harness/test-runner.sh`, and disaster recovery restoration.
 
 ---
 
 ## 2. Core Architectural Philosophy
 
 ### 2.1 Coalesced Git-Centric Configuration with Dockge Compatibility
-- **Unified Repository and Orchestrator Directory**: The repository is checked out directly at `/opt/${USER}/dockge/stacks` (and symlinked to `${HOME}/services`). Every non-hidden directory at the repository root is a self-contained Docker Compose stack (`<stack>/compose.yml` + `<stack>/.env`) that can be managed either via the `homelab.sh` CLI or interactively through the Dockge Web UI.
-- **Strict Root Directory Hygiene**: Non-stack directories are kept hidden (`.configs/`, `.agents/`) so Dockge never misidentifies documentation, agent metadata, or raw config files as runnable Compose stacks.
+- **Unified Repository and Orchestrator Directory**: The repository is checked out directly at `/opt/${USER}/dockge/stacks` (and symlinked to `${HOME}/services`). Every non-hidden directory at the repository root is a self-contained Docker Compose stack (`<stack>/compose.yml` + `<stack>/.env`) that can be managed either via the `manage.sh` CLI or interactively through the Dockge Web UI.
+- **Strict Root Directory Hygiene**: Non-stack directories are kept hidden (`.configs/`, `.agents/`, `.harness/`, `.scripts/`, `.github/`) so Dockge never misidentifies documentation, agent metadata, test harnesses, or raw config files as runnable Compose stacks. Root convenience symlinks (`agent.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.skills`) are ignored by Dockge's directory scanner.
 - **Externalized Orchestrator Stack**: Dockge's own `compose.yml` is tracked in `.configs/dockge/compose.yml` and deployed one level above the stacks directory (`${DOCKGE_DIR}/compose.yml`) so Dockge does not list or restart itself as a child stack.
 
 ### 2.2 Declarative Convergence and Idempotency
-- Every operation in `homelab.sh` (`setup`, `startup`, `backup`, `snapshots`, `restore`) is idempotent and safe to run repeatedly on both brand-new host installations and routine updates after `git pull`.
-- Host-level appliance workarounds (such as remediating the UGREEN NAS `GODEBUG=tlskyber=0` bug across `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`) are codified directly into `homelab.sh setup`.
-- Persistent volume state and databases on `${DOCKER_DATA_DIR}` (`/volume2/docker`) are protected via automated Restic snapshots streamed to `${BACKUP_RESTIC_REPO}` with zero container downtime and 30-day retention pruning. Full or per-service disaster recovery is performed via `homelab.sh restore`.
+- Every operation in `manage.sh` (`setup`, `startup`, `backup`, `snapshots`, `restore`, `audit`, `hook`) is idempotent and safe to run repeatedly on both brand-new host installations and routine updates after `git pull`.
+- Host-level appliance workarounds (such as remediating the UGREEN NAS `GODEBUG=tlskyber=0` bug across `/etc/profile.d/go.sh` and `/etc/systemd/system.conf`) are codified directly into `manage.sh setup`.
+- Persistent volume state and databases on `${DOCKER_DATA_DIR}` (`/volume2/docker`) are protected via automated Restic snapshots streamed to `${BACKUP_RESTIC_REPO}` with zero container downtime and 30-day retention pruning. Full or per-service disaster recovery is performed via `manage.sh restore`.
 
 ### 2.3 Network Isolation and Reverse Proxy Boundary
 - **Dedicated Reverse Proxy LAN IP (`external_npm` macvlan)**: Caddy binds to a dedicated LAN IP (`192.168.0.4`) via a Docker `macvlan` network on `eth0`, cleanly separating reverse-proxied service traffic (`80`, `443`) from the UGREEN NAS host OS web interface (`192.168.0.3` / `nas.home`).
@@ -32,8 +32,8 @@ The project encompasses:
 ### 2.4 Two-Tier Environment and Secret Separation
 - Zero credentials, API tokens, or cryptographic keys are committed to git.
 - Because Dockge executes `docker compose` with the working directory set to each individual `<stack>/` folder, environment variables follow a two-tier `.env.example` -> `.env` model:
-  1. **Root `.env.example`**: Defines global infrastructure defaults (`DOCKER_DATA_DIR`, `MEDIA_DIR`, `DOCKGE_DIR`, `DOCKGE_STACKS_DIR`, `PUID`, `PGID`, `TZ`, `EXTERNAL_NPM_*`, `NPM_IPV4_ADDRESS`). `homelab.sh` resolves dynamic user paths and propagates these global variables into every `<stack>/.env` and `${DOCKGE_DIR}/.env`.
-  2. **Per-Stack `<stack>/.env.example`**: Declares stack-specific secrets and API keys (`VPN_USER`, `VPN_PASS`, `SECRET_KEY`, `*_API_KEY`, `QBITTORRENT_PASSWORD`, `HOMEPAGE_VAR_PIHOLE_KEY`) with blank defaults (`KEY=`). `homelab.sh` audits these keys on setup and warns if any required secret is unpopulated.
+  1. **Root `.env.example`**: Defines global infrastructure defaults (`DOCKER_DATA_DIR`, `MEDIA_DIR`, `DOCKGE_DIR`, `DOCKGE_STACKS_DIR`, `PUID`, `PGID`, `TZ`, `EXTERNAL_NPM_*`, `NPM_IPV4_ADDRESS`). `manage.sh` resolves dynamic user paths and propagates these global variables into every `<stack>/.env` and `${DOCKGE_DIR}/.env`.
+  2. **Per-Stack `<stack>/.env.example`**: Declares stack-specific secrets and API keys (`VPN_USER`, `VPN_PASS`, `SECRET_KEY`, `*_API_KEY`, `QBITTORRENT_PASSWORD`, `HOMEPAGE_VAR_PIHOLE_KEY`) with blank defaults (`KEY=`). `manage.sh` audits these keys on setup and warns if any required secret is unpopulated.
 
 ---
 
@@ -63,11 +63,15 @@ The project encompasses:
 ├── .env.example
 ├── .gitignore
 ├── .skills -> .agents/skills
-├── AGENTS.md -> .agents/rules/project-conventions.md
+├── AGENTS.md
+├── agent.md -> AGENTS.md
+├── CLAUDE.md -> AGENTS.md
+├── GEMINI.md -> AGENTS.md
+├── .cursorrules -> AGENTS.md
 ├── CHANGELOG.md
 ├── BACKLOG.md
 ├── README.md
-├── homelab.sh
+├── manage.sh
 ├── dashboard/
 │   ├── .env.example
 │   └── compose.yml
@@ -110,7 +114,7 @@ The project encompasses:
 - `/volume2/docker/vpn-bridge/data/tailscale` -> `/var/lib/tailscale` (`vpn-bridge-tailscale`)
 - `/volume2/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
 - `/volume2/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
-- `/volume2/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
+- `/volume2/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`manage.sh backup`)
 - `/volume1/media` -> `/media` (`radarr`, `sonarr`, `qbittorrent`) and `/data/media:ro` (`jellyfin`)
 - `/var/run/docker.sock` -> `/var/run/docker.sock` (`dockge`, `homepage`)
 - `/opt/${USER}/dockge/stacks` -> `${DOCKGE_STACKS_DIR}` (`dockge`)

@@ -22,7 +22,7 @@ This skill coordinates adding a new service or decommissioning an existing servi
              |
        5. Backup Engine (.scripts/backup.sh & Restic)
              |
-       6. Automated Tests (.tests/suites/*)
+       6. Automated Tests (.harness/suites/*)
 ```
 
 ---
@@ -42,7 +42,7 @@ This skill coordinates adding a new service or decommissioning an existing servi
 1. Create `<stack-name>/.env.example`:
    - List only stack-specific secrets (`*_API_KEY=`, `*_SECRET=`, `*_PASSWORD=`) with blank defaults.
    - Do NOT include root globals (`DOCKER_DATA_DIR`, `PUID`, `PGID`, `TZ`).
-2. Run `./homelab.sh setup` to generate `<stack-name>/.env` and sync globals.
+2. Run `./manage.sh setup` to generate `<stack-name>/.env` and sync globals.
 
 ### Touchpoint 3: Reverse Proxy Routing (Caddy Docker Proxy)
 1. Add declarative Caddy labels to the service in `<stack-name>/compose.yml`:
@@ -91,19 +91,19 @@ This skill coordinates adding a new service or decommissioning an existing servi
 3. If database-backed, add online staging dump in `.scripts/backup.sh`.
 
 ### Touchpoint 6: Automated Smoke Tests
-1. Add container assertion to `.tests/suites/test_containers.sh`:
+1. Add container assertion to `.harness/suites/test_containers.sh`:
    ```bash
    test_docker_up_<service>() {
      _assert_container_running "<container_name>" "<stack_name>"
    }
    ```
-2. Add routing assertion to `.tests/suites/test_routing.sh`:
+2. Add routing assertion to `.harness/suites/test_routing.sh`:
    ```bash
    test_vhost_<service>_internal() {
      _curl_vhost "<service>.kamaka.tech" "/" "^200$" "<stack_name>"
    }
    ```
-3. Run `./homelab.sh test all` to verify complete green pass.
+3. Run `./manage.sh test all` to verify complete green pass.
 
 ---
 
@@ -120,16 +120,16 @@ This skill coordinates adding a new service or decommissioning an existing servi
 4. **Archive or Prune Persistent Data**:
    - Create final Restic snapshot before removal:
      ```bash
-     ./homelab.sh backup --tag retire-<stack-name>
+     ./manage.sh backup --tag retire-<stack-name>
      ```
    - Delete `${DOCKER_DATA_DIR}/<service>`.
 5. **Clean Up Tests**:
-   Remove or comment assertions in `.tests/suites/`. (Dynamic discovery will also automatically skip tests if stack directory is removed or `.disabled` is present).
+   Remove or comment assertions in `.harness/suites/`. (Dynamic discovery will also automatically skip tests if stack directory is removed or `.disabled` is present).
 6. **Remove Stack Directory**:
    ```bash
    rm -rf <stack-name>/
    ```
 7. **Verify Mainline Health**:
    ```bash
-   ./homelab.sh test all
+   ./manage.sh test all
    ```

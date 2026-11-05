@@ -21,7 +21,7 @@ This skill automates the safe, verified graduation of a feature branch into `mai
 ### Step 1: Run Full Regression and Smoke Test Suite
 Execute the entire test suite against the live environment:
 ```bash
-./homelab.sh test all
+./manage.sh test all
 ```
 * **Assertion**: All test suites (containers, direct, routing, interconnect, security, backup) must PASS (or explicitly documented skips).
 * **CRITICAL STOP-ON-FAILURE**: If any test fails:
@@ -59,6 +59,10 @@ Before writing release notes or committing, conduct a comprehensive audit across
 
 5. **Style and Brevity Verification**:
    - Ensure all updated documentation adheres to the project-wide documentation conventions: value brevity, align detail to audience/scope, eliminate redundant fine details, and omit internal development minutiae.
+
+6. **Memory Bank Synchronization (`.agents/memory/`)**:
+   - Synchronize `activeContext.md` by clearing completed feature focus, updating active patterns, and noting upcoming tasks.
+   - Synchronize `progress.md` by recording completed capabilities, updating the automated test count, and noting release tags. Never leave finished milestones marked pending.
 
 ### Step 3: Update Changelog (SemVer Minor/Major Releases)
 Review [SemVer and CalVer Guidelines](./references/semver-calver-guidelines.md) for version tier determination, roll-up synthesis, and format rules.

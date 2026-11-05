@@ -2,13 +2,13 @@
 name: test-authoring
 description: >-
   Systematic recipe and standards for authoring automated smoke, interconnect,
-  routing, and security regression tests in .tests/suites/. Use when introducing
+  routing, and security regression tests in .harness/suites/. Use when introducing
   new services, adding proxy endpoints, or writing reproduction tests for bug fixes.
 ---
 
 # Test Authoring Runbook
 
-This skill guides the authoring and maintenance of automated tests within the homelab test framework (`./homelab.sh test`).
+This skill guides the authoring and maintenance of automated tests within the homelab test framework (`./manage.sh test`).
 
 ## Prerequisites
 - Reference [Automated Test Suite Catalog and Assertion Patterns](./references/suite-catalog.md) for available test helper functions and suite structure.
@@ -19,10 +19,10 @@ This skill guides the authoring and maintenance of automated tests within the ho
 
 ### Step 1: Identify Target Test Suite
 Determine where the new check belongs:
-- **New container**: Add container state assertion to `.tests/suites/test_containers.sh`.
-- **New reverse proxy host**: Add HTTP routing assertion to `.tests/suites/test_routing.sh`.
-- **Database or inter-service API**: Add connection check to `.tests/suites/test_interconnect.sh`.
-- **Public endpoint hardening**: Add path restriction check to `.tests/suites/test_negative_security.sh`.
+- **New container**: Add container state assertion to `.harness/suites/test_containers.sh`.
+- **New reverse proxy host**: Add HTTP routing assertion to `.harness/suites/test_routing.sh`.
+- **Database or inter-service API**: Add connection check to `.harness/suites/test_interconnect.sh`.
+- **Public endpoint hardening**: Add path restriction check to `.harness/suites/test_negative_security.sh`.
 
 ### Step 2: Implement Test Case
 Follow standard naming convention `test_<feature_or_bug>`:
@@ -55,9 +55,9 @@ run_suite() {
 ### Step 4: Validate Execution
 Run the specific suite directly:
 ```bash
-./homelab.sh test routing
+./manage.sh test routing
 ```
 Then run the entire test suite to guarantee zero side effects:
 ```bash
-./homelab.sh test all
+./manage.sh test all
 ```

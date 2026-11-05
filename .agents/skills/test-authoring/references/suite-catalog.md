@@ -2,10 +2,11 @@
 
 ## Suite Organization
 
-All tests are orchestrated via `./homelab.sh test [suite]` and live under `.tests/suites/`:
+All tests are orchestrated via `./manage.sh test [suite]` and live under `.harness/suites/`:
 
 | Suite File | Scope & Assertions |
 | :--- | :--- |
+| `test_conventions.sh` | Verifies repository invariants, canonical entrypoints, memory bank files, and secrets hygiene. |
 | `test_containers.sh` | Verifies container runtime states, exit codes (`0`), and Docker health status (`healthy`). |
 | `test_direct_admin.sh` | Tests direct host port accessibility for non-HTTP services (e.g. Jellyfin discovery `8022:7359/udp`, Dockge `8010:5001`). |
 | `test_routing.sh` | Tests client-impersonated reverse proxy virtual host routing, SSL termination, and HTTP status codes (`200`/`302`). |
@@ -17,7 +18,7 @@ All tests are orchestrated via `./homelab.sh test [suite]` and live under `.test
 
 ## Assertion Helper Functions
 
-The test framework sources `.tests/lib/assertions.sh` providing standard testing helpers:
+The test framework sources `.harness/lib/common.sh` providing standard testing helpers:
 
 ```bash
 # Assert string equality
@@ -58,4 +59,4 @@ test_service_vhost() {
 When a RAID rebuild/reshape/scrub is in progress on the UGREEN NAS host storage:
 - Storage latency increases significantly.
 - High I/O container operations (e.g., streaming full Restic volume checks or heavy database scans) may trigger container execution timeouts.
-- Run targeted sub-suites (`./homelab.sh test routing`, `./homelab.sh test interconnect`) instead of full heavy scans when high disk latency is detected.
+- Run targeted sub-suites (`./manage.sh test routing`, `./manage.sh test interconnect`) instead of full heavy scans when high disk latency is detected.

@@ -25,7 +25,7 @@
 #      are triggered only when requested via --commit or -m.
 #   5. Pre-Flight Disk Safety & Health Auditing:
 #      Enforces minimum free capacity thresholds on staging and target arrays, and
-#      exposes repository verification ('homelab.sh backup check').
+#      exposes repository verification ('manage.sh backup check').
 #   6. Disaster Recovery & Restoration:
 #      Provides full-volume or granular per-service restore capabilities with
 #      pre-restore container quiesce checks and dry-run manifest inspection.
@@ -166,7 +166,7 @@ check_restic_repo() {
   local repo="${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}"
 
   if [[ ! -d "${repo}" ]]; then
-    log_error "Backup repository not found at ${repo}. Run 'homelab.sh backup' first."
+    log_error "Backup repository not found at ${repo}. Run 'manage.sh backup' first."
     exit 1
   fi
 
@@ -558,7 +558,7 @@ snapshots_homelab() {
   local repo="${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}"
 
   if [[ ! -d "${repo}" ]]; then
-    log_error "Backup repository not found at ${repo}. Run 'homelab.sh backup' first."
+    log_error "Backup repository not found at ${repo}. Run 'manage.sh backup' first."
     exit 1
   fi
 
