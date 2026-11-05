@@ -16,11 +16,10 @@
   - [x] Unified `manage.sh` master entrypoint implemented.
   - [x] GitHub Actions CI workflow authored (`.github/workflows/ci.yml`).
   - [x] Git hooks guarding `main` installed.
-  - [x] Legacy `.tests` symlink decommissioned.
+  - [x] Legacy `.tests/` decommissioned.
   - [x] Comprehensive repository-wide documentation and link audit completed (129/129 valid).
-  - [x] Tracked systemd unit files updated to `manage.sh`.
-  - [ ] Host `/etc/systemd/system/` units updated.
-  - [ ] Legacy `homelab.sh` symlink removed.
+  - [x] Tracked and host systemd unit files updated to `manage.sh`.
+  - [x] Legacy `homelab.sh` fully decommissioned.
   - [ ] Final user review gate approved before release completion.
 
 ## Verification Status
@@ -30,4 +29,4 @@
 - Active containers: 20/20 running and healthy.
 
 ## Known Issues / Backlog
-- Host `/etc/systemd/system/` service units pending deployment via `sudo cp` before removing `homelab.sh`.
+- None.
