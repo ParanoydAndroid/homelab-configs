@@ -81,8 +81,8 @@ test_docker_up_wireguard_pia() {
   assert_service_running "wireguard-pia"
 }
 
-test_docker_up_qbittorrentvpn() {
-  assert_service_running "qbittorrentvpn"
+test_docker_up_qbittorrent() {
+  assert_service_running "qbittorrent"
 }
 
 test_docker_up_radarr() {
@@ -140,7 +140,7 @@ suite_containers() {
   run_test test_docker_up_homepage "Verify Homepage Dashboard is running and healthy"
   run_test test_docker_up_jellyfin "Verify Jellyfin media server is running and healthy"
   run_test test_docker_up_wireguard_pia "Verify WireGuard PIA VPN container is running and healthy"
-  run_test test_docker_up_qbittorrentvpn "Verify qBittorrent BitTorrent client is running"
+  run_test test_docker_up_qbittorrent "Verify qBittorrent BitTorrent client is running"
   run_test test_docker_up_radarr "Verify Radarr movie indexer is running"
   run_test test_docker_up_sonarr "Verify Sonarr TV indexer is running"
   run_test test_docker_up_prowlarr "Verify Prowlarr indexer aggregator is running"

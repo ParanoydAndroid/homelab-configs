@@ -21,7 +21,7 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 ├── .configs/                      # Bootstrapping assets and systemd service templates
 │   ├── caddy/                     # Base Caddyfile configuration template
 │   ├── dockge/                    # Dockge's own compose.yml and .env.example
-│   ├── qbittorrentvpn/            # Port-sync callback script (set-qbt-port.sh)
+│   ├── qbittorrent/               # Port-sync callback script (set-qbt-port.sh)
 │   └── systemd/                   # Host systemd unit and timer files
 ├── .scripts/                      # Modular automation library for homelab.sh
 │   ├── common.sh                  # Logging, user resolution, and atomic dotenv utilities

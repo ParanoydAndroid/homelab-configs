@@ -216,7 +216,7 @@ In accordance with project conventions, configuration parameters representing fi
 Homepage widgets consume service secrets without committing plaintext credentials to version control:
 
 1. **Docker Container Labels (Internal Containers)**:
-   Containers (`jellyfin`, `qbittorrentvpn`, `sonarr`, `radarr`) declare widget configuration using `${VAR}` syntax in their `compose.yml`:
+   Containers (`jellyfin`, `qbittorrent`, `sonarr`, `radarr`) declare widget configuration using `${VAR}` syntax in their `compose.yml`:
    ```yaml
    labels:
      - homepage.group=Media

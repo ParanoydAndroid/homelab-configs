@@ -29,7 +29,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Royal Road Sync** | `books/` | `royalroad-sync` | Internal Bridge Only | N/A | Daemon | None (Internal Worker) | None |
 | **Mealie Recipes** | `productivity/` | `mealie` | Internal Bridge Only | `9000` | HTTP | `https://recipes.kamaka.tech` | `https://recipes.kamakakai.com`, `https://mom.kamakakai.com` |
 | **WireGuard PIA VPN** | `torrent/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.kamaka.tech` | None |
-| **qBittorrent** | `torrent/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
+| **qBittorrent** | `torrent/` | `qbittorrent` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrent:8081` (Internal) | Dynamic VPN Port (`wg0`) |
 | **Cleanuparr** | `torrent/` | `cleanuparr` | Internal Bridge Only | `11011` | HTTP | `https://cleanuparr.kamaka.tech` | None |
 | **VPN Bridge (PIA)** | `mesh/` | `vpn-bridge-pia` | Internal Bridge Only | N/A | WireGuard | Outbound PIA Tunnel (`wg0`) | Egress via US PIA Regions |
 | **VPN Bridge (Tailscale)** | `mesh/` | `vpn-bridge-tailscale` | Network Mode: `service:vpn` | N/A | WireGuard | Node `vpn-bridge` on Mesh | Tailscale Exit Node |
@@ -190,7 +190,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 * **Role & Capabilities**: Central service dashboard providing quick navigation links, active container metrics, BitTorrent download progress, Jellyfin stream counters, and Pi-hole DNS query statistics.
 * **Network & Access**: Accessible internally at `https://homepage.kamaka.tech`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/homepage/data:/app/config` for YAML configuration files (`services.yaml`, `settings.yaml`, `widgets.yaml`, `custom.css`), and `/var/run/docker.sock:/var/run/docker.sock` for automated Docker service discovery.
-* **Dependencies & Interconnections**: Interfaces with Docker daemon labels and polls APIs across the `homelab` bridge (`jellyfin:8096`, `qbittorrentvpn:8081`, `radarr:7878`, `sonarr:8989`) and LAN (`192.168.0.2:80`).
+* **Dependencies & Interconnections**: Interfaces with Docker daemon labels and polls APIs across the `homelab` bridge (`jellyfin:8096`, `qbittorrent:8081`, `radarr:7878`, `sonarr:8989`) and LAN (`192.168.0.2:80`).
 
 ---
 
@@ -210,7 +210,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 * **Role & Capabilities**: Automated movie collection manager, release indexer, and download coordinator. Searches for movie releases via Prowlarr, sends downloads to qBittorrent, and organizes files into media libraries.
 * **Network & Access**: Accessible internally at `https://radarr.kamaka.tech`. REST API is authenticated via `RADARR_API_KEY`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/radarr/data:/config` for application configuration and SQLite database, and `${MEDIA_DIR}:/media` for file organization and hardlinking.
-* **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`), qBittorrent (`http://qbittorrentvpn:8081`), and Seerr.
+* **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`), qBittorrent (`http://qbittorrent:8081`), and Seerr.
 
 ---
 
@@ -230,7 +230,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 * **Role & Capabilities**: Automated television series collection manager, episode monitor, and release grabber. Interfaces with Prowlarr to monitor indexers and delegates downloads to qBittorrent.
 * **Network & Access**: Accessible internally at `https://sonarr.kamaka.tech`. REST API is authenticated via `SONARR_API_KEY`.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/sonarr/data:/config` for application database and settings, and `${MEDIA_DIR}:/media` for automated media renaming and hardlinking.
-* **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`), qBittorrent (`http://qbittorrentvpn:8081`), and Seerr.
+* **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`), qBittorrent (`http://qbittorrent:8081`), and Seerr.
 
 ---
 
@@ -299,20 +299,20 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | Attribute | Value |
 | :--- | :--- |
 | **Stack Directory** | `torrent/` |
-| **Container Names** | `wireguard-pia` (VPN) & `qbittorrentvpn` (BitTorrent) |
+| **Container Names** | `wireguard-pia` (VPN) & `qbittorrent` (BitTorrent) |
 | **Host / Network Binding** | Internal `homelab` bridge only (`8081` WebUI) |
 | **Internal Container Port**| `8081` (WebUI), Dynamic Forwarded Port (BitTorrent) |
 | **LAN Address** | `https://torrent.kamaka.tech` |
 | **WAN Address** | None (Traffic routes exclusively via WireGuard tunnel `wg0`) |
-| **Persistent Data Path** | `${DOCKER_DATA_DIR}/qbittorrentvpn/data` |
+| **Persistent Data Path** | `${DOCKER_DATA_DIR}/qbittorrent/data` |
 | **Associated Secrets** | `VPN_USER`, `VPN_PASS`, `QBITTORRENT_PASSWORD` |
 
-* **Role & Capabilities**: Decoupled VPN network namespace and BitTorrent client. The `wireguard-pia` container maintains an encrypted WireGuard tunnel (`wg0`) to Private Internet Access with a strict `iptables` kill switch. The `qbittorrentvpn` container runs inside the VPN's network namespace (`network_mode: "service:vpn"`).
-* **Network & Access**: WebUI accessible internally at `https://torrent.kamaka.tech` and directly over the bridge at `http://qbittorrentvpn:8081`. Local access without VPN traversal is permitted via `LOCAL_NETWORK: 192.168.0.0/16`.
-* **Automated Port Forwarding**: The PIA container requests an open port dynamically and synchronizes active listening port and anti-thrashing preferences to qBittorrent via [.configs/qbittorrentvpn/set-qbt-port.sh](../.configs/qbittorrentvpn/set-qbt-port.sh).
+* **Role & Capabilities**: Decoupled VPN network namespace and BitTorrent client. The `wireguard-pia` container maintains an encrypted WireGuard tunnel (`wg0`) to Private Internet Access with a strict `iptables` kill switch. The `qbittorrent` container runs inside the VPN's network namespace (`network_mode: "service:vpn"`).
+* **Network & Access**: WebUI accessible internally at `https://torrent.kamaka.tech` and directly over the bridge at `http://qbittorrent:8081`. Local access without VPN traversal is permitted via `LOCAL_NETWORK: 192.168.0.0/16`.
+* **Automated Port Forwarding**: The PIA container requests an open port dynamically and synchronizes active listening port and anti-thrashing preferences to qBittorrent via [.configs/qbittorrent/set-qbt-port.sh](../.configs/qbittorrent/set-qbt-port.sh).
 * **Storage & Volume Mappings**:
-  * **`wireguard-pia` (VPN)**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia:/pia` for port tokens, `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia-shared:/pia-shared` for port sync state, and `${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh:/set-qbt-port.sh:ro`.
-  * **`qbittorrentvpn` (BitTorrent)**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/config:/config` for preferences and state, `${DOCKER_DATA_DIR}/qbittorrentvpn/data/incomplete:/incomplete` as scratch storage, and `${MEDIA_DIR}:/media` for completed downloads.
+  * **`wireguard-pia` (VPN)**: Mounts `${DOCKER_DATA_DIR}/qbittorrent/data/pia:/pia` for port tokens, `${DOCKER_DATA_DIR}/qbittorrent/data/pia-shared:/pia-shared` for port sync state, and `../.configs/qbittorrent/set-qbt-port.sh:/set-qbt-port.sh:ro`.
+  * **`qbittorrent` (BitTorrent)**: Mounts `${DOCKER_DATA_DIR}/qbittorrent/data/config:/config` for preferences and state, `${TORRENT_INCOMPLETE_DIR}:/incomplete` as scratch storage, and `${MEDIA_DIR}:/media` for completed downloads.
 * **Dependencies & Interconnections**: Downloads managed by Radarr and Sonarr via REST API.
 
 ---
@@ -333,7 +333,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 * **Role & Capabilities**: Automated BitTorrent queue garbage collector and strike manager. Mitigates queue starvation caused by dead peer swarms and stalled metadata fetches (`metaDL`) by enforcing configurable strike rules against stalled downloads and downloading metadata. Automatically triggers replacement indexer searches in Sonarr and Radarr when dead torrents are purged.
 * **Network & Access**: WebUI accessible at `https://cleanuparr.kamaka.tech` via Caddy reverse proxy (`lan_only`). Local network authentication bypass and trusted reverse proxy headers enabled.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/cleanuparr/data:/config` on NVMe for SQLite databases (`cleanuparr.db`, `events.db`, `users.db`) and runtime logs, and `${MEDIA_DIR}:/media:ro` read-only for path alignment with qBittorrent downloads.
-* **Dependencies & Interconnections**: Interacts via REST APIs across the `homelab` bridge with qBittorrent (`http://qbittorrentvpn:8081`), Sonarr (`http://sonarr:8989`), and Radarr (`http://radarr:7878`).
+* **Dependencies & Interconnections**: Interacts via REST APIs across the `homelab` bridge with qBittorrent (`http://qbittorrent:8081`), Sonarr (`http://sonarr:8989`), and Radarr (`http://radarr:7878`).
 
 ---
 
@@ -395,7 +395,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 * **Role & Capabilities**: Modern automated book collection manager, author monitor, and indexer search coordinator built in Go with React. Uses resilient public metadata APIs (OpenLibrary, Google Books, Hardcover, DNB) bypassing defunct Goodreads scrapers. Integrates with Prowlarr for indexers and qBittorrent for downloads.
 * **Network & Access**: Proxied internally at `https://bindery.kamaka.tech` (and `readarr.kamaka.tech`). API protected by API key authentication.
 * **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/bindery/data:/config` for SQLite database (`bindery.db`) and application state, `${MEDIA_DIR}/books/library:/books` as the root library destination, and `${MEDIA_DIR}:/media` enabling atomic zero-copy hardlinks from `/media/downloads/books`.
-* **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`) for indexer definitions and qBittorrent (`http://qbittorrentvpn:8081`) for torrent client automation.
+* **Dependencies & Interconnections**: Connects to Prowlarr (`http://prowlarr:9696`) for indexer definitions and qBittorrent (`http://qbittorrent:8081`) for torrent client automation.
 
 ---
 

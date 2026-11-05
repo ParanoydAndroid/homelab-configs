@@ -70,7 +70,7 @@ Disable Copy-on-Write on active database and temporary download directories befo
 ```bash
 # Disable CoW on active database and temporary download directories
 sudo chattr +C /volume2/docker/mealie/data
-sudo chattr +C /volume2/docker/qbittorrentvpn/data/incomplete
+sudo chattr +C /volume2/docker/qbittorrent/data/incomplete
 ```
 
 ### Verification

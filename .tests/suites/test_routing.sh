@@ -101,7 +101,7 @@ test_vhost_seerr_internal() {
 }
 
 test_vhost_torrent_internal() {
-  _curl_vhost "torrent.kamaka.tech" "/" "^200$" "qbittorrentvpn"
+  _curl_vhost "torrent.kamaka.tech" "/" "^200$" "qbittorrent"
 }
 
 test_vhost_mealie_internal() {

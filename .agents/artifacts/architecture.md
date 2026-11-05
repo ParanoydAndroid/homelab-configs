@@ -53,7 +53,7 @@ The project encompasses:
 │   │   └── compose.yml
 │   ├── nginx/
 │   │   └── generate-local-cert.sh
-│   ├── qbittorrentvpn/
+│   ├── qbittorrent/
 │   │   └── set-qbt-port.sh
 │   └── systemd/
 │       ├── antigravity-remote-control.service
@@ -95,11 +95,11 @@ The project encompasses:
 - `/volume2/docker/nginx/data` -> `/data` (`nginx`)
 - `/volume2/docker/nginx/data/letsencrypt` -> `/etc/letsencrypt` (`nginx`)
 - `/volume2/docker/postgres/data` -> `/var/lib/postgresql/data` (`postgresql`)
-- `/volume2/docker/qbittorrentvpn/data/pia` -> `/pia` (`wireguard-pia`)
-- `/volume2/docker/qbittorrentvpn/data/pia-shared` -> `/pia-shared` (`wireguard-pia`)
-- `/volume2/docker/qbittorrentvpn/data/set-qbt-port.sh` -> `/set-qbt-port.sh:ro` (`wireguard-pia`)
-- `/volume2/docker/qbittorrentvpn/data/config` -> `/config` (`qbittorrentvpn`)
-- `/volume2/docker/qbittorrentvpn/data/incomplete` -> `/incomplete` (`qbittorrentvpn`)
+- `/volume2/docker/qbittorrent/data/pia` -> `/pia` (`wireguard-pia`)
+- `/volume2/docker/qbittorrent/data/pia-shared` -> `/pia-shared` (`wireguard-pia`)
+- `/volume2/docker/qbittorrent/data/set-qbt-port.sh` -> `/set-qbt-port.sh:ro` (`wireguard-pia`)
+- `/volume2/docker/qbittorrent/data/config` -> `/config` (`qbittorrent`)
+- `/volume2/docker/qbittorrent/data/incomplete` -> `/incomplete` (`qbittorrent`)
 - `/volume2/docker/cleanuparr/data` -> `/config` (`cleanuparr`)
 - `/volume2/docker/radarr/data` -> `/config` (`radarr`)
 - `/volume2/docker/sonarr/data` -> `/config` (`sonarr`)
@@ -111,7 +111,7 @@ The project encompasses:
 - `/volume2/docker/tandoor/data/staticfiles` -> `/opt/recipes/staticfiles` (`tandoor`)
 - `/volume2/docker/tandoor/data/mediafiles` -> `/opt/recipes/mediafiles` (`tandoor`) and `/media:ro` (`nginx`)
 - `/volume2/docker/backup/homelab` -> Archive output directory for untracked `.env` secret tarballs (`homelab.sh backup`)
-- `/volume1/media` -> `/media` (`radarr`, `sonarr`, `qbittorrentvpn`) and `/data/media:ro` (`jellyfin`)
+- `/volume1/media` -> `/media` (`radarr`, `sonarr`, `qbittorrent`) and `/data/media:ro` (`jellyfin`)
 - `/var/run/docker.sock` -> `/var/run/docker.sock` (`dockge`, `homepage`)
 - `/opt/${USER}/dockge/stacks` -> `${DOCKGE_STACKS_DIR}` (`dockge`)
 - `/dev/net/tun` -> `/dev/net/tun` (`tailscale`, `vpn-bridge-tailscale`)
@@ -125,7 +125,7 @@ The project encompasses:
 | `radarr`, `sonarr`, `prowlarr` | `lscr.io/linuxserver/*:latest` | Env `PUID: ${PUID}`, `PGID: ${PGID}` (s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
 | `seerr` | `ghcr.io/seerr-team/seerr:latest` | Runs rootless as non-privileged UID `1000` (`node`) with `init: true`, `cap_drop: [ALL]`, and `no-new-privileges:true` | `1000:100` |
 | `wireguard-pia` | `thrnz/docker-wireguard-pia:latest` | Runs with `cap_add: [NET_ADMIN]` to manage kernel `wg0`, `iptables` kill switch, and PIA port forwarding (`PORT_SCRIPT: /set-qbt-port.sh`) | `1000:100` |
-| `qbittorrentvpn` | `lscr.io/linuxserver/qbittorrent:latest` | Env `PUID: ${PUID}`, `PGID: ${PGID}` with `network_mode: "service:vpn"` (s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
+| `qbittorrent` | `lscr.io/linuxserver/qbittorrent:latest` | Env `PUID: ${PUID}`, `PGID: ${PGID}` with `network_mode: "service:vpn"` (s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
 | `cleanuparr` | `ghcr.io/cleanuparr/cleanuparr:latest` | Runs as non-root user `ubuntu` (UID `1000`, GID `1000`) internally; `/volume1/media` mounted `:ro` | `1000:1000` |
 | `tandoor` | `vabene1111/recipes` | Env `PUID: ${PUID}`, `PGID: ${PGID}` (`boot.sh` starts as root then drops to `PUID:PGID`) | `1000:100` |
 | `postgresql` | `postgres:16-alpine` | Internal Alpine `postgres` user (`70:70`); do not set `PUID`/`PGID` or `user:` | `70:70` |

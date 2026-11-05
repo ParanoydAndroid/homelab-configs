@@ -10,8 +10,8 @@ When scaffolding a new homelab instance using `start-homelab`, use this catalog 
 | `vpn-bridge` | `vpn-bridge-pia`, `vpn-bridge-tailscale` | Privacy Exit Node | PIA VPN credentials | Tailscale Exit Node | Low RAM (64MB) |
 | `homepage` | `homepage` | Dashboard | Docker socket (read-only) | `homepage.kamaka.tech` | Low RAM (80MB) |
 | `jellyfin` | `jellyfin` | Media Streaming | Media volume (`:ro`), `/dev/dri` | `jellyfin.kamaka.tech`, UDP 7359 | Moderate to High (512MB–2GB+ during transcode) |
-| `qbittorrentvpn` | `wireguard-pia`, `qbittorrentvpn` | Torrents & VPN | VPN credentials, download volume | `torrent.kamaka.tech`, PIA forward port | Moderate RAM (256MB–1GB with write cache) |
-| `sonarr-radarr` | `radarr`, `sonarr`, `prowlarr`, `flaresolverr` | Media Automation | `qbittorrentvpn`, indexers | `radarr.kamaka.tech`, `sonarr.kamaka.tech`, `prowlarr.kamaka.tech` | Moderate RAM (1–2GB across all 4 containers) |
+| `torrent` | `wireguard-pia`, `qbittorrent`, `cleanuparr` | Torrents & VPN | VPN credentials, download volume | `torrent.kamaka.tech`, PIA forward port | Moderate RAM (256MB–1GB with write cache) |
+| `media` | `jellyfin`, `seerr`, `radarr`, `sonarr`, `prowlarr`, `flaresolverr` | Media Automation | `qbittorrent`, indexers | `radarr.kamaka.tech`, `sonarr.kamaka.tech`, `prowlarr.kamaka.tech` | Moderate RAM (1–2GB across all 4 containers) |
 | `seerr` | `seerr` | Request Portal | `jellyfin`, `sonarr-radarr` | `seerr.kamaka.tech` | Low to Moderate (256MB RAM) |
 | `mealie` | `mealie` | Recipes & Meal Prep | SQLite volume | `recipes.kamaka.tech` | Low to Moderate (150MB RAM) |
 | `cloudflared` | `cloudflared` | Cloud Ingress | Cloudflare Tunnel Token | Outbound TLS tunnel | Minimal (50MB RAM) |
@@ -27,12 +27,12 @@ When scaffolding a new homelab instance using `start-homelab`, use this catalog 
 ### Profile B: Lightweight Media Server Only
 - **Target**: Users wanting local media playback without automated torrenting or VPNs.
 - **Keep**: `caddy`, `tailscale`, `homepage`, `jellyfin`.
-- **Remove**: `qbittorrentvpn`, `sonarr-radarr`, `seerr`, `vpn-bridge`, `tandoor`, `postgres`.
+- **Remove**: `torrent`, `media`, `mesh`, `productivity`.
 
 ### Profile C: Privacy & Remote Access Hub
 - **Target**: Users wanting a dedicated travel VPN exit node, secure subnet routing, and dashboard.
 - **Keep**: `caddy`, `tailscale`, `vpn-bridge`, `homepage`, `cloudflared`.
-- **Remove**: Media and downloader stacks (`jellyfin`, `qbittorrentvpn`, `sonarr-radarr`, `seerr`, `tandoor`, `postgres`).
+- **Remove**: Media and downloader stacks (`jellyfin`, `torrent`, `media`, `productivity`).
 
 ### Profile D: Self-Hosted Home Management
 - **Target**: Recipe management, private cloud sync, dashboard, and secure routing.

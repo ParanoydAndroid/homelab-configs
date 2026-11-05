@@ -181,12 +181,12 @@ test_backup_declarative_exclusion_discovery() {
   local excludes_out
   excludes_out="$(resolve_backup_excludes)"
 
-  if ! grep -q "qbittorrentvpn/data/incomplete" <<< "${excludes_out}"; then
-    printf "Expected qbittorrentvpn/data/incomplete exclusion not found in output"
+  if ! grep -q "qbittorrent/data/incomplete" <<< "${excludes_out}"; then
+    printf "Expected qbittorrent/data/incomplete exclusion not found in output"
     return 1
   fi
 
-  printf "Declarative exclusion verified: %s" "$(grep 'qbittorrentvpn/data/incomplete' <<< "${excludes_out}" | head -n 1)"
+  printf "Declarative exclusion verified: %s" "$(grep 'qbittorrent/data/incomplete' <<< "${excludes_out}" | head -n 1)"
   return 0
 }
 

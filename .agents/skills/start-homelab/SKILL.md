@@ -50,7 +50,7 @@ Engage the user interactively (e.g. via `ask_question`) to establish what worklo
    - *Seerr*: User-friendly media request management.
    - *Radarr / Sonarr / Prowlarr / FlareSolverr*: Automated movie and TV indexing and downloading.
 2. **Privacy, Torrents & Remote Egress**:
-   - *qbittorrentvpn*: BitTorrent client routed through WireGuard killswitch.
+   - *torrent*: BitTorrent client routed through WireGuard killswitch.
    - *vpn-bridge*: Dedicated mobile phone / laptop travel exit node over Tailscale.
 3. **Home Management & Productivity**:
    - *Tandoor Recipes & PostgreSQL*: Self-hosted recipe management and relational database.
@@ -89,7 +89,7 @@ Detect host environment:
 - **UGREEN NAS (UGOS)**:
   - Check `/etc/profile.d/go.sh` and `/etc/systemd/system.conf` for `GODEBUG=tlskyber=0`. Ensure it is commented out.
   - Check download directories for proprietary `system.ugacl_self` extended attributes and strip them.
-  - Enforce `chmod 775` on `/volume2/docker/qbittorrentvpn/data/incomplete`.
+  - Enforce `chmod 775` on `/volume2/docker/qbittorrent/data/incomplete`.
 - **Synology DSM**:
   - Verify `/dev/net/tun` permissions for Tailscale.
   - Verify no collisions on port 5000/5001.

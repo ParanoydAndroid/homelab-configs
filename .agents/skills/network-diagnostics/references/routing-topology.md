@@ -28,7 +28,7 @@ docker exec caddy curl -s http://localhost:2019/config/apps/http/servers/srv0/ro
 - `sonarr.kamaka.tech` -> Sonarr (`sonarr:8989`)
 - `radarr.kamaka.tech` -> Radarr (`radarr:7878`)
 - `prowlarr.kamaka.tech` -> Prowlarr (`prowlarr:9696`)
-- `torrent.kamaka.tech` -> qBittorrent (`qbittorrentvpn:8081`)
+- `torrent.kamaka.tech` -> qBittorrent (`qbittorrent:8081`)
 - `cleanuparr.kamaka.tech` -> Cleanuparr (`cleanuparr:11011`)
 - `books.kamaka.tech` -> Calibre-Web (`calibre-web:8083`)
 - `bindery.kamaka.tech` -> Bindery (`bindery:8787`)
@@ -50,7 +50,7 @@ Under Linux macvlan networking, the host OS kernel explicitly prevents direct co
 
 ---
 
-## VPN and Killswitch Architecture (`vpn-bridge` & `qbittorrentvpn`)
+## VPN and Killswitch Architecture (`vpn-bridge` & `torrent`)
 
 ### Gluetun WireGuard (PIA):
 - Inbound traffic to forwarded services must be allowed through `FIREWALL_VPN_INPUT_PORTS` and `LOCAL_NETWORK`.

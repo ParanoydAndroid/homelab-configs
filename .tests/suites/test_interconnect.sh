@@ -20,12 +20,12 @@ test_interconnect_jellyfin_to_seerr() {
 }
 
 test_interconnect_radarr_to_qbittorrent() {
-  if ! is_service_enabled "radarr" || ! is_service_enabled "qbittorrentvpn"; then
-    printf "Service 'radarr' or 'qbittorrentvpn' omitted or disabled"
+  if ! is_service_enabled "radarr" || ! is_service_enabled "qbittorrent"; then
+    printf "Service 'radarr' or 'qbittorrent' omitted or disabled"
     return 77
   fi
   local ver
-  ver="$(docker exec radarr curl -fsS --max-time 15 "http://qbittorrentvpn:8081/api/v2/app/version" 2>/dev/null || true)"
+  ver="$(docker exec radarr curl -fsS --max-time 15 "http://qbittorrent:8081/api/v2/app/version" 2>/dev/null || true)"
   if [[ -n "${ver}" ]]; then
     printf "qBittorrent API responding (%s)" "${ver}"
     return 0
@@ -48,12 +48,12 @@ test_interconnect_radarr_to_prowlarr() {
 }
 
 test_interconnect_sonarr_to_qbittorrent() {
-  if ! is_service_enabled "sonarr" || ! is_service_enabled "qbittorrentvpn"; then
-    printf "Service 'sonarr' or 'qbittorrentvpn' omitted or disabled"
+  if ! is_service_enabled "sonarr" || ! is_service_enabled "qbittorrent"; then
+    printf "Service 'sonarr' or 'qbittorrent' omitted or disabled"
     return 77
   fi
   local ver
-  ver="$(docker exec sonarr curl -fsS --max-time 15 "http://qbittorrentvpn:8081/api/v2/app/version" 2>/dev/null || true)"
+  ver="$(docker exec sonarr curl -fsS --max-time 15 "http://qbittorrent:8081/api/v2/app/version" 2>/dev/null || true)"
   if [[ -n "${ver}" ]]; then
     printf "qBittorrent API responding (%s)" "${ver}"
     return 0
@@ -76,8 +76,8 @@ test_interconnect_prowlarr_to_flaresolverr() {
 }
 
 test_interconnect_pia_to_qbittorrent_port_sync() {
-  if ! is_service_enabled "wireguard-pia" || ! is_service_enabled "qbittorrentvpn"; then
-    printf "Service 'wireguard-pia' or 'qbittorrentvpn' omitted or disabled"
+  if ! is_service_enabled "wireguard-pia" || ! is_service_enabled "qbittorrent"; then
+    printf "Service 'wireguard-pia' or 'qbittorrent' omitted or disabled"
     return 77
   fi
   local pia_port qbt_port
@@ -150,8 +150,8 @@ test_interconnect_vpn_bridge_tailscale_backend_state() {
 }
 
 test_interconnect_qbittorrent_volume_write_permissions() {
-  if ! is_service_enabled "qbittorrentvpn"; then
-    printf "Service 'qbittorrentvpn' omitted or disabled"
+  if ! is_service_enabled "qbittorrent"; then
+    printf "Service 'qbittorrent' omitted or disabled"
     return 77
   fi
   local target_user="abc"
@@ -160,7 +160,7 @@ test_interconnect_qbittorrent_volume_write_permissions() {
 
   for dir in "${dirs[@]}"; do
     local probe="${dir}/.perm_probe_$$"
-    if ! docker exec -u "${target_user}" qbittorrentvpn sh -c "touch '${probe}' && rm -f '${probe}'" >/dev/null 2>&1; then
+    if ! docker exec -u "${target_user}" qbittorrent sh -c "touch '${probe}' && rm -f '${probe}'" >/dev/null 2>&1; then
       failed_dirs+=("${dir}")
     fi
   done
@@ -175,8 +175,8 @@ test_interconnect_qbittorrent_volume_write_permissions() {
 }
 
 test_interconnect_qbittorrent_torrent_error_status() {
-  if ! is_service_enabled "wireguard-pia" || ! is_service_enabled "qbittorrentvpn"; then
-    printf "Service 'wireguard-pia' or 'qbittorrentvpn' omitted or disabled"
+  if ! is_service_enabled "wireguard-pia" || ! is_service_enabled "qbittorrent"; then
+    printf "Service 'wireguard-pia' or 'qbittorrent' omitted or disabled"
     return 77
   fi
   local errored_json errored_trimmed
@@ -200,8 +200,8 @@ test_interconnect_qbittorrent_torrent_error_status() {
 }
 
 test_interconnect_bindery_to_qbittorrent() {
-  if ! is_service_enabled "bindery" || ! is_service_enabled "qbittorrentvpn"; then
-    printf "Service 'bindery' or 'qbittorrentvpn' omitted or disabled"
+  if ! is_service_enabled "bindery" || ! is_service_enabled "qbittorrent"; then
+    printf "Service 'bindery' or 'qbittorrent' omitted or disabled"
     return 77
   fi
   local data_dir="${DOCKER_DATA_DIR:-$(grep -E '^DOCKER_DATA_DIR=' "${REPO_DIR}/.env" 2>/dev/null | cut -d'=' -f2- || echo "/volume2/docker")}"
@@ -265,10 +265,10 @@ suite_interconnect() {
   init_suite "4. Inter-Container DNS, Sockets & Service Interconnections"
 
   run_test test_interconnect_jellyfin_to_seerr "Check Jellyfin -> Seerr (http://seerr:5055/api/v1/status)"
-  run_test test_interconnect_radarr_to_qbittorrent "Check Radarr -> qBittorrent (http://qbittorrentvpn:8081)"
+  run_test test_interconnect_radarr_to_qbittorrent "Check Radarr -> qBittorrent (http://qbittorrent:8081)"
   run_test test_interconnect_radarr_to_prowlarr "Check Radarr -> Prowlarr (http://prowlarr:9696/ping)"
-  run_test test_interconnect_sonarr_to_qbittorrent "Check Sonarr -> qBittorrent (http://qbittorrentvpn:8081)"
-  run_test test_interconnect_bindery_to_qbittorrent "Check Bindery -> qBittorrent (http://qbittorrentvpn:8081)"
+  run_test test_interconnect_sonarr_to_qbittorrent "Check Sonarr -> qBittorrent (http://qbittorrent:8081)"
+  run_test test_interconnect_bindery_to_qbittorrent "Check Bindery -> qBittorrent (http://qbittorrent:8081)"
   run_test test_interconnect_bindery_to_prowlarr "Check Bindery -> Prowlarr (http://prowlarr:9696)"
   run_test test_interconnect_calibre_web_opds "Check Calibre-Web OPDS catalog endpoint (http://calibre-web:8083/opds)"
   run_test test_interconnect_prowlarr_to_flaresolverr "Check Prowlarr -> FlareSolverr (http://flaresolverr:8191/health)"
@@ -276,7 +276,7 @@ suite_interconnect() {
   run_test test_interconnect_tailscale_backend_state "Check Tailscale Subnet Router status and authentication"
   run_test test_interconnect_vpn_bridge_pia_egress "Verify VPN Bridge PIA WireGuard egress through US endpoint"
   run_test test_interconnect_vpn_bridge_tailscale_backend_state "Check VPN Bridge Tailscale exit node status"
-  run_test test_interconnect_qbittorrent_volume_write_permissions "Verify non-root volume write permissions in qbittorrentvpn"
+  run_test test_interconnect_qbittorrent_volume_write_permissions "Verify non-root volume write permissions in qbittorrent"
   run_test test_interconnect_qbittorrent_torrent_error_status "Verify qBittorrent torrent queue has zero errored torrents"
 }
 

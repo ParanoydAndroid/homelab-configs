@@ -15,7 +15,7 @@ services:
   vpn:
     image: thrnz/docker-wireguard-pia:latest
     container_name: wireguard-pia
-    hostname: qbittorrentvpn
+    hostname: qbittorrent
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
@@ -34,11 +34,12 @@ services:
       PORT_PERSIST: 1
       PORT_SUCCESS_SCRIPT: /set-qbt-port.sh
     volumes:
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/pia:/pia
-      - ../.configs/qbittorrentvpn/set-qbt-port.sh:/set-qbt-port.sh:ro
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrent/data/pia:/pia
+      - ../.configs/qbittorrent/set-qbt-port.sh:/set-qbt-port.sh:ro
     networks:
       homelab:
         aliases:
+          - qbittorrent
           - qbittorrentvpn
     labels:
       - homelab.stack.priority=20
@@ -48,7 +49,7 @@ services:
 
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
-    container_name: qbittorrentvpn
+    container_name: qbittorrent
     restart: unless-stopped
     network_mode: "service:vpn"
     depends_on:
@@ -60,19 +61,19 @@ services:
       TZ: ${TZ:?See env.example for default.}
       WEBUI_PORT: 8081
     volumes:
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/config:/config
+      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrent/data/config:/config
       - ${TORRENT_INCOMPLETE_DIR:?See env.example for default.}:/incomplete
       - ${MEDIA_DIR:?See env.example for default.}:/media
     labels:
       - homelab.backup.exclude=/incomplete
       - homelab.storage.btrfs.nocow=/incomplete
       - homepage.group=Downloads
-      - homepage.name=QBittorrentVPN
+      - homepage.name=qBittorrent
       - homepage.icon=qbittorrent
       - homepage.href=https://torrent.kamaka.tech
       - homepage.description=BitTorrent Client
       - homepage.widget.type=qbittorrent
-      - homepage.widget.url=http://qbittorrentvpn:8081
+      - homepage.widget.url=http://qbittorrent:8081
       - homepage.widget.username=admin
       - homepage.widget.password=${QBITTORRENT_PASSWORD:?See env.example for default.}
 

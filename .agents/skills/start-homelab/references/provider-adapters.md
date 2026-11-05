@@ -1,6 +1,6 @@
 # VPN & Remote Access Provider Adaptation Guide
 
-This reference details how to adapt `qbittorrentvpn` and `vpn-bridge` to different commercial VPN providers and ingress mechanisms.
+This reference details how to adapt `torrent` (`wireguard-pia` / `qbittorrent`) and `vpn-bridge` to different commercial VPN providers and ingress mechanisms.
 
 ---
 

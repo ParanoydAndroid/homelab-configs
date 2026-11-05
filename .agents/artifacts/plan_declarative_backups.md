@@ -13,7 +13,7 @@ This feature modernizes the homelab disaster recovery, snapshot automation, and 
 flowchart TD
     subgraph Stacks["Compose Stacks (*.yml)"]
         SVC1["Service (e.g. sonarr)<br/>labels:<br/>homelab.backup.sqlite: /config/sonarr.db"]
-        SVC2["Service (e.g. qbittorrentvpn)<br/>labels:<br/>homelab.backup.exclude: /incomplete"]
+        SVC2["Service (e.g. qbittorrent)<br/>labels:<br/>homelab.backup.exclude: /incomplete"]
         SVC3["Service (e.g. mealie)<br/>labels:<br/>homelab.backup.sqlite: /app/data/mealie.db"]
     end
 
@@ -88,7 +88,7 @@ Update all active stack `compose.yml` files with explicit declarations:
   * `calibre-web`: `homelab.backup.sqlite=/config/app.db, /books/metadata.db`
 * **`torrent/compose.yml`**:
   * `cleanuparr`: `homelab.backup.sqlite=/config/cleanuparr.db`
-  * `qbittorrentvpn`: `homelab.backup.exclude=/incomplete`
+  * `qbittorrent`: `homelab.backup.exclude=/incomplete`
 
 ### Step 3: Refactor `.scripts/backup.sh`
 1. **Dynamic SQLite Staging Discovery**:
