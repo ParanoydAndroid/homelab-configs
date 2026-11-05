@@ -61,7 +61,7 @@ services:
       WEBUI_PORT: 8081
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/config:/config
-      - ${TORRENT_INCOMPLETE_DIR:?See env.example for default.}:/incomplete
+      - ${TORRENT_INCOMPLETE_DIR:-${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/incomplete}:/incomplete
       - ${MEDIA_DIR:?See env.example for default.}:/media
     labels:
       - homelab.backup.exclude=/incomplete

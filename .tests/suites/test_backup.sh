@@ -265,25 +265,39 @@ test_backup_declarative_storage_nocow_discovery() {
 services:
   mock_client:
     volumes:
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/mock_service/scratch:/mock_scratch
+      - ${TORRENT_INCOMPLETE_DIR:-${DOCKER_DATA_DIR:?See env.example for default.}/mock_service/scratch}:/mock_scratch
       - ${MEDIA_DIR:?See env.example for default.}/downloads:/downloads
     labels:
       - homelab.storage.nocow=/mock_scratch
 EOF
 
-  local resolved_paths=()
+  # Case 1: Unset TORRENT_INCOMPLETE_DIR resolves default fallback
+  local resolved_paths_default=()
   while IFS= read -r p; do
-    [[ -n "${p}" ]] && resolved_paths+=("${p}")
-  done < <(REPO_DIR="${mock_repo}" DOCKER_DATA_DIR="/tmp/mock_docker" MEDIA_DIR="/tmp/mock_media" discover_nocow_storage_paths)
-  rm -rf "${mock_repo}"
+    [[ -n "${p}" ]] && resolved_paths_default+=("${p}")
+  done < <(REPO_DIR="${mock_repo}" DOCKER_DATA_DIR="/tmp/mock_docker" MEDIA_DIR="/tmp/mock_media" TORRENT_INCOMPLETE_DIR="" discover_nocow_storage_paths)
 
-  local expected="/tmp/mock_docker/mock_service/scratch"
-  if [[ "${#resolved_paths[@]}" -ne 1 || "${resolved_paths[0]}" != "${expected}" ]]; then
-    printf "Expected '%s', got '%s'" "${expected}" "${resolved_paths[*]:-empty}"
+  local expected_default="/tmp/mock_docker/mock_service/scratch"
+  if [[ "${#resolved_paths_default[@]}" -ne 1 || "${resolved_paths_default[0]}" != "${expected_default}" ]]; then
+    rm -rf "${mock_repo}"
+    printf "Expected default fallback '%s', got '%s'" "${expected_default}" "${resolved_paths_default[*]:-empty}"
     return 1
   fi
 
-  printf "Inferred No-CoW host path from mock label: %s" "${resolved_paths[0]}"
+  # Case 2: Custom TORRENT_INCOMPLETE_DIR overrides default
+  local resolved_paths_custom=()
+  while IFS= read -r p; do
+    [[ -n "${p}" ]] && resolved_paths_custom+=("${p}")
+  done < <(REPO_DIR="${mock_repo}" DOCKER_DATA_DIR="/tmp/mock_docker" MEDIA_DIR="/tmp/mock_media" TORRENT_INCOMPLETE_DIR="/mnt/fast_nvme/scratch" discover_nocow_storage_paths)
+  rm -rf "${mock_repo}"
+
+  local expected_custom="/mnt/fast_nvme/scratch"
+  if [[ "${#resolved_paths_custom[@]}" -ne 1 || "${resolved_paths_custom[0]}" != "${expected_custom}" ]]; then
+    printf "Expected custom override '%s', got '%s'" "${expected_custom}" "${resolved_paths_custom[*]:-empty}"
+    return 1
+  fi
+
+  printf "Verified No-CoW default fallback (%s) and custom override (%s)" "${resolved_paths_default[0]}" "${resolved_paths_custom[0]}"
   return 0
 }
 

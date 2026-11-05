@@ -193,7 +193,7 @@ discover_nocow_storage_paths() {
             local c="${pair#*|}"
             if [[ "${c}" == "${t}" ]]; then
               local cleaned
-              cleaned="$(echo "${h}" | sed -E 's/(\$\{[a-zA-Z_0-9]+):[^}]*\}/\1}/g')"
+              cleaned="$(echo "${h}" | sed -E 's/:\?[^}:]*//g')"
               local resolved
               set +u
               eval "resolved=\"${cleaned}\""

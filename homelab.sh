@@ -77,13 +77,19 @@ setup_homelab() {
   local nocow_path
   while IFS= read -r nocow_path; do
     [[ -z "${nocow_path}" ]] && continue
-    log_info "Ensuring declarative No-CoW storage directory: ${nocow_path}..."
+    log_info "Ensuring declarative storage directory: ${nocow_path}..."
     if [[ ! -d "${nocow_path}" ]]; then
       mkdir -p "${nocow_path}" 2>/dev/null || true
-      chattr +C "${nocow_path}" 2>/dev/null || true
     fi
     chmod 775 "${nocow_path}" 2>/dev/null || true
     chown "${TARGET_USER}:${TARGET_GROUP}" "${nocow_path}" 2>/dev/null || true
+
+    # Only apply Btrfs No-CoW attribute if hosted on a Btrfs filesystem
+    local fs_type
+    fs_type="$(stat -f -c '%T' "${nocow_path}" 2>/dev/null || echo "unknown")"
+    if [[ "${fs_type}" == "btrfs" ]]; then
+      chattr +C "${nocow_path}" 2>/dev/null || true
+    fi
   done < <(discover_nocow_storage_paths)
 
   log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."
