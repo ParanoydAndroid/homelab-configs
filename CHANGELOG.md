@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.4.0] / [2026.11.5] - Declarative Backups & Storage Architecture (2026-11-05)
+
+### Added
+* Implemented declarative `homelab.backup.sqlite` and `homelab.backup.exclude` container labels for dynamic database checkpoint staging and Restic snapshot path exclusions.
+* Added declarative decade stack ordering (`homelab.stack.priority=10, 20...`) with unlabelled fallbacks in startup orchestration.
+* Added declarative Btrfs storage policies via `homelab.storage.btrfs` container label, applying No-CoW flags (`chattr +C`) and group write permissions before container startup.
+* Consolidated versioning utilities (`bump_semver`, `resolve_chronological_tag`) into `.scripts/common.sh` and decoupled git commits from volume backup runs.
+* Added automated unit test coverage in `.tests/suites/test_backup.sh` for declarative discovery and isolated priority resolution.
+
+### Changed
+* Standardized BitTorrent naming across all Compose files, host storage paths, configurations, and connecting client databases on `qbittorrent`, eliminating legacy `qbittorrentvpn` references.
+* Parameterized high-friction host paths (`DOCKER_SOCK`, `DRI_RENDER_DEV`, `TORRENT_INCOMPLETE_DIR`) in environment templates.
+* Modernized `start-homelab` service catalog and selection profiles to match active 7-stack topology and dual-homed Caddy ingress architecture.
+* Simplified qBittorrent WebUI authentication with stack-standard credentials (`admin` / `password`) and subnet bypass for LAN (`192.168.0.0/16`) and Tailscale (`100.64.0.0/10`).
+
+### Fixed
+* Eliminated unprompted host attribute mutations by gating Btrfs No-CoW operations strictly to explicit service labels.
+* Decoupled stack startup order testing from live container runtimes using isolated mock container tests.
+
+---
+
 ## [3.3.0] / [2026.11.4.1] - Cleanuparr Queue Garbage Collection & VPN Mesh Resilience (2026-11-04)
 
 ### Added
