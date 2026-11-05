@@ -268,7 +268,7 @@ services:
       - ${TORRENT_INCOMPLETE_DIR:?See env.example for default.}:/mock_scratch
       - ${MEDIA_DIR:?See env.example for default.}/downloads:/downloads
     labels:
-      - homelab.storage.btrfs.nocow=/mock_scratch
+      - homelab.storage.btrfs=/mock_scratch
 EOF
 
   cat <<'EOF' > "${mock_repo}/mock_torrent/.env"

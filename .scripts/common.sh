@@ -153,9 +153,9 @@ discover_stacks() {
 # ------------------------------------------------------------------------------
 # Function: discover_nocow_storage_paths
 # Description:
-#   Discovers and resolves host filesystem paths declared with No-CoW storage
-#   policies ('homelab.storage.nocow' or 'homelab.storage.btrfs.nocow') across
-#   all Compose stacks. Matches declared container targets to service volumes
+#   Discovers and resolves host filesystem paths declared with Btrfs storage
+#   policies ('homelab.storage.btrfs', 'homelab.storage.btrfs.nocow', or 'homelab.storage.nocow')
+#   across all Compose stacks. Matches declared container targets to service volumes
 #   and resolves host environment variables (${DOCKER_DATA_DIR}, ${MEDIA_DIR}).
 # Global Variables:
 #   REPO_DIR, DOCKER_DATA_DIR, MEDIA_DIR
@@ -164,7 +164,7 @@ discover_stacks() {
 # ------------------------------------------------------------------------------
 discover_nocow_storage_paths() {
   local target_paths=()
-  local re_label='homelab\.storage\.(btrfs\.nocow|nocow)=([^"'\''[:space:]]+)'
+  local re_label='homelab\.storage\.(btrfs|btrfs\.nocow|nocow)=([^"'\''[:space:]]+)'
   local re_service='^[[:space:]]{2}([a-zA-Z0-9_-]+):[[:space:]]*$'
   local re_section='^[[:space:]]{4}(volumes|labels):[[:space:]]*$'
 

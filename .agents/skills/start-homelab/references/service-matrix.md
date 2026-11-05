@@ -4,37 +4,33 @@ When scaffolding a new homelab instance using `start-homelab`, use this catalog 
 
 | Stack Directory | Services Included | Category | Primary Dependencies | Target Ports / Routing | Resource Profile |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `postgres` | `postgresql` | Database | None | Internal (`postgresql:5432`) | Low RAM (128–256MB), persistent storage |
-| `caddy` | `caddy` | Ingress Proxy | LAN macvlan (`external_npm`) | Subdomains (`*.kamaka.tech`, `*.kamakakai.com`) | Low RAM (64MB), high throughput |
-| `tailscale` | `tailscale` | VPN Mesh | None (host `/dev/net/tun`) | Tailnet Mesh (`100.64.0.0/10`) | Minimal (30MB RAM) |
-| `vpn-bridge` | `vpn-bridge-pia`, `vpn-bridge-tailscale` | Privacy Exit Node | PIA VPN credentials | Tailscale Exit Node | Low RAM (64MB) |
-| `homepage` | `homepage` | Dashboard | Docker socket (read-only) | `homepage.kamaka.tech` | Low RAM (80MB) |
-| `jellyfin` | `jellyfin` | Media Streaming | Media volume (`:ro`), `/dev/dri` | `jellyfin.kamaka.tech`, UDP 7359 | Moderate to High (512MB–2GB+ during transcode) |
-| `torrent` | `wireguard-pia`, `qbittorrent`, `cleanuparr` | Torrents & VPN | VPN credentials, download volume | `torrent.kamaka.tech`, PIA forward port | Moderate RAM (256MB–1GB with write cache) |
-| `media` | `jellyfin`, `seerr`, `radarr`, `sonarr`, `prowlarr`, `flaresolverr` | Media Automation | `qbittorrent`, indexers | `radarr.kamaka.tech`, `sonarr.kamaka.tech`, `prowlarr.kamaka.tech` | Moderate RAM (1–2GB across all 4 containers) |
-| `seerr` | `seerr` | Request Portal | `jellyfin`, `sonarr-radarr` | `seerr.kamaka.tech` | Low to Moderate (256MB RAM) |
-| `mealie` | `mealie` | Recipes & Meal Prep | SQLite volume | `recipes.kamaka.tech` | Low to Moderate (150MB RAM) |
-| `cloudflared` | `cloudflared` | Cloud Ingress | Cloudflare Tunnel Token | Outbound TLS tunnel | Minimal (50MB RAM) |
+| `ingress` | `caddy`, `cloudflared` | Ingress Proxy & Cloud Tunnel | LAN macvlan (`external_npm` on `192.168.0.4`), Docker socket, Cloudflare Tunnel Token | Subdomains (`*.kamaka.tech`, `*.kamakakai.com`) | Low RAM (~100MB), high throughput |
+| `dashboard` | `homepage` | Dashboard | Docker socket (read-only) | `homepage.kamaka.tech` | Low RAM (~80MB) |
+| `mesh` | `tailscale`, `vpn-bridge-pia`, `vpn-bridge-tailscale` | Privacy Exit Node & VPN Mesh | PIA VPN credentials, Tailscale auth key, host `/dev/net/tun` | Tailnet Mesh (`100.64.0.0/10`), Subnet Router (`192.168.0.0/24`), Exit Node (`vpn-bridge`) | Low RAM (~100MB) |
+| `media` | `jellyfin`, `seerr`, `radarr`, `sonarr`, `prowlarr`, `flaresolverr` | Media Automation & Streaming | Media volume (`${MEDIA_DIR}`), GPU (`/dev/dri`), `qbittorrent`, indexers | `jellyfin.kamaka.tech`, `seerr.kamaka.tech`, `radarr.kamaka.tech`, `sonarr.kamaka.tech`, `prowlarr.kamaka.tech`, UDP 7359 | Moderate to High (1.5GB–3GB+ during transcode) |
+| `books` | `calibre-web`, `bindery`, `royalroad-sync` | Book Catalog & Automation | Books volume (`${MEDIA_DIR}/books`), `prowlarr`, `qbittorrent` | `books.kamaka.tech`, `bindery.kamaka.tech`, `readarr.kamaka.tech` | Low to Moderate (~300MB RAM) |
+| `torrent` | `wireguard-pia`, `qbittorrent`, `cleanuparr` | Torrents & VPN Queue Management | VPN credentials, download volume, NVMe scratch buffer | `torrent.kamaka.tech`, `cleanuparr.kamaka.tech`, PIA forward port | Moderate RAM (300MB–1GB with write cache) |
+| `productivity` | `mealie` | Recipes & Home Management | SQLite volume | `recipes.kamaka.tech`, `recipes.kamakakai.com`, `mom.kamakakai.com` | Low to Moderate (~150MB RAM) |
 
 ---
 
 ## Service Selection Profiles
 
 ### Profile A: Full Media & Automation Stack
-- **Target**: Users wanting automated media downloading, streaming, requests, and recipe management.
-- **Keep**: All 11 stacks.
+- **Target**: Users wanting automated media downloading, streaming, e-books, requests, and recipe management.
+- **Keep**: All 7 stacks (`books`, `dashboard`, `ingress`, `media`, `mesh`, `productivity`, `torrent`).
 
 ### Profile B: Lightweight Media Server Only
-- **Target**: Users wanting local media playback without automated torrenting or VPNs.
-- **Keep**: `caddy`, `tailscale`, `homepage`, `jellyfin`.
-- **Remove**: `torrent`, `media`, `mesh`, `productivity`.
+- **Target**: Users wanting local media playback without automated torrenting or VPN exit nodes.
+- **Keep**: `ingress`, `dashboard`, `mesh`, `media`.
+- **Remove**: `torrent`, `books`, `productivity`.
 
 ### Profile C: Privacy & Remote Access Hub
-- **Target**: Users wanting a dedicated travel VPN exit node, secure subnet routing, and dashboard.
-- **Keep**: `caddy`, `tailscale`, `vpn-bridge`, `homepage`, `cloudflared`.
-- **Remove**: Media and downloader stacks (`jellyfin`, `torrent`, `media`, `productivity`).
+- **Target**: Users wanting a dedicated travel VPN exit node, secure subnet routing, cloud ingress, and dashboard.
+- **Keep**: `ingress`, `dashboard`, `mesh`.
+- **Remove**: `media`, `books`, `torrent`, `productivity`.
 
 ### Profile D: Self-Hosted Home Management
 - **Target**: Recipe management, private cloud sync, dashboard, and secure routing.
-- **Keep**: `mealie`, `caddy`, `tailscale`, `homepage`.
-- **Remove**: All media and download services.
+- **Keep**: `ingress`, `dashboard`, `mesh`, `productivity`.
+- **Remove**: `media`, `books`, `torrent`.

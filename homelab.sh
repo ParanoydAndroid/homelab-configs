@@ -72,18 +72,18 @@ setup_homelab() {
     chown "${TARGET_USER}:${TARGET_GROUP}" "${DOCKGE_DIR}/compose.yml" 2>/dev/null || true
   fi
 
-  # Ensure storage directories with declarative storage policies (e.g. No-CoW scratch)
+  # Ensure storage directories with declarative Btrfs policies (e.g. No-CoW scratch)
   # are created with standard non-root permissions and configured per explicit service labels.
-  local nocow_path
-  while IFS= read -r nocow_path; do
-    [[ -z "${nocow_path}" ]] && continue
-    log_info "Applying declarative No-CoW storage policy to: ${nocow_path}..."
-    if [[ ! -d "${nocow_path}" ]]; then
-      mkdir -p "${nocow_path}" 2>/dev/null || true
+  local btrfs_path
+  while IFS= read -r btrfs_path; do
+    [[ -z "${btrfs_path}" ]] && continue
+    log_info "Applying declarative Btrfs storage policy (No-CoW + permissions) to: ${btrfs_path}..."
+    if [[ ! -d "${btrfs_path}" ]]; then
+      mkdir -p "${btrfs_path}" 2>/dev/null || true
     fi
-    chattr +C "${nocow_path}" 2>/dev/null || true
-    chmod 775 "${nocow_path}" 2>/dev/null || true
-    chown "${TARGET_USER}:${TARGET_GROUP}" "${nocow_path}" 2>/dev/null || true
+    chattr +C "${btrfs_path}" 2>/dev/null || true
+    chmod 775 "${btrfs_path}" 2>/dev/null || true
+    chown "${TARGET_USER}:${TARGET_GROUP}" "${btrfs_path}" 2>/dev/null || true
   done < <(discover_nocow_storage_paths)
 
   log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."

@@ -94,7 +94,7 @@ Detect host environment:
   - Verify `/dev/net/tun` permissions for Tailscale.
   - Verify no collisions on port 5000/5001.
 - **Generic Linux / UnRAID**:
-  - Check render group GID (`stat -c '%g' /dev/dri/renderD128`) and align `group_add` in `jellyfin/compose.yml`.
+  - Check render group GID (`stat -c '%g' /dev/dri/renderD128`) and align `group_add` in `media/compose.yml`.
 
 #### 3. VPN Provider & Ingress Provider Selection
 - **VPN Selection**:
@@ -102,7 +102,7 @@ Detect host environment:
   - *ProtonVPN / Mullvad / AirVPN*: Switch VPN client image to `ghcr.io/qdm12/gluetun` and adapt port forward hooks (see [VPN Adapters](./references/provider-adapters.md)).
 - **Ingress Selection**:
   - *Cloudflare Zero Trust Tunnel*: Standard outbound tunnel with token.
-  - *Tailscale Only*: Disable `cloudflared` stack, rely on private tailnet access.
+  - *Tailscale Only*: Disable `cloudflared` service in `ingress/compose.yml`, rely on private tailnet access.
   - *Direct Port Forwarding*: Expose Caddy ports 80/443 on host router.
 
 ---
