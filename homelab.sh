@@ -192,7 +192,7 @@ Usage: $(basename "$0") <subcommand> [options]
 Subcommands:
   setup                    Initialize .env files, apply NAS OS fixes, create networks, and start all stacks
   startup                  Non-interactive boot hook to start networks, Dockge, and stacks in dependency order
-  backup                   Snapshot persistent volumes to Restic repository, stage DB dumps, and archive .env
+  backup [check]           Snapshot persistent volumes to Restic repository, or verify repository integrity
   snapshots                List historical Restic backup snapshots
   restore [snap] [svc]     Restore persistent volume state from Restic snapshot (optional specific service)
   test [suite]             Run modular smoke and regression tests (suites: containers, direct, routing, interconnect, security)
@@ -200,10 +200,12 @@ Subcommands:
 Options for backup:
   -t, --tag [type|name]    Repeatable tag request: SemVer-major, SemVer-minor, SemVer-patch,
                            CalVer (default if omitted), or any custom tag string
-  -m, --message <msg>      Custom git commit message for repository changes
+  -c, --commit             Explicitly commit and push git repository working tree changes
+  -m, --message <msg>      Custom git commit message (automatically enables --commit)
 
 Options for restore:
   -f, --force              Bypass active container checks and overwrite prompts
+  -n, --dry-run            Preview snapshot file manifest without modifying filesystem state
 EOF
 }
 
@@ -226,8 +228,14 @@ main() {
     return $?
   fi
 
+  if [[ "${subcmd}" == "backup" && "${1:-}" == "check" ]]; then
+    check_restic_repo
+    return $?
+  fi
+
   BACKUP_TAG_REQUESTS=()
   BACKUP_COMMIT_MSG=""
+  BACKUP_DO_COMMIT=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -239,6 +247,9 @@ main() {
           BACKUP_TAG_REQUESTS+=("calver")
         fi
         ;;
+      -c|--commit)
+        BACKUP_DO_COMMIT=1
+        ;;
       -m|--message)
         if [[ $# -lt 2 ]]; then
           log_error "Option '$1' requires a commit message argument."
@@ -246,6 +257,7 @@ main() {
           exit 1
         fi
         BACKUP_COMMIT_MSG="$2"
+        BACKUP_DO_COMMIT=1
         shift
         ;;
       -h|--help)

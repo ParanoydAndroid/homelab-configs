@@ -137,6 +137,59 @@ test_backup_tag_resolution() {
   return 0
 }
 
+test_backup_declarative_sqlite_discovery() {
+  if ! command -v docker >/dev/null 2>&1; then
+    printf "Docker CLI not found"
+    return 1
+  fi
+
+  local containers
+  containers="$(docker ps -a --filter "label=homelab.backup.sqlite" --format '{{.Names}}' | sort -u | tr '\n' ' ')"
+  if [[ -z "${containers}" ]]; then
+    printf "No containers found declaring 'homelab.backup.sqlite' label"
+    return 1
+  fi
+
+  # Verify core expected services are present
+  local expected=("sonarr" "radarr" "prowlarr" "mealie" "bindery" "calibre-web" "cleanuparr" "jellyfin")
+  local missing=()
+  local svc
+  for svc in "${expected[@]}"; do
+    if ! grep -qw "${svc}" <<< "${containers}"; then
+      missing+=("${svc}")
+    fi
+  done
+
+  if [[ "${#missing[@]}" -gt 0 ]]; then
+    printf "Missing declared backup.sqlite on: %s" "${missing[*]}"
+    return 1
+  fi
+
+  printf "Discovered SQLite backup labels on %d containers: %s" "$(wc -w <<< "${containers}")" "${containers}"
+  return 0
+}
+
+test_backup_declarative_exclusion_discovery() {
+  source "${REPO_DIR}/.scripts/common.sh"
+  source "${REPO_DIR}/.scripts/backup.sh"
+
+  if ! command -v docker >/dev/null 2>&1; then
+    printf "Docker CLI not found"
+    return 1
+  fi
+
+  local excludes_out
+  excludes_out="$(resolve_backup_excludes)"
+
+  if ! grep -q "qbittorrentvpn/data/incomplete" <<< "${excludes_out}"; then
+    printf "Expected qbittorrentvpn/data/incomplete exclusion not found in output"
+    return 1
+  fi
+
+  printf "Declarative exclusion verified: %s" "$(grep 'qbittorrentvpn/data/incomplete' <<< "${excludes_out}" | head -n 1)"
+  return 0
+}
+
 suite_backup() {
   init_suite "6. Restic Backup & Disaster Recovery Automation"
 
@@ -145,6 +198,8 @@ suite_backup() {
   run_test test_backup_systemd_units "Verify systemd backup service and timer unit declarations"
   run_test test_backup_semver_bumping "Verify SemVer auto-bumping logic (major, minor, patch)"
   run_test test_backup_tag_resolution "Verify multi-tag resolution (SemVer, CalVer, custom string)"
+  run_test test_backup_declarative_sqlite_discovery "Verify declarative discovery of homelab.backup.sqlite labels"
+  run_test test_backup_declarative_exclusion_discovery "Verify declarative resolution of homelab.backup.exclude paths"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

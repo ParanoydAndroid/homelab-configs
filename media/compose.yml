@@ -42,6 +42,7 @@ services:
     networks:
       - homelab
     labels:
+      - homelab.backup.sqlite=/config/data/jellyfin.db
       - caddy=jellyfin.kamaka.tech, jellyfin.kamakakai.com, media.kamaka.tech, media.kamakakai.com
       - caddy.reverse_proxy={{upstreams 8096}}
       - caddy.import=cloudflare_tls jellyfin_hardening
@@ -101,6 +102,7 @@ services:
     networks:
       - homelab
     labels:
+      - homelab.backup.sqlite=/config/radarr.db
       - caddy=radarr.kamaka.tech
       - caddy.reverse_proxy={{upstreams 7878}}
       - caddy.import=cloudflare_tls
@@ -130,6 +132,7 @@ services:
     networks:
       - homelab
     labels:
+      - homelab.backup.sqlite=/config/sonarr.db
       - caddy=sonarr.kamaka.tech
       - caddy.reverse_proxy={{upstreams 8989}}
       - caddy.import=cloudflare_tls
@@ -158,6 +161,7 @@ services:
     networks:
       - homelab
     labels:
+      - homelab.backup.sqlite=/config/prowlarr.db
       - caddy=prowlarr.kamaka.tech
       - caddy.reverse_proxy={{upstreams 9696}}
       - caddy.import=cloudflare_tls

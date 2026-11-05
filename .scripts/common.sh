@@ -293,3 +293,147 @@ get_env_var() {
     }
   ' "${file}"
 }
+
+# ------------------------------------------------------------------------------
+# Function: run_git
+# Description:
+#   Executes git commands within REPO_DIR, automatically delegating to TARGET_USER
+#   if running under sudo so user identity, GPG keys, and SSH credentials for
+#   remote push operations remain intact.
+# Arguments:
+#   $@ - Git arguments to execute.
+# ------------------------------------------------------------------------------
+run_git() {
+  if [[ "${EUID}" -eq 0 && -n "${TARGET_USER:-}" && "${TARGET_USER}" != "root" ]]; then
+    sudo -u "${TARGET_USER}" git -C "${REPO_DIR}" "$@"
+  else
+    git -C "${REPO_DIR}" "$@"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# Function: resolve_chronological_tag
+# Description:
+#   Generates a chronological PEP 440 / CalVer git tag string (YYYY.M.D[.N]).
+# Outputs:
+#   Prints resolved unique tag string on stdout.
+# ------------------------------------------------------------------------------
+resolve_chronological_tag() {
+  local base_tag candidate seq=1
+  base_tag="$(date +%Y.%-m.%-d)"
+  candidate="${base_tag}"
+
+  while run_git rev-parse -q --verify "refs/tags/${candidate}" >/dev/null 2>&1; do
+    candidate="${base_tag}.${seq}"
+    ((seq++))
+  done
+
+  printf "%s" "${candidate}"
+}
+
+# ------------------------------------------------------------------------------
+# Function: bump_semver
+# Description:
+#   Calculates next semantic version (major, minor, or patch) based on the
+#   highest existing SemVer tag in the git repository. Deliberately excludes
+#   4-digit CalVer years (2024+) so CalVer tags are never misidentified as SemVer.
+# Arguments:
+#   $1 (bump_type) - One of: major, minor, patch.
+# Outputs:
+#   Prints incremented X.Y.Z string on stdout.
+# ------------------------------------------------------------------------------
+bump_semver() {
+  local bump_type="$1"
+  local latest major minor patch
+
+  latest="$(run_git tag -l | grep -E '^v?[0-9]{1,3}\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -n 1)"
+  latest="${latest#v}"
+
+  if [[ -z "${latest}" ]]; then
+    major=0; minor=1; patch=0
+  else
+    IFS='.' read -r major minor patch <<< "${latest}"
+    patch="${patch:-0}"
+  fi
+
+  case "${bump_type}" in
+    major)
+      ((major++))
+      minor=0
+      patch=0
+      ;;
+    minor)
+      ((minor++))
+      patch=0
+      ;;
+    patch)
+      ((patch++))
+      ;;
+    *)
+      log_error "Unknown semver bump type: ${bump_type}"
+      return 1
+      ;;
+  esac
+
+  printf "%d.%d.%d" "${major}" "${minor}" "${patch}"
+}
+
+# ------------------------------------------------------------------------------
+# Function: resolve_release_tags
+# Description:
+#   Processes an array of requested tag arguments (SemVer-major/minor/patch,
+#   CalVer, or custom strings) and outputs a space-delimited list of unique
+#   resolved tags.
+# Arguments:
+#   $@ - List of tag requests. If omitted, reads from BACKUP_TAG_REQUESTS global.
+# Outputs:
+#   Space-delimited resolved tags on stdout.
+# ------------------------------------------------------------------------------
+resolve_release_tags() {
+  local requests=()
+  if [[ $# -gt 0 ]]; then
+    requests=("$@")
+  elif [[ -n "${BACKUP_TAG_REQUESTS:-}" ]]; then
+    requests=("${BACKUP_TAG_REQUESTS[@]}")
+  fi
+
+  local tag_req req_lower tag_resolved resolved=()
+  for tag_req in "${requests[@]}"; do
+    req_lower="$(echo "${tag_req}" | tr '[:upper:]' '[:lower:]')"
+    case "${req_lower}" in
+      semver-major|semver_major|major)
+        tag_resolved="$(bump_semver major)"
+        ;;
+      semver-minor|semver_minor|minor)
+        tag_resolved="$(bump_semver minor)"
+        ;;
+      semver-patch|semver_patch|patch)
+        tag_resolved="$(bump_semver patch)"
+        ;;
+      calver)
+        tag_resolved="$(resolve_chronological_tag)"
+        ;;
+      *)
+        tag_resolved="${tag_req}"
+        ;;
+    esac
+    resolved+=("${tag_resolved}")
+  done
+
+  # Deduplicate while preserving order
+  local unique=() t u already
+  for t in "${resolved[@]}"; do
+    already=0
+    for u in "${unique[@]}"; do
+      [[ "${u}" == "${t}" ]] && already=1 && break
+    done
+    [[ "${already}" -eq 0 ]] && unique+=("${t}")
+  done
+
+  printf "%s\n" "${unique[*]:-}"
+}
+
+# Backward-compatible alias for existing callers
+resolve_backup_tags() {
+  resolve_release_tags "$@"
+}

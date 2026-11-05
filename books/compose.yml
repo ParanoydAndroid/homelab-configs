@@ -36,6 +36,7 @@ services:
         max-size: "10m"
         max-file: "3"
     labels:
+      - homelab.backup.sqlite=/config/app.db,/books/metadata.db
       - caddy=books.kamaka.tech
       - caddy.reverse_proxy={{upstreams 8083}}
       - caddy.import=cloudflare_tls lan_only
@@ -69,6 +70,7 @@ services:
         max-size: "10m"
         max-file: "3"
     labels:
+      - homelab.backup.sqlite=/config/bindery.db
       - caddy=bindery.kamaka.tech, readarr.kamaka.tech
       - caddy.reverse_proxy={{upstreams 8787}}
       - caddy.import=cloudflare_tls lan_only
