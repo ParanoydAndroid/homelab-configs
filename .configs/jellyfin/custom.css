@@ -1,0 +1,21 @@
+/* ==============================================================================
+ * Jellyfin Web Custom CSS: Jellyfish (Ocean Palette)
+ *
+ * Components:
+ *   - Jellyfish Base Theme (modern card styling, typography, layout)
+ *   - Ocean Color Palette (deep blue / cyan accents)
+ *   - Compact Mobile Slideshow
+ *   - Watched/Unwatched Indicators & Progress Bars
+ *   - Parallax Background Scroll
+ *   - Jellyfin Enhanced UI Integration
+ *   - Arr Tags & Interactive Search Links
+ * ============================================================================== */
+
+@import url("https://cdn.jsdelivr.net/gh/n00bcodr/Jellyfish/theme.css");
+@import url("https://cdn.jsdelivr.net/gh/n00bcodr/Jellyfish/colors/ocean.css");
+@import url("https://cdn.jsdelivr.net/gh/n00bcodr/Jellyfish/slideshow-compact-mobile.css");
+@import url("https://cdn.jsdelivr.net/gh/n00bcodr/Jellyfish/indicators.css");
+@import url("https://cdn.jsdelivr.net/gh/n00bcodr/Jellyfish/progress_bar.css");
+@import url("https://cdn.jsdelivr.net/gh/n00bcodr/Jellyfish/bg_scroll.css");
+@import url("https://cdn.jsdelivr.net/gh/n00bcodr/Jellyfish/jellyfin-enhanced.css");
+@import url("https://cdn.jsdelivr.net/gh/n00bcodr/Jellyfish/arr-tags-links.css");
