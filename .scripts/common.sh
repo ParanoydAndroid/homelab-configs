@@ -179,6 +179,20 @@ discover_nocow_storage_paths() {
   local compose_file
   for compose_file in "${REPO_DIR}"/*/compose.yml; do
     [[ -f "${compose_file}" ]] || continue
+    local stack_dir
+    stack_dir="$(dirname "${compose_file}")"
+
+    # Safely load stack-level .env or .env.example for stack-specific variable bindings
+    local stack_env="${stack_dir}/.env"
+    [[ -f "${stack_env}" ]] || stack_env="${stack_dir}/.env.example"
+    if [[ -f "${stack_env}" ]]; then
+      while IFS='=' read -r k v || [[ -n "${k}" ]]; do
+        [[ -z "${k}" || "${k}" =~ ^[[:space:]]*# ]] && continue
+        v="${v#\"}"; v="${v%\"}"
+        v="${v#\'}"; v="${v%\'}"
+        export "${k}=${v}"
+      done < "${stack_env}"
+    fi
 
     local current_section=""
     local nocow_targets=()
@@ -295,7 +309,6 @@ GLOBAL_ENV_VARS=(
   "NPM_IPV4_ADDRESS"
   "TAILSCALE_IPV4_ADDRESS"
   "DOCKER_SOCK"
-  "TORRENT_INCOMPLETE_DIR"
   "DRI_RENDER_DEVICE"
 )
 
