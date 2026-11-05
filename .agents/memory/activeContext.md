@@ -1,28 +1,24 @@
 # Active Context
 
 ## Current Focus
-Feature completion and final review gate for Agentic Harness Modernization.
+Stand by for new feature requests, diagnostics, or operational tasks. Agentic harness modernization and alignment complete.
 
 ## Recent Changes
-- Scaffolded 3-file memory bank (`activeContext.md`, `systemPatterns.md`, `progress.md`).
-- Authored subagent specifications (`architect-critic.md`, `code-auditor.md`).
+- Modernized agentic harness in alignment with `ParanoydAndroid/coding-agent`.
+- Established persistent 3-file memory bank (`activeContext.md`, `systemPatterns.md`, `progress.md`).
+- Authored invocable subagent specifications (`architect-critic.md`, `code-auditor.md`).
 - Authored modular rules (`containers-and-env.md`, `shell-scripting.md`).
-- Authored canonical root `AGENTS.md` and established ecosystem symlinks (`agent.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.agents/rules/project-conventions.md`).
-- Migrated test infrastructure to `.harness/` with new `conventions` suite (10 assertions).
-- Decommissioned legacy `.tests/` directory and symlink.
-- Authored unified `manage.sh` operational CLI supporting all homelab lifecycle subcommands.
-- Authored GitHub Actions CI workflow (`.github/workflows/ci.yml`).
-- Installed git hooks protecting `main` branch (`manage.sh hook install`).
-- Deployed updated systemd units to host `/etc/systemd/system/` (`homelab-startup.service` and `homelab-backup.service`).
-- Fully decommissioned `homelab.sh`.
-- Conducted exhaustive documentation and link audit across all 43 markdown files (129 links verified, 0 broken).
-- Verified 100% test pass (79/79 assertions passed across all 7 suites).
+- Converted `AGENTS.md` to canonical root entrypoint with multi-agent symlinks (`agent.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.agents/rules/project-conventions.md`).
+- Migrated test infrastructure to `.harness/` with new `conventions` suite.
+- Fully decommissioned legacy `homelab.sh` and `.tests/` directory.
+- Migrated host systemd service units to `manage.sh startup` and `manage.sh backup`.
+- Replaced all operational CLI and test references across documentation, skills, and templates with `manage.sh` and `.harness/`.
+- Conducted exhaustive documentation and link audit (129/129 valid, 0 broken).
+- Tested and verified: 79/79 assertions passed across 7 test suites; audit clean.
 
 ## Active Decisions
-- `manage.sh` is now the sole operational CLI entrypoint for all homelab operations.
-- `homelab.sh` and `.tests/` are fully decommissioned.
+- `manage.sh` is the master operational entrypoint for all homelab lifecycle operations.
+- Versioning tier: Semantic patch `3.4.1` paired with CalVer `2026.11.5.1`.
 
 ## Immediate Next Steps
-1. Commit the decommissioning of `homelab.sh`.
-2. Present full verification results and summary at the mandatory user review gate.
-3. Await user confirmation before running `feature-completion` (changelog entry, merge, tagging).
+- Stand by for user instructions or next feature initiation.

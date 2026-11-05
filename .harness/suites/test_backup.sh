@@ -68,8 +68,7 @@ test_backup_semver_bumping() {
   source "${REPO_DIR}/.scripts/backup.sh"
 
   local latest cur_maj cur_min cur_patch
-  latest="$(run_git tag -l | grep -E '^v?[0-9]{1,3}\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -n 1)"
-  latest="${latest#v}"
+  latest="$(run_git tag -l | sed 's/^v//' | grep -E '^[0-9]{1,3}\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)"
   IFS='.' read -r cur_maj cur_min cur_patch <<< "${latest}"
   cur_patch="${cur_patch:-0}"
 
@@ -106,8 +105,7 @@ test_backup_tag_resolution() {
   source "${REPO_DIR}/.scripts/backup.sh"
 
   local latest cur_maj cur_min cur_patch exp_patch
-  latest="$(run_git tag -l | grep -E '^v?[0-9]{1,3}\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -n 1)"
-  latest="${latest#v}"
+  latest="$(run_git tag -l | sed 's/^v//' | grep -E '^[0-9]{1,3}\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)"
   IFS='.' read -r cur_maj cur_min cur_patch <<< "${latest}"
   cur_patch="${cur_patch:-0}"
   exp_patch="${cur_maj}.${cur_min}.$((cur_patch + 1))"

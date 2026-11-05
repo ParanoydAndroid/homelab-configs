@@ -439,8 +439,7 @@ bump_semver() {
   local bump_type="$1"
   local latest major minor patch
 
-  latest="$(run_git tag -l | grep -E '^v?[0-9]{1,3}\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -n 1)"
-  latest="${latest#v}"
+  latest="$(run_git tag -l | sed 's/^v//' | grep -E '^[0-9]{1,3}\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)"
 
   if [[ -z "${latest}" ]]; then
     major=0; minor=1; patch=0
