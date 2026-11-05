@@ -30,6 +30,7 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
 | **Mealie Recipes** | `productivity/` | `mealie` | Internal Bridge Only | `9000` | HTTP | `https://recipes.kamaka.tech` | `https://recipes.kamakakai.com`, `https://mom.kamakakai.com` |
 | **WireGuard PIA VPN** | `torrent/` | `wireguard-pia` | Internal Bridge Only | `8081` | HTTP (WebUI) | `https://torrent.kamaka.tech` | None |
 | **qBittorrent** | `torrent/` | `qbittorrentvpn` | Network Mode: `service:vpn` | Dynamic | BitTorrent | `http://qbittorrentvpn:8081` (Internal) | Dynamic VPN Port (`wg0`) |
+| **Cleanuparr** | `torrent/` | `cleanuparr` | Internal Bridge Only | `11011` | HTTP | `https://cleanuparr.kamaka.tech` | None |
 | **VPN Bridge (PIA)** | `mesh/` | `vpn-bridge-pia` | Internal Bridge Only | N/A | WireGuard | Outbound PIA Tunnel (`wg0`) | Egress via US PIA Regions |
 | **VPN Bridge (Tailscale)** | `mesh/` | `vpn-bridge-tailscale` | Network Mode: `service:vpn` | N/A | WireGuard | Node `vpn-bridge` on Mesh | Tailscale Exit Node |
 
@@ -313,6 +314,26 @@ Host network ports on `192.168.0.3` (`nas.home`) are exposed **only** where stri
   * **`wireguard-pia` (VPN)**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia:/pia` for port tokens, `${DOCKER_DATA_DIR}/qbittorrentvpn/data/pia-shared:/pia-shared` for port sync state, and `${DOCKER_DATA_DIR}/qbittorrentvpn/data/set-qbt-port.sh:/set-qbt-port.sh:ro`.
   * **`qbittorrentvpn` (BitTorrent)**: Mounts `${DOCKER_DATA_DIR}/qbittorrentvpn/data/config:/config` for preferences and state, `${DOCKER_DATA_DIR}/qbittorrentvpn/data/incomplete:/incomplete` as scratch storage, and `${MEDIA_DIR}:/media` for completed downloads.
 * **Dependencies & Interconnections**: Downloads managed by Radarr and Sonarr via REST API.
+
+---
+
+### Cleanuparr
+
+| Attribute | Value |
+| :--- | :--- |
+| **Stack Directory** | `torrent/` |
+| **Container Name** | `cleanuparr` |
+| **Host / Network Binding** | Internal `homelab` bridge only (No exposed host ports) |
+| **Internal Container Port**| `11011` |
+| **LAN Address** | `https://cleanuparr.kamaka.tech` |
+| **WAN Address** | None |
+| **Persistent Data Path** | `${DOCKER_DATA_DIR}/cleanuparr/data` |
+| **Associated Secrets** | None |
+
+* **Role & Capabilities**: Automated BitTorrent queue garbage collector and strike manager. Mitigates queue starvation caused by dead peer swarms and stalled metadata fetches (`metaDL`) by enforcing configurable strike rules against stalled downloads and downloading metadata. Automatically triggers replacement indexer searches in Sonarr and Radarr when dead torrents are purged.
+* **Network & Access**: WebUI accessible at `https://cleanuparr.kamaka.tech` via Caddy reverse proxy (`lan_only`). Local network authentication bypass and trusted reverse proxy headers enabled.
+* **Storage & Volume Mappings**: Mounts `${DOCKER_DATA_DIR}/cleanuparr/data:/config` on NVMe for SQLite databases (`cleanuparr.db`, `events.db`, `users.db`) and runtime logs, and `${MEDIA_DIR}:/media:ro` read-only for path alignment with qBittorrent downloads.
+* **Dependencies & Interconnections**: Interacts via REST APIs across the `homelab` bridge with qBittorrent (`http://qbittorrentvpn:8081`), Sonarr (`http://sonarr:8989`), and Radarr (`http://radarr:7878`).
 
 ---
 

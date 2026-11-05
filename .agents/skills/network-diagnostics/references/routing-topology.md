@@ -29,6 +29,9 @@ docker exec caddy curl -s http://localhost:2019/config/apps/http/servers/srv0/ro
 - `radarr.kamaka.tech` -> Radarr (`radarr:7878`)
 - `prowlarr.kamaka.tech` -> Prowlarr (`prowlarr:9696`)
 - `torrent.kamaka.tech` -> qBittorrent (`qbittorrentvpn:8081`)
+- `cleanuparr.kamaka.tech` -> Cleanuparr (`cleanuparr:11011`)
+- `books.kamaka.tech` -> Calibre-Web (`calibre-web:8083`)
+- `bindery.kamaka.tech` -> Bindery (`bindery:8787`)
 - `download.kamaka.tech` -> Caddy File Delivery (`/downloads`)
 - `nas.kamaka.tech` -> UGOS Host Portal (`192.168.255.1:9999`)
 

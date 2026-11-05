@@ -100,6 +100,7 @@ The project encompasses:
 - `/volume2/docker/qbittorrentvpn/data/set-qbt-port.sh` -> `/set-qbt-port.sh:ro` (`wireguard-pia`)
 - `/volume2/docker/qbittorrentvpn/data/config` -> `/config` (`qbittorrentvpn`)
 - `/volume2/docker/qbittorrentvpn/data/incomplete` -> `/incomplete` (`qbittorrentvpn`)
+- `/volume2/docker/cleanuparr/data` -> `/config` (`cleanuparr`)
 - `/volume2/docker/radarr/data` -> `/config` (`radarr`)
 - `/volume2/docker/sonarr/data` -> `/config` (`sonarr`)
 - `/volume2/docker/prowlarr/data` -> `/config` (`prowlarr`)
@@ -125,6 +126,7 @@ The project encompasses:
 | `seerr` | `ghcr.io/seerr-team/seerr:latest` | Runs rootless as non-privileged UID `1000` (`node`) with `init: true`, `cap_drop: [ALL]`, and `no-new-privileges:true` | `1000:100` |
 | `wireguard-pia` | `thrnz/docker-wireguard-pia:latest` | Runs with `cap_add: [NET_ADMIN]` to manage kernel `wg0`, `iptables` kill switch, and PIA port forwarding (`PORT_SCRIPT: /set-qbt-port.sh`) | `1000:100` |
 | `qbittorrentvpn` | `lscr.io/linuxserver/qbittorrent:latest` | Env `PUID: ${PUID}`, `PGID: ${PGID}` with `network_mode: "service:vpn"` (s6 init starts as root then drops to `PUID:PGID`) | `1000:100` |
+| `cleanuparr` | `ghcr.io/cleanuparr/cleanuparr:latest` | Runs as non-root user `ubuntu` (UID `1000`, GID `1000`) internally; `/volume1/media` mounted `:ro` | `1000:1000` |
 | `tandoor` | `vabene1111/recipes` | Env `PUID: ${PUID}`, `PGID: ${PGID}` (`boot.sh` starts as root then drops to `PUID:PGID`) | `1000:100` |
 | `postgresql` | `postgres:16-alpine` | Internal Alpine `postgres` user (`70:70`); do not set `PUID`/`PGID` or `user:` | `70:70` |
 | `homepage` | `ghcr.io/gethomepage/homepage:latest` | Env `PUID: 0`, `PGID: 0` (requires root for `/var/run/docker.sock`) | `0:0` |

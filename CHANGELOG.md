@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.0] / [2026.11.4.1] - Cleanuparr Queue Garbage Collection & VPN Mesh Resilience (2026-11-04)
+
+### Added
+* Deployed Cleanuparr queue management service (`https://cleanuparr.kamaka.tech`) in the `torrent` stack to collect dead magnets and stalled downloads.
+* Implemented automated replacement searches: Sonarr and Radarr automatically search for alternate releases when stalled downloads reach strike limits.
+* Added automated smoke, reverse proxy routing, and interconnect test coverage for Cleanuparr in `.tests/suites/`.
+* Integrated `cleanuparr.db` into the automated Restic online SQLite snapshot staging list in `.scripts/backup.sh`.
+
+### Changed
+* Configured Cleanuparr reverse proxy ingress on Caddy with local subnet authentication bypass and trusted proxy headers.
+* Added Homepage dashboard service widget for Cleanuparr under the Downloads group.
+
+### Fixed
+* Eliminated head-of-line BitTorrent queue starvation in qBittorrent where stalled metadata downloads (`metaDL`) deadlocked the active queue limit.
+* Resolved silent WireGuard tunnel drops on `vpn-bridge-pia` by enabling persistent keepalive (`KEEPALIVE: 25`), automatic reconnect (`RECONNECT: 1`), and active health checks to maintain uninterrupted Tailscale exit node availability.
+
+---
+
 ## [3.2.0] / [2026.11.3.2] - Bindery Book Engine, Calibre Auto-Ingest & BitTorrent Queue Resilience (2026-11-03)
 
 ### Added

@@ -319,6 +319,7 @@ stage_database_dumps() {
       "${DOCKER_DATA_DIR}/prowlarr/data/prowlarr.db"
       "${DOCKER_DATA_DIR}/bindery/data/bindery.db"
       "${DOCKER_DATA_DIR}/calibre-web/data/app.db"
+      "${DOCKER_DATA_DIR}/cleanuparr/data/cleanuparr.db"
     )
     local db db_name
     for db in "${sqlite_dbs[@]}"; do

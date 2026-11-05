@@ -11,12 +11,13 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 ```text
 ~/services/
 ├── compose stack directories/     # Each non-hidden directory represents a single Dockge stack
+│   ├── books/                     # Calibre-Web, Bindery, and Royal Road sync
 │   ├── dashboard/                 # Homepage dashboard
 │   ├── ingress/                   # Caddy Docker Proxy + Cloudflare Tunnel
 │   ├── media/                     # Jellyfin, Seerr, Sonarr, Radarr, Prowlarr, FlareSolverr
 │   ├── mesh/                      # Tailscale Subnet Router + PIA WireGuard Exit Node
 │   ├── productivity/              # Mealie Recipes
-│   └── torrent/                   # WireGuard PIA + qBittorrent client
+│   └── torrent/                   # WireGuard PIA, qBittorrent, and Cleanuparr
 ├── .configs/                      # Bootstrapping assets and systemd service templates
 │   ├── caddy/                     # Base Caddyfile configuration template
 │   ├── dockge/                    # Dockge's own compose.yml and .env.example
