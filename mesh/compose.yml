@@ -38,6 +38,7 @@ services:
       external_npm:
         ipv4_address: ${TAILSCALE_IPV4_ADDRESS:?See env.example for default.}
     labels:
+      - homelab.stack.priority=10
       - homepage.group=Network
       - homepage.name=Tailscale Router
       - homepage.icon=tailscale

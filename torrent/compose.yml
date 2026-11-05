@@ -32,15 +32,16 @@ services:
       LOCAL_NETWORK: 192.168.0.0/16
       VPNDNS: 9.9.9.9,149.112.112.112
       PORT_PERSIST: 1
-      PORT_SUCCESS_SCRIPT: /config/set-qbt-port.sh
+      PORT_SUCCESS_SCRIPT: /set-qbt-port.sh
     volumes:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data/pia:/pia
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/qbittorrentvpn/data:/config
+      - ../.configs/qbittorrentvpn/set-qbt-port.sh:/set-qbt-port.sh:ro
     networks:
       homelab:
         aliases:
           - qbittorrentvpn
     labels:
+      - homelab.stack.priority=20
       - caddy=torrent.kamaka.tech
       - caddy.reverse_proxy={{upstreams 8081}}
       - caddy.import=cloudflare_tls
@@ -64,6 +65,7 @@ services:
       - ${MEDIA_DIR:?See env.example for default.}:/media
     labels:
       - homelab.backup.exclude=/incomplete
+      - homelab.storage.nocow=/incomplete
       - homepage.group=Downloads
       - homepage.name=QBittorrentVPN
       - homepage.icon=qbittorrent

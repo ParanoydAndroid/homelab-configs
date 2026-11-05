@@ -42,6 +42,7 @@ services:
     networks:
       - homelab
     labels:
+      - homelab.stack.priority=30
       - homelab.backup.sqlite=/config/data/jellyfin.db
       - caddy=jellyfin.kamaka.tech, jellyfin.kamakakai.com, media.kamaka.tech, media.kamakakai.com
       - caddy.reverse_proxy={{upstreams 8096}}

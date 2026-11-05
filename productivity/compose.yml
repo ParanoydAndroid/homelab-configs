@@ -22,6 +22,7 @@ services:
     networks:
       - homelab
     labels:
+      - homelab.stack.priority=40
       - homelab.backup.sqlite=/app/data/mealie.db
       - caddy=recipes.kamaka.tech, recipes.kamakakai.com, mom.kamakakai.com
       - caddy.reverse_proxy={{upstreams 9000}}

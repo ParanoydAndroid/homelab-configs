@@ -29,7 +29,7 @@ services:
       - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/data:/data
       - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/config:/config
       - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/downloads:/downloads
-      - ${DOCKER_DATA_DIR:?See env.example for default.}/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../.configs/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     networks:
       homelab:
         aliases:
@@ -37,6 +37,7 @@ services:
       external_npm:
         ipv4_address: ${NPM_IPV4_ADDRESS:?See env.example for default.}
     labels:
+      - homelab.stack.priority=10
       - homepage.group=Administration
       - homepage.name=Caddy Proxy
       - homepage.icon=caddy

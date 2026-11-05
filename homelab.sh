@@ -72,35 +72,15 @@ setup_homelab() {
     chown "${TARGET_USER}:${TARGET_GROUP}" "${DOCKGE_DIR}/compose.yml" 2>/dev/null || true
   fi
 
-  # Deploy qBittorrent port forwarding and anti-thrashing preference script
-  if is_service_enabled "wireguard-pia" || is_service_enabled "qbittorrent"; then
-    local qbt_data_dir="${DOCKER_DATA_DIR}/qbittorrentvpn/data"
-    if [[ -f "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" ]]; then
-      log_info "Ensuring qBittorrent port sync script is present (${qbt_data_dir}/set-qbt-port.sh)..."
-      mkdir -p "${qbt_data_dir}"
-      cp -p "${REPO_DIR}/.configs/qbittorrentvpn/set-qbt-port.sh" "${qbt_data_dir}/set-qbt-port.sh"
-      chmod +x "${qbt_data_dir}/set-qbt-port.sh"
-      chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_data_dir}/set-qbt-port.sh" 2>/dev/null || true
-    fi
-
-    # Ensure qBittorrent scratch incomplete directory exists with write permissions
-    local qbt_incomplete_dir="${qbt_data_dir}/incomplete"
-    if [[ -d "${qbt_incomplete_dir}" ]]; then
-      chmod 775 "${qbt_incomplete_dir}" 2>/dev/null || true
-      chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_incomplete_dir}" 2>/dev/null || true
-    fi
+  # Ensure storage directories with special storage policies (e.g. No-CoW scratch)
+  # are created with standard non-root permissions before container startup.
+  local qbt_incomplete="${DOCKER_DATA_DIR}/qbittorrentvpn/data/incomplete"
+  if [[ ! -d "${qbt_incomplete}" ]]; then
+    mkdir -p "${qbt_incomplete}" 2>/dev/null || true
+    chattr +C "${qbt_incomplete}" 2>/dev/null || true
   fi
-
-  # Deploy Caddyfile if caddy service is enabled
-  if is_service_enabled "caddy"; then
-    local caddy_data_dir="${DOCKER_DATA_DIR}/caddy"
-    if [[ -f "${REPO_DIR}/.configs/caddy/Caddyfile" ]]; then
-      log_info "Ensuring Caddyfile is present (${caddy_data_dir}/Caddyfile)..."
-      mkdir -p "${caddy_data_dir}"
-      cp -p "${REPO_DIR}/.configs/caddy/Caddyfile" "${caddy_data_dir}/Caddyfile"
-      chown "${TARGET_USER}:${TARGET_GROUP}" "${caddy_data_dir}/Caddyfile" 2>/dev/null || true
-    fi
-  fi
+  chmod 775 "${qbt_incomplete}" 2>/dev/null || true
+  chown "${TARGET_USER}:${TARGET_GROUP}" "${qbt_incomplete}" 2>/dev/null || true
 
   log_info "Starting Dockge orchestrator (${DOCKGE_DIR}/compose.yml)..."
   docker compose -f "${DOCKGE_DIR}/compose.yml" --env-file "${DOCKGE_DIR}/.env" up -d

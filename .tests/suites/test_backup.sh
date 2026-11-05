@@ -190,6 +190,24 @@ test_backup_declarative_exclusion_discovery() {
   return 0
 }
 
+test_backup_declarative_stack_priority() {
+  source "${REPO_DIR}/.scripts/common.sh"
+
+  discover_stacks
+
+  local expected_order=("ingress" "mesh" "torrent" "books" "media" "productivity" "dashboard")
+  local actual="${STACKS[*]}"
+  local expected="${expected_order[*]}"
+
+  if [[ "${actual}" != "${expected}" ]]; then
+    printf "Expected priority order '%s', got '%s'" "${expected}" "${actual}"
+    return 1
+  fi
+
+  printf "Verified decade stack priority order: %s" "${actual}"
+  return 0
+}
+
 suite_backup() {
   init_suite "6. Restic Backup & Disaster Recovery Automation"
 
@@ -200,6 +218,7 @@ suite_backup() {
   run_test test_backup_tag_resolution "Verify multi-tag resolution (SemVer, CalVer, custom string)"
   run_test test_backup_declarative_sqlite_discovery "Verify declarative discovery of homelab.backup.sqlite labels"
   run_test test_backup_declarative_exclusion_discovery "Verify declarative resolution of homelab.backup.exclude paths"
+  run_test test_backup_declarative_stack_priority "Verify declarative decade stack priority sorting"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

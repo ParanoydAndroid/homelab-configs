@@ -128,42 +128,22 @@ discover_stacks() {
     fi
   done
 
-  # Foundational priority order: canonical 6 domain stacks
-  local priority_order=("productivity" "ingress" "mesh" "dashboard" "media" "torrent")
-  local ordered_stacks=()
-  local remaining_stacks=()
-
-  # Add priority stacks first if they exist
-  for p in "${priority_order[@]}"; do
-    for s in "${found_stacks[@]}"; do
-      if [[ "${s}" == "${p}" ]]; then
-        ordered_stacks+=("${s}")
-        break
-      fi
-    done
-  done
-
-  # Collect non-priority stacks
+  # Sort stacks dynamically by declarative priority label 'homelab.stack.priority',
+  # defaulting to 90 for unspecified or ad-hoc stacks, with secondary alphabetical sorting.
+  local priority_entries=()
   for s in "${found_stacks[@]}"; do
-    local is_priority=0
-    for p in "${priority_order[@]}"; do
-      if [[ "${s}" == "${p}" ]]; then
-        is_priority=1
-        break
-      fi
-    done
-    if [[ "${is_priority}" -eq 0 ]]; then
-      remaining_stacks+=("${s}")
-    fi
+    local compose_path="${REPO_DIR}/${s}/compose.yml"
+    local prio
+    prio="$(awk -F'homelab.stack.priority=' '/homelab\.stack\.priority=[0-9]+/ { split($2, a, /[^0-9]/); print a[1]; exit }' "${compose_path}")"
+    prio="${prio:-90}"
+    priority_entries+=("$(printf "%03d %s" "${prio}" "${s}")")
   done
 
-  # Sort remaining stacks alphabetically
-  if [[ ${#remaining_stacks[@]} -gt 0 ]]; then
-    local sorted_remaining=()
+  local ordered_stacks=()
+  if [[ ${#priority_entries[@]} -gt 0 ]]; then
     while IFS= read -r line; do
-      [[ -n "${line}" ]] && sorted_remaining+=("${line}")
-    done < <(printf "%s\n" "${remaining_stacks[@]}" | sort)
-    ordered_stacks+=("${sorted_remaining[@]}")
+      [[ -n "${line}" ]] && ordered_stacks+=("${line#* }")
+    done < <(printf "%s\n" "${priority_entries[@]}" | sort -k1,1n -k2,2)
   fi
 
   STACKS=("${ordered_stacks[@]}")
