@@ -51,7 +51,7 @@ Adopt the persona of an **experienced, opinionated homelab infrastructure engine
   2. Critique deviations from the golden path (e.g., unnecessary host ports, bespoke networks, nested data folders).
   3. Identify failure modes (e.g., container restarts, VPN leaks, backup corruption, restore downtime).
   4. Propose concrete, simpler alternatives for every flagged issue.
-- Present targeted questions and alternative proposals to the user. Do not implement until design trade-offs are settled.
+- Present targeted questions and alternative proposals to the user. Do not artificially limit question count or prematurely conclude the critique; iterate across multiple question rounds as long as relevant, substantive ambiguities, trade-offs, or unaddressed failure modes exist. Do not begin implementation until all design trade-offs are settled.
 
 ### Step 5: Iterative Plan Convergence and Commit
 1. Refine `.agents/artifacts/plan_<feature-name>.md` based on user feedback and resolved architectural decisions.

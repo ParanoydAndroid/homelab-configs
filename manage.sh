@@ -355,7 +355,7 @@ CURRENT_BRANCH="$(git branch --show-current 2>/dev/null || true)"
 if [[ "${CURRENT_BRANCH}" == "main" ]]; then
   echo "[HOOK] Running pre-commit/pre-merge validation on main..."
   ./manage.sh audit
-  ./manage.sh test conventions
+  ./manage.sh test all
 fi
 EOF
       chmod 755 "${hooks_dir}/pre-commit"
@@ -368,7 +368,7 @@ while read -r local_ref local_oid remote_ref remote_oid; do
   if [[ "${remote_ref}" == "refs/heads/main" || "${remote_ref}" =~ /main$ ]]; then
     echo "[HOOK] Verifying tests and audit before pushing to main..."
     ./manage.sh audit
-    ./manage.sh test conventions
+    ./manage.sh test all
     break
   fi
 done
