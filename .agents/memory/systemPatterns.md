@@ -9,6 +9,8 @@
 - **TRaSH Guides Adherence**: Media management baseline, NVMe scratch buffering (`/incomplete`), Btrfs No-CoW flags (`chattr +C`), RAM cache, anti-starvation queues.
 
 ## Repository & Agent Patterns
+- **Golden Path & Happy Path Priority**: Strictly prioritize standard interfaces, official framework primitives, standard library mechanics, and established protocols over bespoke wrappers or hand-rolled reinventions.
+- **Subagent Model Tiering**: Tasks routed to models by cognitive requirements (`pro` for architecture reviews and audits, `flash_lite` for high-volume text/diff search, `flash`/`inherit` for standard tasks).
 - **Multi-Agent Entrypoint Aliasing**: `AGENTS.md` is the canonical root file; `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `agent.md`, and `.agents/rules/project-conventions.md` symlink to it.
 - **Memory Bank Lifecycle Synchronization**: Sessions must begin by reading memory bank files; task initiation updates `activeContext.md`; completion updates `activeContext.md` and `progress.md`.
 - **Modular Scoped Rules**: Language and format conventions are glob-triggered (`containers-and-env.md`, `shell-scripting.md`) rather than combined into a single monolith.

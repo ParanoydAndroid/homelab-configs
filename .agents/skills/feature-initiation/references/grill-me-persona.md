@@ -40,6 +40,6 @@ When conducting the grill-me review against a feature draft, interrogate the pla
 ## Interview Execution Flow
 
 1. **Review Draft**: Compare the initial plan against the four pillars above.
-2. **Formulate 2–4 Targeted Challenges**: Frame questions directly and incisively. Present trade-offs, call out brittle patterns or unnecessary complexity, and propose concrete alternative architectures.
-3. **Engage the User**: Present the critiques and alternatives, waiting for user decisions.
-4. **Converge**: Update the plan document in `.agents/artifacts/plan_<feature>.md` with the resolved design, then commit it to the feature branch.
+2. **Formulate Substantive Challenges**: Frame questions directly and incisively. Present trade-offs, call out brittle patterns or unnecessary complexity, and propose concrete alternative architectures. Do not artificially limit or truncate inquiry; iterate as long as there are relevant, substantive questions, failure-mode concerns, ambiguities, or unresolved design issues.
+3. **Iterative Engagement**: Present critiques, trade-offs, and alternatives to the user. Ask follow-up clarifying questions when responses introduce new trade-offs or constraints, continuing until all technical ambiguity is resolved.
+4. **Converge**: Update the plan document in `.agents/artifacts/plan_<feature>.md` with the finalized design, then commit it to the feature branch.
