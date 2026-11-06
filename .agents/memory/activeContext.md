@@ -1,24 +1,20 @@
 # Active Context
 
 ## Current Focus
-Stand by for new feature requests, diagnostics, or operational tasks. Agentic harness modernization and alignment complete.
+Resolved media acquisition & status discrepancies in Seerr:
+1. Terminator (1, 2, 3) availability synchronization resolved.
+2. 3 warning downloads resolved (imported QI XL S23E06, S23E08 into Sonarr, and South Park: Bigger, Longer & Uncut into Radarr; synced to Seerr).
 
 ## Recent Changes
-- Modernized agentic harness in alignment with `ParanoydAndroid/coding-agent`.
-- Established persistent 3-file memory bank (`activeContext.md`, `systemPatterns.md`, `progress.md`).
-- Authored invocable subagent specifications (`architect-critic.md`, `code-auditor.md`).
-- Authored modular rules (`containers-and-env.md`, `shell-scripting.md`).
-- Converted `AGENTS.md` to canonical root entrypoint with multi-agent symlinks (`agent.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.agents/rules/project-conventions.md`).
-- Migrated test infrastructure to `.harness/` with new `conventions` suite.
-- Fully decommissioned legacy `homelab.sh` and `.tests/` directory.
-- Migrated host systemd service units to `manage.sh startup` and `manage.sh backup`.
-- Replaced all operational CLI and test references across documentation, skills, and templates with `manage.sh` and `.harness/`.
-- Conducted exhaustive documentation and link audit (129/129 valid, 0 broken).
-- Tested and verified: 79/79 assertions passed across 7 test suites; audit clean.
+- Diagnosed and resolved Dragon Ball Z Kai metadata/season conflict between Sonarr (TheTVDB 2-season schema) and Jellyfin (TMDb 7-season schema).
+- Batch-mapped and imported all 45 orphaned files from `Season 6` and `Season 7` into Sonarr via API `ManualImport` (44 files to `S02E18`–`S02E61`, 1 file to Specials `S00E08`), achieving 100% completion in Sonarr.
+- Executed `RenameFiles` in Sonarr to organize and standardize all files into `/media/shows/Dragon Ball Z Kai/Season 2/` and `/Specials/`. Purged orphaned duplicate `Season 5`, `Season 6`, and `Season 7` folders.
+- Enabled TheTVDB metadata provider across Series, Seasons, and Episodes in Jellyfin's `Shows` library options, re-identified Dragon Ball Kai with TVDB `88031`, and triggered metadata refresh (Jellyfin now reflects the 2-season structure: S1=98, S2=61, Specials=1).
+- Fixed ANSI C-quoting color escape codes in `manage.sh` and `.harness/lib/common.sh`.
+- Added root privilege enforcement guard to `manage.sh snapshots`.
 
 ## Active Decisions
-- `manage.sh` is the master operational entrypoint for all homelab lifecycle operations.
-- Versioning tier: Semantic patch `3.4.1` paired with CalVer `2026.11.5.1`.
+- Keep monitored downloads clean via API manual imports when safety regex or release title mismatches prevent automatic *arr import.
 
 ## Immediate Next Steps
-- Stand by for user instructions or next feature initiation.
+- Await further user instruction.

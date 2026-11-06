@@ -42,12 +42,12 @@ source "${REPO_DIR}/.scripts/backup.sh"
 # Formatting and Color Helpers
 # ------------------------------------------------------------------------------
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-  CLR_RESET="\033[0m"
-  CLR_BOLD="\033[1m"
-  CLR_GREEN="\033[32m"
-  CLR_RED="\033[31m"
-  CLR_YELLOW="\033[33m"
-  CLR_CYAN="\033[36m"
+  CLR_RESET=$'\033[0m'
+  CLR_BOLD=$'\033[1m'
+  CLR_GREEN=$'\033[32m'
+  CLR_RED=$'\033[31m'
+  CLR_YELLOW=$'\033[33m'
+  CLR_CYAN=$'\033[36m'
 else
   CLR_RESET=""
   CLR_BOLD=""

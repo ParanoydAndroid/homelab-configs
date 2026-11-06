@@ -553,6 +553,7 @@ backup_homelab() {
 #   BACKUP_RESTIC_REPO
 # ------------------------------------------------------------------------------
 snapshots_homelab() {
+  check_root_privileges
   ensure_restic_available
   init_and_sync_env
   local repo="${BACKUP_RESTIC_REPO:-/volume1/backups/homelab-docker}"

@@ -27,7 +27,11 @@
 - Codebase & infrastructure audit: Clean, zero issues (`./manage.sh audit`).
 - Markdown link audit: 129/129 links valid across 43 files.
 - Active containers: 20/20 running and healthy.
-- Active release: `3.4.1` / `2026.11.5.1`.
+- Active release: `3.4.1` / `2026.11.5.2`.
+
+## Recent Fixes
+- [x] Corrected ANSI C-quoting escape sequences (`$'\033[...m'`) in `manage.sh` and `.harness/lib/common.sh` so help heredocs render colors across terminals (including mobile Termux/SSH).
+- [x] Added root privilege check to `manage.sh snapshots` to properly inform non-root users when repository keys require elevated permissions.
 
 ## Known Issues / Backlog
 - None.
