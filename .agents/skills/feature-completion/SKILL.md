@@ -92,21 +92,19 @@ Before writing release notes or committing, conduct a comprehensive audit across
    - Synchronize `activeContext.md` by clearing completed feature focus, updating active patterns, and noting upcoming tasks.
    - Synchronize `progress.md` by recording completed capabilities, updating the automated test count, and noting release tags. Never leave finished milestones marked pending.
 
-### Step 4: Update Changelog (SemVer Minor/Major Releases)
-Review [SemVer and CalVer Guidelines](./references/semver-calver-guidelines.md) for version tier determination, roll-up synthesis, and format rules.
+### Step 4: Update Changelog (Feature Releases & Breaking Changes)
+Review [CalVer and SemVer Release Guidelines](./references/semver-calver-guidelines.md) for version tier determination, roll-up synthesis, and format rules.
 * **Tagging & Changelog Scope**:
-  - Only features automatically receive `semver.minor` or `semver.major` bumps.
-  - All `semver.minor` and `semver.major` changes require a curated `CHANGELOG.md` entry.
-  - Critical or major security remediations may also warrant a `semver.minor` release.
-  - Routine security updates, bugfixes, and patches are typically `semver.patch` or CalVer-only and do not generate a standalone semantic minor version or changelog entry.
-  - If the agent cannot confidently determine whether the changes qualify for major, minor, or patch, it must present its analysis, recommend a version tier, and explicitly ask the user for confirmation before proceeding.
+  - All completed feature branches qualify for a CalVer release (`YYYY.M.D[.N]`) and require a curated `CHANGELOG.md` entry.
+  - SemVer major bumps (`vX.0.0`) are reserved exclusively for breaking changes, major architecture redesigns, or migrations. SemVer minor and patch tags are retired.
+  - Routine security updates, bugfixes, and patches merged directly on `main` receive CalVer tags without standalone changelog entries (their notes roll up into the next feature release).
 * **Roll-Up Overview**:
   - The `CHANGELOG.md` entry must provide a high-level overview of ALL changes across the codebase since the previous changelog entry.
   - The entry rolls up and synthesizes intermediate CalVer commits, hotfixes, refactors, and the completed feature into a unified milestone summary.
-* Calculate next minor SemVer (e.g. via `bump_semver minor` from `.scripts/backup.sh`) and today's CalVer (`date +%Y.%-m.%-d`).
+* Calculate today's CalVer tag (`date +%Y.%-m.%-d`).
 * Prepend the new release section to `CHANGELOG.md` directly below the top header:
   ```markdown
-  ## [<Next-SemVer>] / [<CalVer>] - <Feature Title> (YYYY-MM-DD)
+  ## [<CalVer>] - <Feature Title> (YYYY-MM-DD)
 
   ### Added
   - <Bullet points describing user-facing additions>
@@ -120,15 +118,39 @@ Review [SemVer and CalVer Guidelines](./references/semver-calver-guidelines.md) 
   ### Security
   - <Bullet points describing security hardening or access control updates>
   ```
+  *(If breaking major release, format header as `## [<Next-SemVer-Major>] / [<CalVer>] - <Feature Title> (YYYY-MM-DD)`)*
 
-### Step 5: Clean Up Temporary Planning Artifacts
+### Step 5: Pre-Tagging Proposal Packet & Mandatory Human Approval Gate
+Before committing the changelog or initiating merge/tagging operations, the agent MUST present the **Pre-Tagging Proposal Packet** to the user and pause:
+
+```text
+[ Pre-Tagging Proposal Packet ]
+1. Test Verification:
+   All regression suites passed (./manage.sh test all) with 0 failures.
+   Audit passed (./manage.sh audit) with 0 issues.
+
+2. Commit Roll-Up Analysis:
+   List of commits on main since last release tag:
+   - <commit_sha> <commit_message>
+
+3. Tagging Recommendation:
+   "Recommend CalVer <YYYY.M.D[.N]> (Tier 1: Feature Release)
+    Reason: <Rationale; note whether breaking major SemVer is required>."
+
+4. Changelog Preview:
+   <Preview of drafted CHANGELOG.md entry>
+```
+
+* **CRITICAL PAUSE GATE**: Do NOT proceed to Step 6, Step 7, or Step 8 until the user explicitly reviews and approves the proposal packet.
+
+### Step 6: Clean Up Temporary Planning Artifacts
 Remove ephemeral planning and design documents while preserving persistent architectural artifacts:
 ```bash
 rm -f .agents/artifacts/plan_*.md
 ```
 * Note: Keep persistent architectural specifications (such as `.agents/artifacts/architecture.md`) intact.
 
-### Step 6: Final Feature Branch Commit and Push
+### Step 7: Final Feature Branch Commit and Push
 Stage all modified files (including `compose.yml`, documentation, `CHANGELOG.md`, and rules):
 ```bash
 git add -A
@@ -136,20 +158,21 @@ git commit -m "feat(<feature-name>): complete <feature-name> implementation and 
 git push origin <feature-branch>
 ```
 
-### Step 7: Merge into Main and Apply Dual Release Tags
-Switch to `main`, synchronize with remote, merge the feature branch, apply tags, and push:
+### Step 8: Merge into Main and Apply Release Tags
+Switch to `main`, synchronize with remote, merge the feature branch with `--no-ff`, apply tags, and push:
 ```bash
 git checkout main
 git pull origin main
-git merge <feature-branch>
+git merge --no-ff <feature-branch> -m "merge: merge branch '<feature-branch>' into main"
 
-# Determine versions
-NEXT_SEMVER="<Calculated-SemVer>"
-CURRENT_CALVER="<Calculated-CalVer>"
+# Determine CalVer tag (and SemVer major if breaking)
+CALVER_TAG="$(bash -c 'source .scripts/common.sh && resolve_chronological_tag')"
 
-# Tag release
-git tag -a "${NEXT_SEMVER}" -m "Release ${NEXT_SEMVER} / ${CURRENT_CALVER}"
-git tag -a "${CURRENT_CALVER}" -m "Release ${CURRENT_CALVER}"
+# Tag release (annotated tag)
+git tag -a "${CALVER_TAG}" -m "Release ${CALVER_TAG}: <Headline>"
+
+# If breaking major release:
+# git tag -a "vX.0.0" -m "Release vX.0.0 / ${CALVER_TAG}: <Headline>"
 
 # Push mainline and tags
 git push origin main --tags

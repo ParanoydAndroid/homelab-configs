@@ -57,6 +57,17 @@ test_ci_workflow_presence() {
   [[ -s "${REPO_DIR}/.github/workflows/ci.yml" ]]
 }
 
+test_git_hooks_installed() {
+  if [[ -d "${REPO_DIR}/.git" ]]; then
+    if [[ ! -x "${REPO_DIR}/.git/hooks/pre-push" ]]; then
+      "${REPO_DIR}/manage.sh" hook install >/dev/null 2>&1
+    fi
+    [[ -x "${REPO_DIR}/.git/hooks/pre-commit" ]] && \
+    [[ -x "${REPO_DIR}/.git/hooks/pre-push" ]] && \
+    grep -q "manage.sh test all" "${REPO_DIR}/.git/hooks/pre-push"
+  fi
+}
+
 suite_conventions() {
   init_suite "Agentic Harness & Structural Invariants"
   run_test test_conventions_entrypoint "Canonical AGENTS.md entrypoint exists"
@@ -69,4 +80,5 @@ suite_conventions() {
   run_test test_memory_bank_presence ".agents/memory/ session memory bank exists and is populated"
   run_test test_modular_rules_presence ".agents/rules/ glob-scoped rules exist"
   run_test test_ci_workflow_presence ".github/workflows/ci.yml continuous integration workflow exists"
+  run_test test_git_hooks_installed "Git hooks guarding main branch are installed and executable"
 }

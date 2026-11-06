@@ -110,18 +110,17 @@ When interacting with a user on a freshly cloned repository, or when establishin
     - **Eliminate Redundant Fine Details**: Do not redundantly duplicate fine configuration parameters, code blocks, or data structures across multiple files. Maintain a single source of truth for technical specifics and link to canonical references or source files rather than replicating details.
     - **Focus on Operational Impact**: Highlight user- and operator-facing impacts: architectural shifts, service additions/removals, port/URL routing updates, storage mapping contracts, and security postures.
     - **Omit Internal Development Minutiae**: Exclude internal implementation trivia from high-level documentation and release summaries—such as lines-of-code metrics, internal test assertion counts/pass rates, internal script control-flow constructs (`case` statements, regex pipelines, private helper functions), and minor micro-commits or typo fixes.
-  - **Changelog Governance**:
-    - Update `CHANGELOG.md` exclusively upon major or minor semantic releases (`semver-major` or `semver-minor`).
-    - **Release Versioning Tiers**:
-      - Only substantive feature completions automatically qualify for `semver-minor` or `semver-major` bumps.
-      - All `semver-minor` and `semver-major` releases require a curated `CHANGELOG.md` entry.
-      - Critical or major security remediations may warrant a `semver-minor` release.
-      - Most routine security updates, bugfixes, refactors, and micro-patches are `semver-patch` (or CalVer-only) on their own and do NOT individually generate a full semantic minor release or changelog entry.
-      - **Tier Ambiguity**: If the agent cannot confidently determine whether changes qualify for major, minor, or patch, it must present its analysis, recommend a version tier, and explicitly ask the user for confirmation before updating the changelog or tagging.
-    - **Roll-Up Overview**: Each `CHANGELOG.md` entry must provide a high-level overview of ALL changes made across the codebase since the previous changelog entry. This means a SemVer release rolls up and synthesizes changes across multiple intermediate CalVer commits and routine patches merged to `main`.
-    - Format each release entry with a semantic version header paired with its CalVer tag (e.g. `## [2.4.0] / [2026.11.1.1] - Headline Name (YYYY-MM-DD)`), a short descriptive headline, and categorized bulleted lists (`Added`, `Changed`, `Fixed`, `Security`).
+  - **Release Versioning and Changelog Governance**:
+    - **Primary Versioning Scheme (CalVer)**: Releases are tracked chronologically via PEP 440 Calendar Versioning tags (`YYYY.M.D[.N]`, e.g. `2026.11.6`, `2026.11.6.1`). CalVer tags are applied anywhere that a SemVer minor or patch would have been used. Every completed feature branch merging to `main` receives a CalVer tag and a curated `CHANGELOG.md` entry.
+    - **Strict SemVer Major Isolation**: Semantic Versioning (`vMAJOR.0.0`) is strictly reserved for major architectural shifts, schema resets, breaking interface contracts, or changes requiring manual data/configuration migration. SemVer minor (`vX.Y.0`) and patch (`vX.Y.Z`) tags are retired.
+    - **Release Tiers**:
+      - *Feature Release (CalVer)*: Completed feature branch merging to `main`. Receives an annotated CalVer tag and a curated `CHANGELOG.md` entry.
+      - *Breaking Major Release (Dual Tag)*: Backwards-incompatible change or migration required. Receives dual tags (`vX.0.0` + `YYYY.M.D[.N]`) and a curated `CHANGELOG.md` entry with migration notes.
+      - *Routine Trunk Patch / Hotfix (CalVer-Only)*: Minor bug fix or standalone doc tweak on `main`. Receives an annotated CalVer tag; changelog notes are deferred and rolled up into the next feature release.
+    - **Roll-Up Overview**: Each `CHANGELOG.md` entry provides a high-level overview of ALL changes made across the codebase since the previous changelog entry, synthesizing any intermediate CalVer commits, hotfixes, or refactors.
+    - Format each release entry with its CalVer tag (or dual tag for major releases): e.g. `## [2026.11.6] - Headline Name (YYYY-MM-DD)` or `## [v4.0.0] / [2026.12.1] - Major Architecture Shift (YYYY-MM-DD)`.
     - **Deployer & Maintainer Audience Scope**: Write changelog entries strictly from the perspective of end users, stack deployers, and maintainers. Highlight user-facing operational impacts, service additions/removals, routing changes, and breaking contracts.
-    - Aggregate changes into curated, meaningful bullet points; omit negligible micro-commits, syntax tweaks, or documentation typos (see [`feature-completion`](.agents/skills/feature-completion/SKILL.md)).
+    - Aggregate changes into curated, meaningful bullet points (`Added`, `Changed`, `Fixed`, `Security`); omit negligible micro-commits, syntax tweaks, or documentation typos (see [`feature-completion`](.agents/skills/feature-completion/SKILL.md)).
 
 ## 5. Testing and Quality Assurance Standards
 

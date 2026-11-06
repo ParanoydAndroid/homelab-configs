@@ -20,14 +20,15 @@
   - [x] Comprehensive repository-wide documentation and link audit completed (129/129 valid).
   - [x] Tracked and host systemd unit files updated to `manage.sh`.
   - [x] Legacy `homelab.sh` fully decommissioned.
-  - [x] User review gate approved for minor release `3.5.0` / `2026.11.6`.
+  - [x] Transitioned to CalVer-first release governance (`YYYY.M.D[.N]`), retiring SemVer minor/patch and reserving SemVer major strictly for breaking changes.
+  - [x] Release `2026.11.6` completed and verified.
 
 ## Verification Status
-- Automated test suite: 79/79 passing (`./manage.sh test all`).
+- Automated test suite: 80/80 passing (`./manage.sh test all`).
 - Codebase & infrastructure audit: Clean, zero issues (`./manage.sh audit`).
 - Markdown link audit: 129/129 links valid across 43 files.
 - Active containers: 20/20 running and healthy.
-- Active release: `3.5.0` / `2026.11.6`.
+- Active release: `2026.11.6`.
 
 ## Recent Fixes
 - [x] Corrected ANSI C-quoting escape sequences (`$'\033[...m'`) in `manage.sh` and `.harness/lib/common.sh` so help heredocs render colors across terminals (including mobile Termux/SSH).

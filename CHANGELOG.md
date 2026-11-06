@@ -2,20 +2,22 @@
 
 All notable changes to the homelab infrastructure, service stacks, automation scripts, and documentation are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Major releases are paired with their semantic version and chronological (CalVer) git tag.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Releases are tracked chronologically via PEP 440 CalVer git tags (`YYYY.M.D[.N]`). Major breaking architectural releases are paired with their semantic version (`vX.0.0`).
 
 ---
 
-## [3.5.0] / [2026.11.6] - Tiered Subagents, Completion Audit & Harness Governance (2026-11-06)
+## [2026.11.6] - Tiered Subagents, Completion Audit & Harness Governance (2026-11-06)
 
 ### Added
 * Model-tiered subagent prompt contracts in `.agents/subagents/`: `principal-reviewer` (`pro`) for architecture and codebase audits, `grep-worker` (`flash_lite`) for fast pattern discovery, and `diff-worker` (`flash_lite`) for structural delta analysis.
 * Interactive code and architecture audit step in `feature-completion` runbook (`./manage.sh audit`, diff review, 4-pillar evaluation).
-* Agile Trunk governance, cadence invariants, and Pre-Tagging Proposal Packet in `semver-calver-guidelines.md`.
+* Agile Trunk governance, cadence invariants, and Pre-Tagging Proposal Packet in `semver-calver-guidelines.md` and embedded into `feature-completion` workflow.
+* Automated test assertion in `.harness/suites/test_conventions.sh` verifying that git hooks guarding `main` are installed and executable.
 
 ### Changed
+* Transitioned repository versioning model to CalVer-first governance (`YYYY.M.D[.N]`) for all feature completions, retiring SemVer minor and patch tags; SemVer (`vX.0.0`) is strictly reserved for breaking architectural changes requiring migration.
 * Replaced artificial question caps in `feature-initiation` ("grill-me") with unconstrained substantive inquiry across multiple rounds until trade-offs are settled.
-* Hardened `manage.sh` git hooks to run the complete test suite (`./manage.sh test all`) before committing or pushing to `main`.
+* Hardened `manage.sh` git hooks to run the complete test suite (`./manage.sh test all`) before committing or pushing to `main`, with `HOMELAB_SKIP_HOOK_TESTS=1` emergency bypass support during storage array maintenance.
 * Adopted Golden Path & Happy Path priority across project conventions.
 
 ### Fixed

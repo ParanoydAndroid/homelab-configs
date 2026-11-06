@@ -1,16 +1,17 @@
-# SemVer and CalVer Release Guidelines (Agile Trunk Governance)
+# CalVer and SemVer Release Guidelines (Agile Trunk Governance)
 
 ## 1. Versioning Model Overview
 
-The homelab orchestrator repository tracks changes using a hybrid dual-versioning scheme tailored for **Agile Trunk-Based Development**:
+The homelab orchestrator repository tracks releases using a **CalVer-First** versioning model tailored for **Agile Trunk-Based Development**:
 
-1. **Semantic Versioning (SemVer)**: `vMAJOR.MINOR.PATCH` (e.g. `v3.5.0`)
-   - Identifies functional and architectural milestones.
-   - Always prefixed with a lower-case `v` to distinguish software releases from CalVer.
-   - Used for primary capabilities, breaking changes, and public interface contracts.
-2. **Calendar Versioning (CalVer)**: `YYYY.M.D.N` (e.g. `2026.11.6.1`)
-   - Identifies chronological snapshots, routine backups, and configuration commits on `main`.
-   - Adheres to PEP 440 format (no leading zeros in month/day, monotonic sequence revision `.N` for same-day releases).
+1. **Calendar Versioning (CalVer) — Primary**: `YYYY.M.D[.N]` (e.g. `2026.11.6`, `2026.11.6.1`)
+   - The primary release identifier for all completed feature branches, infrastructure enhancements, and operational updates.
+   - Applied anywhere a SemVer minor or patch would historically have been used.
+   - Adheres to PEP 440 format: no leading zeros in month or day (`2026.11.6`, not `2026.11.06`). The `.N` sequence suffix is used for monotonic same-day release increments after the base tag.
+2. **Semantic Versioning (SemVer) — Breaking Major Releases Only**: `vMAJOR.0.0` (e.g. `v4.0.0`)
+   - Strictly reserved for major breaking architectural shifts, schema resets, breaking interface contracts, or updates requiring manual data/configuration migration.
+   - Always prefixed with a lower-case `v` (e.g. `v4.0.0`).
+   - **Retired**: SemVer minor (`vX.Y.0`) and patch (`vX.Y.Z`) tags are retired in favor of direct CalVer tracking.
 
 ---
 
@@ -20,9 +21,9 @@ In agile trunk-based git, all feature branches merge directly into `main`. The `
 
 | Release Tier | Trigger Event | Cadence | Tagging Action | Changelog Requirement |
 | :--- | :--- | :--- | :--- | :--- |
-| **Tier 1: Semantic Minor** | Completed feature branch merging to `main` with new capabilities. | Several times per sprint / continuous | **Dual Tag**: `vX.Y.0` + `YYYY.M.D.N` | **Mandatory**: Curated roll-up milestone entry. |
-| **Tier 2: Semantic Major** | Breaking contract changes, architectural redesigns, schema resets. | Infrequent / deliberate | **Dual Tag**: `vX.0.0` + `YYYY.M.D.N` | **Mandatory**: Migration guide & breaking notices. |
-| **Tier 3: Trunk Patch / Hotfix** | Routine bug fixes, configuration tweaks, or doc updates. | As needed | **CalVer-Only**: `YYYY.M.D.N` | **Deferred**: Rolled up into next Tier 1 SemVer release. |
+| **Tier 1: Feature Release** | Completed feature branch merging to `main` with verified capabilities. | Continuous / as completed | **CalVer**: `YYYY.M.D[.N]` | **Mandatory**: Curated roll-up milestone entry. |
+| **Tier 2: Breaking Major** | Breaking changes, major architectural redesigns, manual migration required. | Infrequent / deliberate | **Dual Tag**: `vX.0.0` + `YYYY.M.D[.N]` | **Mandatory**: Migration guide & breaking notices. |
+| **Tier 3: Routine Patch / Hotfix** | Standalone bug fixes, configuration tweaks, or doc updates directly on `main`. | As needed | **CalVer-Only**: `YYYY.M.D[.N]` | **Deferred**: Rolled up into next Tier 1 feature release. |
 
 ### Cadence Invariants:
 1. **Never Tag Intermediate Commits on Feature Branches**: Feature branch commits remain untagged. Tags are applied *only* on the merge commit on `main`.
@@ -40,19 +41,19 @@ The agent must **NEVER** apply a tag autonomously. Before executing any tagging 
    All regression suites passed (./manage.sh test all) with 0 failures.
 
 2. Commit Roll-Up Analysis:
-   List of commits on main since last SemVer tag:
+   List of commits on main since last release tag:
    - <commit_sha> <commit_message>
 
-3. Version Tier Recommendation:
-   "Recommend semver-minor (v3.5.0) paired with CalVer 2026.11.6.1
-    Reason: Adds new capability without breaking existing contracts."
+3. Tagging Recommendation:
+   "Recommend CalVer 2026.11.6 (Tier 1: Feature Release)
+    Reason: Adds model-tiered subagents and completion audit without breaking contracts. SemVer major not required."
 
 4. Changelog Preview:
    Drafted CHANGELOG.md entry categorizing Added, Changed, Fixed, and Security items.
 ```
 
 **Human Decision Gate**:
-The user must explicitly approve or adjust the recommended version tier before the agent commits `CHANGELOG.md`, merges to `main`, and tags.
+The user must explicitly approve or adjust the proposed version and changelog before the agent commits `CHANGELOG.md`, merges to `main`, and tags.
 
 ---
 
@@ -60,22 +61,20 @@ The user must explicitly approve or adjust the recommended version tier before t
 
 When completing work on a branch, classify the change into one of the following tiers:
 
-1. **Semantic Major (`semver-major`)**:
-   - Breaking changes to repository structure, core networking architecture (e.g. replacing reverse proxy or subnet schemes), or incompatible CLI automation redesigns.
-   - Requires user confirmation, full test suite pass, and curated `CHANGELOG.md` entry.
-
-2. **Semantic Minor (`semver-minor`)**:
-   - Substantive feature completions automatically qualify for a minor version bump (e.g., adding a new service stack, integrating a dedicated Tailscale VPN bridge, implementing Restic backup subsystem).
-   - Critical or major security remediations that alter access models or introduce significant defense-in-depth layers.
+1. **Feature Release (Tier 1 — CalVer)**:
+   - Substantive feature completions (e.g., adding a new service stack, integrating a dedicated Tailscale VPN bridge, implementing Restic backup subsystem, or modernizing agentic harnesses).
+   - Tag: `YYYY.M.D[.N]`.
    - Requires curated `CHANGELOG.md` entry.
 
-3. **Semantic Patch / CalVer-Only (`semver-patch` / CalVer)**:
-   - Routine bug fixes, minor documentation corrections, micro-patches, and syntax tweaks.
-   - These do **NOT** generate standalone semantic minor bumps or individual changelog entries.
-   - Merged to `main` under CalVer tracking.
+2. **Breaking Major Release (Tier 2 — SemVer Major + CalVer)**:
+   - Breaking changes to repository structure, core networking architecture (e.g. replacing reverse proxy or subnet schemes), or incompatible CLI automation redesigns requiring manual operator migration.
+   - Tag: Dual tag `vX.0.0` + `YYYY.M.D[.N]`.
+   - Requires explicit user confirmation, migration guide, and curated `CHANGELOG.md` entry.
 
-4. **Tier Ambiguity**:
-   - If the agent cannot confidently determine whether changes qualify for major, minor, or patch, it must present its analysis, recommend a version tier, and explicitly ask the user for confirmation before updating the changelog or tagging.
+3. **Routine Patch / Hotfix (Tier 3 — CalVer-Only)**:
+   - Routine bug fixes, minor documentation corrections, micro-patches, and syntax tweaks merged directly to `main`.
+   - Tag: `YYYY.M.D[.N]`.
+   - Changelog notes deferred and rolled up into the next feature release.
 
 ---
 
@@ -83,8 +82,8 @@ When completing work on a branch, classify the change into one of the following 
 
 Each `CHANGELOG.md` entry must provide a high-level overview of **ALL** changes across the codebase since the previous changelog entry.
 
-Because multiple routine patches, bug fixes, and CalVer commits may accumulate on `main` between minor feature releases:
-- The changelog entry for a new SemVer release must roll up and synthesize those intermediate commits alongside the new feature.
+Because multiple routine patches, bug fixes, and CalVer commits may accumulate on `main` between feature releases:
+- The changelog entry for a new release must roll up and synthesize those intermediate commits alongside the new feature.
 - Aggregate changes into curated, meaningful bullet points categorized under `Added`, `Changed`, `Fixed`, and `Security`.
 - **Deployer-Focused Brevity & Scope**:
   - Write entries strictly from the perspective of stack deployers and maintainers.
@@ -94,22 +93,34 @@ Because multiple routine patches, bug fixes, and CalVer commits may accumulate o
 
 ---
 
-## Changelog Entry Format Example
+## 6. Changelog Entry Format Examples
 
+### Standard Feature Release (CalVer)
 ```markdown
-## [2.4.0] / [2026.11.1.1] - Dedicated Tailscale PIA VPN Bridge (2026-11-01)
+## [2026.11.6] - Dedicated Background Worker & Event Queue (2026-11-06)
 
 ### Added
-- Dedicated `vpn-bridge` stack pairing Tailscale and Gluetun PIA WireGuard into a unified exit node and subnet router.
-- Automated health check assertions for subnet routing and NAT masquerade iptables rules.
+- Dedicated event queue consumer service with automated backoff retry and dead-letter queue.
+- Automated health check probes and contract assertion test suite.
 
 ### Changed
-- Standardized Docker Compose missing variable assertions across all 12 stack definitions.
-- Migrated default VPN DNS resolver to Quad9 (`9.9.9.9,149.112.112.112`) for improved privacy and malware blocking.
+- Standardized environment variable missing parameter assertions across all service manifests.
 
 ### Fixed
-- Remediated Tailscale subnet routing loop caused by `100.64.0.0/10` in `LOCAL_NETWORK`.
+- Remediated memory leak in websocket event dispatcher during client reconnection storms.
 
 ### Security
-- Hardened Tailscale TUN device access with explicit `cap_add: [NET_ADMIN]` and `cap_drop: [ALL]`.
+- Enforced non-root execution container profiles with dropped capabilities (`cap_drop: [ALL]`).
+```
+
+### Breaking Major Release (SemVer Major + CalVer)
+```markdown
+## [v4.0.0] / [2026.12.1] - Orchestrator Architecture Overhaul (2026-12-01)
+
+### Breaking Changes & Migration Notice
+- Replaced Docker Compose v1 with Compose v2 plugin specification; manual host update required (`manage.sh setup`).
+- Migrated default bridge subnet from `192.168.255.0/24` to `172.28.0.0/16`.
+
+### Added
+- Native health check telemetry and service discovery endpoints.
 ```

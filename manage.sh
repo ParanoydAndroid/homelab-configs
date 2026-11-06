@@ -353,7 +353,12 @@ set -euo pipefail
 
 CURRENT_BRANCH="$(git branch --show-current 2>/dev/null || true)"
 if [[ "${CURRENT_BRANCH}" == "main" ]]; then
+  if [[ "${HOMELAB_SKIP_HOOK_TESTS:-0}" == "1" ]]; then
+    echo "[HOOK] HOMELAB_SKIP_HOOK_TESTS=1 set; bypassing pre-commit tests."
+    exit 0
+  fi
   echo "[HOOK] Running pre-commit/pre-merge validation on main..."
+  echo "[HOOK] (Set HOMELAB_SKIP_HOOK_TESTS=1 or use --no-verify during storage array maintenance)"
   ./manage.sh audit
   ./manage.sh test all
 fi
@@ -366,7 +371,12 @@ set -euo pipefail
 
 while read -r local_ref local_oid remote_ref remote_oid; do
   if [[ "${remote_ref}" == "refs/heads/main" || "${remote_ref}" =~ /main$ ]]; then
+    if [[ "${HOMELAB_SKIP_HOOK_TESTS:-0}" == "1" ]]; then
+      echo "[HOOK] HOMELAB_SKIP_HOOK_TESTS=1 set; bypassing pre-push tests."
+      exit 0
+    fi
     echo "[HOOK] Verifying tests and audit before pushing to main..."
+    echo "[HOOK] (Set HOMELAB_SKIP_HOOK_TESTS=1 or use --no-verify during storage array maintenance)"
     ./manage.sh audit
     ./manage.sh test all
     break
