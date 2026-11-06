@@ -41,7 +41,7 @@ The repository root is deployed at `${DOCKGE_STACKS_DIR}` (typically `/opt/${USE
 │   └── operations.md              # CLI runbooks, systemd services, and storage operations
 ├── .agents/                       # Agent personas, instructions, rules, and architecture specs
 │   ├── memory/                    # Persistent session memory bank (activeContext.md, systemPatterns.md, progress.md)
-│   ├── subagents/                 # Invocable subagent persona specifications (architect-critic.md, code-auditor.md)
+│   ├── subagents/                 # Model-tiered subagents (principal-reviewer, grep-worker, diff-worker)
 │   ├── rules/                     # Scoped rules (containers-and-env.md, shell-scripting.md)
 │   ├── skills/                    # Operational runbooks (start-homelab, stack-lifecycle, etc.)
 │   └── artifacts/                 # Versioned design plans and architecture specifications

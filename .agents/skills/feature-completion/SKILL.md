@@ -31,7 +31,35 @@ Execute the entire test suite against the live environment:
   4. Do NOT commit, merge, or tag.
   5. Report the exact test failure and logs to the user and wait for instructions.
 
-### Step 2: Systematic Documentation and Runbook Audit
+### Step 2: Interactive Code & Architecture Audit (`principal-reviewer`)
+Before proceeding to documentation and release notes, conduct an interactive code audit using the `principal-reviewer` persona (`Model: "pro"`):
+
+1. **Automated Baseline Audit**:
+   Execute the baseline audit command to verify mechanical hygiene:
+   ```bash
+   ./manage.sh audit
+   ```
+   * Ensure 0 world-writable files, 0 broken symlinks, valid git index execution modes (`100755` for scripts), compliant container host ports, and full environment template alignment.
+
+2. **Branch Diff Inspection**:
+   Inspect the full implementation diff relative to `main`:
+   ```bash
+   git diff main...HEAD
+   ```
+
+3. **Architectural Evaluation Across 4 Pillars**:
+   The reviewer evaluates the concrete changes against the core design priorities:
+   - **Golden Path & Mechanical Integrity**: Did fragile wrappers, redundant utility functions, or undocumented workarounds sneak into the code? Can native platform primitives, standard libraries, or framework features replace custom logic?
+   - **Declarative State & Idempotency**: Are configurations centrally declared in `.env.example` with strict parameter expansion assertions (`${VAR:?error}`)? Does the system converge cleanly and idempotently via `./manage.sh setup`?
+   - **Failure Modes & Defensiveness**: Are errors handled defensively without silent suppression? Are existing automated tests respected and preserved? Are bug fixes accompanied by reproducing regression tests?
+   - **Least Privilege & Boundary Security**: Are permissions strictly least-privilege (secrets at `600`, scripts at `755`)? Are service identities non-root and credentials excluded from git history, logs, and artifacts?
+
+4. **Interactive Engagement**:
+   - The reviewer presents its findings, concrete trade-offs, and proposed simplifications to the user.
+   - If architectural concerns, anti-patterns, or drift are identified, address and remediate them before proceeding.
+   - Do not proceed to documentation or release steps until user alignment is settled.
+
+### Step 3: Systematic Documentation and Runbook Audit
 Before writing release notes or committing, conduct a comprehensive audit across all documentation, runbooks, and skills to ensure they accurately reflect the feature's changes:
 
 1. **Branch Diff Inspection**:
@@ -64,7 +92,7 @@ Before writing release notes or committing, conduct a comprehensive audit across
    - Synchronize `activeContext.md` by clearing completed feature focus, updating active patterns, and noting upcoming tasks.
    - Synchronize `progress.md` by recording completed capabilities, updating the automated test count, and noting release tags. Never leave finished milestones marked pending.
 
-### Step 3: Update Changelog (SemVer Minor/Major Releases)
+### Step 4: Update Changelog (SemVer Minor/Major Releases)
 Review [SemVer and CalVer Guidelines](./references/semver-calver-guidelines.md) for version tier determination, roll-up synthesis, and format rules.
 * **Tagging & Changelog Scope**:
   - Only features automatically receive `semver.minor` or `semver.major` bumps.
@@ -93,14 +121,14 @@ Review [SemVer and CalVer Guidelines](./references/semver-calver-guidelines.md) 
   - <Bullet points describing security hardening or access control updates>
   ```
 
-### Step 4: Clean Up Temporary Planning Artifacts
+### Step 5: Clean Up Temporary Planning Artifacts
 Remove ephemeral planning and design documents while preserving persistent architectural artifacts:
 ```bash
 rm -f .agents/artifacts/plan_*.md
 ```
 * Note: Keep persistent architectural specifications (such as `.agents/artifacts/architecture.md`) intact.
 
-### Step 5: Final Feature Branch Commit and Push
+### Step 6: Final Feature Branch Commit and Push
 Stage all modified files (including `compose.yml`, documentation, `CHANGELOG.md`, and rules):
 ```bash
 git add -A
@@ -108,7 +136,7 @@ git commit -m "feat(<feature-name>): complete <feature-name> implementation and 
 git push origin <feature-branch>
 ```
 
-### Step 6: Merge into Main and Apply Dual Release Tags
+### Step 7: Merge into Main and Apply Dual Release Tags
 Switch to `main`, synchronize with remote, merge the feature branch, apply tags, and push:
 ```bash
 git checkout main
