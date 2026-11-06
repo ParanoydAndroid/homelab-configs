@@ -16,4 +16,4 @@
 - **Modular Scoped Rules**: Language and format conventions are glob-triggered (`containers-and-env.md`, `shell-scripting.md`) rather than combined into a single monolith.
 - **Operational Dispatcher**: `./manage.sh` orchestrates `setup`, `startup`, `backup`, `snapshots`, `restore`, `test`, `audit`, and `hook` with zero external dependencies.
 - **Protected Mainline**: Direct commits and pushes to `main` are guarded by git hooks and CI; feature branches permit unrestricted intermediate commits.
-- **Agile Trunk Dual-Tagging**: Semantic versioning (`vMAJOR.MINOR.PATCH`) for functional milestones paired with Calendar Versioning (`YYYY.M.D.N`) for continuous trunk deployments.
+- **CalVer-First Agile Trunk Governance**: Releases are tracked chronologically via Calendar Versioning (`YYYY.M.D[.N]`). CalVer tags are applied strictly where at least a SemVer minor would previously have been used (feature completions). Routine patches and bugfixes remain untagged commits on `main`. SemVer (`vMAJOR.0.0`) is strictly reserved for breaking architectural changes requiring manual migration; minor and patch SemVer tags are retired.

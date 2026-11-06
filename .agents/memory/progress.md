@@ -20,7 +20,7 @@
   - [x] Comprehensive repository-wide documentation and link audit completed (129/129 valid).
   - [x] Tracked and host systemd unit files updated to `manage.sh`.
   - [x] Legacy `homelab.sh` fully decommissioned.
-  - [x] Transitioned to CalVer-first release governance (`YYYY.M.D[.N]`), retiring SemVer minor/patch and reserving SemVer major strictly for breaking changes.
+  - [x] Codified CalVer-first release governance (CalVer tags applied strictly where SemVer minor was used before; routine patches remain untagged commits on main; SemVer major reserved for breaking changes).
   - [x] Release `2026.11.6` completed and verified.
 
 ## Verification Status

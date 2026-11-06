@@ -97,10 +97,10 @@ Review [CalVer and SemVer Release Guidelines](./references/semver-calver-guideli
 * **Tagging & Changelog Scope**:
   - All completed feature branches qualify for a CalVer release (`YYYY.M.D[.N]`) and require a curated `CHANGELOG.md` entry.
   - SemVer major bumps (`vX.0.0`) are reserved exclusively for breaking changes, major architecture redesigns, or migrations. SemVer minor and patch tags are retired.
-  - Routine security updates, bugfixes, and patches merged directly on `main` receive CalVer tags without standalone changelog entries (their notes roll up into the next feature release).
+  - Routine security updates, bugfixes, micro-patches, and documentation adjustments merged directly on `main` remain untagged commits without standalone changelog entries (their notes roll up into the next feature release).
 * **Roll-Up Overview**:
   - The `CHANGELOG.md` entry must provide a high-level overview of ALL changes across the codebase since the previous changelog entry.
-  - The entry rolls up and synthesizes intermediate CalVer commits, hotfixes, refactors, and the completed feature into a unified milestone summary.
+  - The entry rolls up and synthesizes intermediate untagged commits, hotfixes, refactors, and the completed feature into a unified milestone summary.
 * Calculate today's CalVer tag (`date +%Y.%-m.%-d`).
 * Prepend the new release section to `CHANGELOG.md` directly below the top header:
   ```markdown

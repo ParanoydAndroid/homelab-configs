@@ -15,7 +15,8 @@ Completed release `2026.11.6` integrating model-tiered subagents, interactive co
 - Added root privilege enforcement guard to `manage.sh snapshots`.
 
 ## Active Decisions
-- Primary release tag is CalVer (`YYYY.M.D[.N]`). SemVer is strictly reserved for breaking major releases (`vX.0.0`).
+- Primary release tag is CalVer (`YYYY.M.D[.N]`), applied strictly where at least a SemVer minor was previously used (feature completions). SemVer (`vX.0.0`) is strictly reserved for breaking major releases.
+- Routine patches, bug fixes, micro-commits, and documentation edits remain untagged commits on `main`.
 - Keep monitored downloads clean via API manual imports when safety regex or release title mismatches prevent automatic *arr import.
 
 ## Immediate Next Steps

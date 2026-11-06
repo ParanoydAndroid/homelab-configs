@@ -4,9 +4,10 @@
 
 The homelab orchestrator repository tracks releases using a **CalVer-First** versioning model tailored for **Agile Trunk-Based Development**:
 
-1. **Calendar Versioning (CalVer) — Primary**: `YYYY.M.D[.N]` (e.g. `2026.11.6`, `2026.11.6.1`)
-   - The primary release identifier for all completed feature branches, infrastructure enhancements, and operational updates.
-   - Applied anywhere a SemVer minor or patch would historically have been used.
+1. **Calendar Versioning (CalVer) — Feature Releases Only**: `YYYY.M.D[.N]` (e.g. `2026.11.6`, `2026.11.6.1`)
+   - Applied strictly where at least a SemVer minor would previously have been used (feature completions and substantive capabilities).
+   - Every completed feature branch merging to `main` receives an annotated CalVer tag and a curated `CHANGELOG.md` entry.
+   - **No Tagging of Routine Patches**: Routine bug fixes, configuration adjustments, micro-patches, and documentation updates do NOT receive CalVer tags; they remain untagged commits on `main`.
    - Adheres to PEP 440 format: no leading zeros in month or day (`2026.11.6`, not `2026.11.06`). The `.N` sequence suffix is used for monotonic same-day release increments after the base tag.
 2. **Semantic Versioning (SemVer) — Breaking Major Releases Only**: `vMAJOR.0.0` (e.g. `v4.0.0`)
    - Strictly reserved for major breaking architectural shifts, schema resets, breaking interface contracts, or updates requiring manual data/configuration migration.
@@ -23,11 +24,12 @@ In agile trunk-based git, all feature branches merge directly into `main`. The `
 | :--- | :--- | :--- | :--- | :--- |
 | **Tier 1: Feature Release** | Completed feature branch merging to `main` with verified capabilities. | Continuous / as completed | **CalVer**: `YYYY.M.D[.N]` | **Mandatory**: Curated roll-up milestone entry. |
 | **Tier 2: Breaking Major** | Breaking changes, major architectural redesigns, manual migration required. | Infrequent / deliberate | **Dual Tag**: `vX.0.0` + `YYYY.M.D[.N]` | **Mandatory**: Migration guide & breaking notices. |
-| **Tier 3: Routine Patch / Hotfix** | Standalone bug fixes, configuration tweaks, or doc updates directly on `main`. | As needed | **CalVer-Only**: `YYYY.M.D[.N]` | **Deferred**: Rolled up into next Tier 1 feature release. |
+| **Tier 3: Routine Patch / Hotfix** | Standalone bug fixes, configuration tweaks, or doc updates directly on `main`. | As needed | **Untagged Commit** | **Deferred**: Rolled up into next Tier 1 feature release. |
 
 ### Cadence Invariants:
 1. **Never Tag Intermediate Commits on Feature Branches**: Feature branch commits remain untagged. Tags are applied *only* on the merge commit on `main`.
-2. **Annotated Tags Only**: All tags must be created as annotated tags (`git tag -a <tag> -m "<message>"`) to preserve tagger identity, timestamp, and message for `git describe`.
+2. **Never Tag Routine Patches**: Routine fixes, micro-commits, and documentation adjustments on `main` remain untagged commits. CalVer tags are reserved strictly for feature releases and breaking major milestones.
+3. **Annotated Tags Only**: All tags must be created as annotated tags (`git tag -a <tag> -m "<message>"`) to preserve tagger identity, timestamp, and message for `git describe`.
 
 ---
 
@@ -71,9 +73,9 @@ When completing work on a branch, classify the change into one of the following 
    - Tag: Dual tag `vX.0.0` + `YYYY.M.D[.N]`.
    - Requires explicit user confirmation, migration guide, and curated `CHANGELOG.md` entry.
 
-3. **Routine Patch / Hotfix (Tier 3 — CalVer-Only)**:
+3. **Routine Patch / Hotfix (Tier 3 — Untagged Commit)**:
    - Routine bug fixes, minor documentation corrections, micro-patches, and syntax tweaks merged directly to `main`.
-   - Tag: `YYYY.M.D[.N]`.
+   - Tag: **None** (untagged commit).
    - Changelog notes deferred and rolled up into the next feature release.
 
 ---
@@ -82,7 +84,7 @@ When completing work on a branch, classify the change into one of the following 
 
 Each `CHANGELOG.md` entry must provide a high-level overview of **ALL** changes across the codebase since the previous changelog entry.
 
-Because multiple routine patches, bug fixes, and CalVer commits may accumulate on `main` between feature releases:
+Because multiple routine patches, bug fixes, and untagged commits may accumulate on `main` between feature releases:
 - The changelog entry for a new release must roll up and synthesize those intermediate commits alongside the new feature.
 - Aggregate changes into curated, meaningful bullet points categorized under `Added`, `Changed`, `Fixed`, and `Security`.
 - **Deployer-Focused Brevity & Scope**:
